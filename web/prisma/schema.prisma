@@ -1,0 +1,442 @@
+// Online Business Permit System — Prisma Schema
+// Database: PostgreSQL 16
+// ORM: Prisma 5.x
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// MODULE 1: User & Access Management
+// ============================================================================
+
+enum Role {
+  APPLICANT
+  STAFF
+  REVIEWER
+  ADMINISTRATOR
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+model User {
+  id                String        @id @default(cuid())
+  email             String        @unique
+  emailVerified     DateTime?
+  password          String
+  firstName         String
+  lastName          String
+  middleName        String?
+  phone             String?
+  role              Role          @default(APPLICANT)
+  status            AccountStatus @default(PENDING_VERIFICATION)
+  avatar            String?
+  twoFactorEnabled  Boolean       @default(false)
+  twoFactorSecret   String?
+  lastLoginAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  applications      Application[]
+  documents         Document[]
+  activityLogs      ActivityLog[]
+  otpTokens         OtpToken[]
+  sessions          Session[]
+  reviewActions     ReviewAction[]
+  issuanceActions   PermitIssuance[] @relation("issuedBy")
+  slotReservations  SlotReservation[]
+  claimReferences   ClaimReference[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  token     String
+  type      String   // "EMAIL_VERIFICATION" | "PASSWORD_RESET" | "LOGIN_OTP"
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("otp_tokens")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String   // e.g., "LOGIN", "CREATE_APPLICATION", "APPROVE_PERMIT"
+  entity      String?  // e.g., "Application", "Document"
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// ============================================================================
+// MODULE 2: Permit Application Management
+// ============================================================================
+
+enum ApplicationType {
+  NEW
+  RENEWAL
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model Application {
+  id                String            @id @default(cuid())
+  applicationNumber String            @unique
+  type              ApplicationType
+  status            ApplicationStatus @default(DRAFT)
+
+  // Applicant info
+  applicantId       String
+  applicant         User              @relation(fields: [applicantId], references: [id])
+
+  // Business info
+  businessName      String
+  businessType      String
+  businessAddress   String
+  businessBarangay  String?
+  businessCity      String?
+  businessProvince  String?
+  businessZipCode   String?
+  businessPhone     String?
+  businessEmail     String?
+  dtiSecRegistration String?
+  tinNumber         String?
+  sssNumber         String?
+  businessArea      Float?            // in sqm
+  numberOfEmployees Int?
+  capitalInvestment Decimal?          @db.Decimal(15, 2)
+  grossSales        Decimal?          @db.Decimal(15, 2)
+
+  // Additional data (flexible JSON for custom fields)
+  additionalData    Json?
+
+  // Renewal reference
+  previousPermitId  String?
+  previousPermit    Permit?           @relation("renewalOf", fields: [previousPermitId], references: [id])
+
+  // Timestamps
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  rejectionReason   String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  documents         Document[]
+  history           ApplicationHistory[]
+  reviewActions     ReviewAction[]
+  claimSchedule     SlotReservation?
+  claimReference    ClaimReference?
+  permit            Permit?           @relation("permitApplication")
+
+  @@index([applicantId])
+  @@index([status])
+  @@index([applicationNumber])
+  @@index([createdAt])
+  @@map("applications")
+}
+
+model ApplicationHistory {
+  id              String            @id @default(cuid())
+  applicationId   String
+  previousStatus  ApplicationStatus?
+  newStatus       ApplicationStatus
+  comment         String?
+  changedBy       String?
+  createdAt       DateTime          @default(now())
+  application     Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([createdAt])
+  @@map("application_history")
+}
+
+model ReviewAction {
+  id              String            @id @default(cuid())
+  applicationId   String
+  reviewerId      String
+  action          String            // "APPROVE" | "REJECT" | "REQUEST_REVISION" | "COMMENT"
+  comment         String?
+  createdAt       DateTime          @default(now())
+  application     Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewer        User              @relation(fields: [reviewerId], references: [id])
+
+  @@index([applicationId])
+  @@index([reviewerId])
+  @@map("review_actions")
+}
+
+// ============================================================================
+// MODULE 3: Digital Document Management
+// ============================================================================
+
+enum DocumentStatus {
+  UPLOADED
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+model Document {
+  id              String         @id @default(cuid())
+  applicationId   String
+  uploadedBy      String
+  fileName        String
+  originalName    String
+  mimeType        String
+  fileSize        Int            // in bytes
+  filePath        String         // storage path (MinIO/S3 key)
+  documentType    String         // e.g., "DTI_CERTIFICATE", "BARANGAY_CLEARANCE"
+  status          DocumentStatus @default(UPLOADED)
+  version         Int            @default(1)
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  application     Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  uploader        User           @relation(fields: [uploadedBy], references: [id])
+
+  @@index([applicationId])
+  @@index([documentType])
+  @@index([status])
+  @@map("documents")
+}
+
+// ============================================================================
+// MODULE 4: Application & Renewal Tracking (uses Application + History above)
+// ============================================================================
+
+// (Tracking is powered by Application, ApplicationHistory, and real-time events)
+
+// ============================================================================
+// MODULE 5: Claim Scheduling Management
+// ============================================================================
+
+model ClaimSchedule {
+  id          String          @id @default(cuid())
+  date        DateTime        @db.Date
+  isBlocked   Boolean         @default(false)
+  blockReason String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  timeSlots   TimeSlot[]
+
+  @@unique([date])
+  @@index([date])
+  @@map("claim_schedules")
+}
+
+model TimeSlot {
+  id              String            @id @default(cuid())
+  scheduleId      String
+  startTime       String            // e.g., "08:00"
+  endTime         String            // e.g., "09:00"
+  maxCapacity     Int
+  currentCount    Int               @default(0)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  schedule        ClaimSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  reservations    SlotReservation[]
+
+  @@index([scheduleId])
+  @@map("time_slots")
+}
+
+enum ReservationStatus {
+  TEMPORARY
+  CONFIRMED
+  CANCELLED
+  RESCHEDULED
+  COMPLETED
+}
+
+model SlotReservation {
+  id              String            @id @default(cuid())
+  timeSlotId      String
+  applicationId   String            @unique
+  userId          String
+  status          ReservationStatus @default(TEMPORARY)
+  claimId         String?           @unique // unique Claim ID generated on confirmation
+  temporaryHoldExpiry DateTime?
+  confirmedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  timeSlot        TimeSlot          @relation(fields: [timeSlotId], references: [id])
+  application     Application       @relation(fields: [applicationId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
+
+  @@index([timeSlotId])
+  @@index([userId])
+  @@index([status])
+  @@map("slot_reservations")
+}
+
+// ============================================================================
+// MODULE 6: Claim Reference & Reporting
+// ============================================================================
+
+enum ClaimReferenceStatus {
+  GENERATED
+  VERIFIED
+  CLAIMED
+  EXPIRED
+}
+
+model ClaimReference {
+  id                String               @id @default(cuid())
+  referenceNumber   String               @unique
+  applicationId     String               @unique
+  generatedBy       String
+  applicantName     String
+  businessName      String
+  applicationStatus String
+  claimScheduleDate DateTime?
+  claimScheduleTime String?
+  transactionDetails Json?
+  status            ClaimReferenceStatus @default(GENERATED)
+  verifiedAt        DateTime?
+  claimedAt         DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  application       Application          @relation(fields: [applicationId], references: [id])
+  generator         User                 @relation(fields: [generatedBy], references: [id])
+
+  @@index([referenceNumber])
+  @@index([applicationId])
+  @@index([status])
+  @@map("claim_references")
+}
+
+// ============================================================================
+// MODULE 7: Permit Issuance & Certification
+// ============================================================================
+
+enum PermitStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  RENEWED
+}
+
+enum IssuanceStatus {
+  PREPARED
+  ISSUED
+  RELEASED
+  COMPLETED
+}
+
+model Permit {
+  id              String       @id @default(cuid())
+  permitNumber    String       @unique
+  applicationId   String       @unique
+  businessName    String
+  businessAddress String
+  ownerName       String
+  issueDate       DateTime
+  expiryDate      DateTime
+  status          PermitStatus @default(ACTIVE)
+  permitData      Json?        // Additional permit details
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  application     Application  @relation("permitApplication", fields: [applicationId], references: [id])
+  issuance        PermitIssuance?
+  renewals        Application[] @relation("renewalOf")
+
+  @@index([permitNumber])
+  @@index([status])
+  @@index([expiryDate])
+  @@map("permits")
+}
+
+model PermitIssuance {
+  id              String         @id @default(cuid())
+  permitId        String         @unique
+  issuedById      String
+  status          IssuanceStatus @default(PREPARED)
+  issuedAt        DateTime?
+  releasedAt      DateTime?
+  completedAt     DateTime?
+  staffNotes      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  permit          Permit         @relation(fields: [permitId], references: [id])
+  issuedBy        User           @relation("issuedBy", fields: [issuedById], references: [id])
+
+  @@index([status])
+  @@index([issuedById])
+  @@map("permit_issuances")
+}
+
+// ============================================================================
+// System Settings
+// ============================================================================
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string") // "string" | "number" | "boolean" | "json"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
