@@ -1,0 +1,89 @@
+services:
+  # ── PostgreSQL ────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: obps-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: business_permit
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (caching, queues, rate limiting) ────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: obps-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # ── MinIO (S3-compatible storage) ─────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: obps-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── App ───────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: obps-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres_password@postgres:5432/business_permit?schema=public"
+      AUTH_SECRET: "your-production-secret-change-this-32-chars"
+      NEXTAUTH_URL: "http://localhost:3000"
+      REDIS_URL: "redis://redis:6379"
+      S3_ENDPOINT: "http://minio:9000"
+      S3_ACCESS_KEY: "minioadmin"
+      S3_SECRET_KEY: "minioadmin123"
+      S3_BUCKET: "permits"
+      S3_REGION: "us-east-1"
+      GOV_API_MOCK: "true"
+      METRICS_TOKEN: "change-this-metrics-token"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

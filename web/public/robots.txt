@@ -1,0 +1,9 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /verify-otp
+Disallow: /forgot-password
+
+Sitemap: https://permit.lgu.gov.ph/sitemap.xml
