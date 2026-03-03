@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 import {
   FileText,
   Clock,
@@ -17,6 +18,24 @@ export default async function DashboardPage() {
   }
 
   const { role, firstName } = session.user;
+
+  // Build filter: APPLICANT sees only their own; staff/admin see all
+  const whereClause =
+    role === "APPLICANT" ? { applicantId: session.user.id } : {};
+
+  const [totalApplications, underReview, approved, rejected] =
+    await Promise.all([
+      prisma.application.count({ where: whereClause }),
+      prisma.application.count({
+        where: { ...whereClause, status: "UNDER_REVIEW" },
+      }),
+      prisma.application.count({
+        where: { ...whereClause, status: "APPROVED" },
+      }),
+      prisma.application.count({
+        where: { ...whereClause, status: "REJECTED" },
+      }),
+    ]);
 
   return (
     <div>
@@ -41,25 +60,25 @@ export default async function DashboardPage() {
         <StatCard
           icon={<FileText className="h-6 w-6 text-blue-600" />}
           label="Total Applications"
-          value="0"
+          value={totalApplications.toString()}
           bgColor="bg-blue-50"
         />
         <StatCard
           icon={<Clock className="h-6 w-6 text-yellow-600" />}
           label="Under Review"
-          value="0"
+          value={underReview.toString()}
           bgColor="bg-yellow-50"
         />
         <StatCard
           icon={<CheckCircle className="h-6 w-6 text-green-600" />}
           label="Approved"
-          value="0"
+          value={approved.toString()}
           bgColor="bg-green-50"
         />
         <StatCard
           icon={<XCircle className="h-6 w-6 text-red-600" />}
           label="Rejected"
-          value="0"
+          value={rejected.toString()}
           bgColor="bg-red-50"
         />
       </div>

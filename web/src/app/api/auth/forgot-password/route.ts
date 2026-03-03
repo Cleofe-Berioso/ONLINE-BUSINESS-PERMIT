@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { sendOtpEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -43,9 +44,10 @@ export async function POST(request: Request) {
         entity: "User",
         entityId: user.id,
       },
-    });
+    });    // Send OTP via email
+    await sendOtpEmail(email, otp, "reset");
 
-    // TODO: Send OTP via email
+    // In development, also log OTP to console
     if (process.env.NODE_ENV === "development") {
       console.log(`[DEV] Password reset OTP for ${email}: ${otp}`);
     }

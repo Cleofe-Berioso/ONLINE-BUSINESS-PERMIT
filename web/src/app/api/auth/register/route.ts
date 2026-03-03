@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
+import { sendOtpEmail, sendWelcomeEmail } from "@/lib/email";
+import { sendOtpSms } from "@/lib/sms";
 
 export async function POST(request: Request) {
   try {
@@ -69,10 +71,15 @@ export async function POST(request: Request) {
         entityId: user.id,
         details: { email },
       },
-    });
+    });    // Send OTP via email
+    await sendOtpEmail(email, otp, "verification");
 
-    // TODO: Send OTP via email/SMS
-    // In development, log the OTP
+    // Send OTP via SMS if phone number provided
+    if (phone) {
+      await sendOtpSms(phone, otp);
+    }
+
+    // In development, also log the OTP to console
     if (process.env.NODE_ENV === "development") {
       console.log(`[DEV] OTP for ${email}: ${otp}`);
     }

@@ -12,9 +12,14 @@ export const metadata = { title: "Claim References" };
 export default async function ClaimReferencePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
+  // APPLICANT sees only their own references; staff/admin see all
+  const whereClause =
+    session.user.role === "APPLICANT"
+      ? { generatedBy: session.user.id }
+      : {};
 
   const references = await prisma.claimReference.findMany({
-    where: { generatedBy: session.user.id },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     include: {
       application: {
