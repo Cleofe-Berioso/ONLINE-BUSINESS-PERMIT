@@ -3,6 +3,8 @@ import { compare } from "bcryptjs";
 import prisma from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations";
 import { signIn } from "@/lib/auth";
+import { sendOtpEmail } from "@/lib/email";
+import { sendOtpSms } from "@/lib/sms";
 
 export async function POST(request: Request) {
   try {
@@ -74,9 +76,15 @@ export async function POST(request: Request) {
           userId: user.id,
           expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
         },
-      });
+      });      // Send OTP via email
+      await sendOtpEmail(email, otp, "login");
 
-      // TODO: Send OTP via SMS/email
+      // Send OTP via SMS if phone number available
+      if (user.phone) {
+        await sendOtpSms(user.phone, otp);
+      }
+
+      // In development, also log OTP to console
       if (process.env.NODE_ENV === "development") {
         console.log(`[DEV] Login OTP for ${email}: ${otp}`);
       }
