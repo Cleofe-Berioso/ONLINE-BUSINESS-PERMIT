@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { sendOtpEmail, sendWelcomeEmail } from "@/lib/email";
 import { sendOtpSms } from "@/lib/sms";
+import { captureException } from "@/lib/monitoring";
 
 export async function POST(request: Request) {
   try {
@@ -90,8 +91,8 @@ export async function POST(request: Request) {
         userId: user.id,
       },
       { status: 201 }
-    );
-  } catch (error) {
+    );  } catch (error) {
+    captureException(error, { route: "POST /api/auth/register" });
     console.error("Registration error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },

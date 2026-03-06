@@ -150,7 +150,7 @@ export default function SchedulePage() {
               No claiming schedules available at this time. Please check back later.
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
               {schedules
                 .filter((s) => !s.isBlocked)
                 .map((schedule) => {
@@ -258,9 +258,8 @@ export default function SchedulePage() {
         </Card>
       )}
 
-      {/* Confirm */}
-      {selectedSlot && applicationId && (
-        <div className="flex justify-end gap-3">
+      {/* Confirm */}      {selectedSlot && applicationId && (
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button
             variant="outline"
             onClick={() => {

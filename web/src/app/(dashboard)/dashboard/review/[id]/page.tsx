@@ -123,16 +123,16 @@ export default function ReviewDetailPage() {
         className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft className="h-4 w-4" /> Back to Reviews
-      </button>
-
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+      </button>      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl break-words">
             Review: {application.applicationNumber}
           </h1>
           <p className="mt-1 text-sm text-gray-500">{application.businessName}</p>
         </div>
-        <StatusBadge status={application.status} />
+        <div className="flex-shrink-0">
+          <StatusBadge status={application.status} />
+        </div>
       </div>
 
       {error && (
@@ -144,10 +144,8 @@ export default function ReviewDetailPage() {
         <Alert variant="success" className="mb-6">
           {success}
         </Alert>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      )}      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2 lg:order-1 order-2">
           {/* Business Info */}
           <Card>
             <CardHeader>
@@ -221,16 +219,15 @@ export default function ReviewDetailPage() {
               {application.documents.length === 0 ? (
                 <p className="text-sm text-gray-500">No documents uploaded.</p>
               ) : (
-                <ul className="divide-y">
-                  {application.documents.map((doc) => (
+                <ul className="divide-y">                  {application.documents.map((doc) => (
                     <li
                       key={doc.id}
-                      className="flex items-center justify-between py-3"
+                      className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-700 truncate">
                             {doc.originalName}
                           </p>
                           <p className="text-xs text-gray-500">
@@ -238,17 +235,17 @@ export default function ReviewDetailPage() {
                           </p>
                         </div>
                       </div>
-                      <StatusBadge status={doc.status} />
+                      <div className="pl-8 sm:pl-0 flex-shrink-0">
+                        <StatusBadge status={doc.status} />
+                      </div>
                     </li>
                   ))}
                 </ul>
               )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* Actions Sidebar */}
-        <div className="space-y-6">
+        </div>        {/* Actions Sidebar */}
+        <div className="space-y-6 order-1 lg:order-2">
           <Card>
             <CardHeader>
               <CardTitle>Review Actions</CardTitle>

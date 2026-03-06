@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CookieConsent } from "@/components/privacy/cookie-consent";
-import { GovernmentServiceSchema, OrganizationSchema, WebApplicationSchema } from "@/components/seo/json-ld";
+import {
+  GovernmentServiceSchema,
+  OrganizationSchema,
+  WebApplicationSchema,
+} from "@/components/seo/json-ld";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +34,7 @@ export const metadata: Metadata = {
       "Apply for your business permit online. Fast, secure, and convenient.",
     type: "website",
     locale: "en_PH",
-        siteName: "Online Business Permit System",
+    siteName: "Online Business Permit System",
   },
   robots: {
     index: true,
@@ -60,11 +66,12 @@ export default function RootLayout({
         <WebApplicationSchema />
       </head>
       <body className="min-h-screen bg-gray-50 font-sans antialiased">
-        <QueryProvider>
-          {children}
-        </QueryProvider>
-        <CookieConsent />
-        <ServiceWorkerRegistration />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          <QueryProvider>{children}</QueryProvider>
+          <CookieConsent />
+          <ServiceWorkerRegistration />
+          <Toaster richColors position="top-right" closeButton />
+        </ThemeProvider>
       </body>
     </html>
   );

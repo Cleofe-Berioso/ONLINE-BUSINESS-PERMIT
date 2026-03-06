@@ -141,6 +141,16 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
       valid: false,
       error: "File size exceeds 10MB limit",
     };
-  }
-  return { valid: true };
+  }  return { valid: true };
+}
+
+/**
+ * Remove sensitive fields (password, etc.) from a user object before sending in API responses.
+ */
+export function sanitizeUser<T extends Record<string, unknown>>(
+  user: T
+): Omit<T, "password"> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password: _pw, ...safe } = user;
+  return safe as Omit<T, "password">;
 }

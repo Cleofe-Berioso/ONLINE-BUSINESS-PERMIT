@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicNav } from "@/components/public/public-nav";
+import { PublicFooter } from "@/components/public/public-footer";
+import { FaqsClient } from "./faqs-client";
+import { MessageCircle } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Frequently Asked Questions",
@@ -112,57 +116,42 @@ const faqs = [
 
 export default function FaqsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-blue-700">
-            🏛️ Online Business Permit
-          </Link>
-          <nav className="flex gap-4">
-            <Link href="/requirements" className="text-gray-600 hover:text-blue-600 text-sm">Requirements</Link>
-            <Link href="/how-to-apply" className="text-gray-600 hover:text-blue-600 text-sm">How to Apply</Link>
-            <Link href="/login" className="text-blue-600 font-medium text-sm">Login</Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicNav />
 
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Frequently Asked Questions</h1>
-        <p className="text-gray-600 mb-10">
-          Find answers to common questions about the Online Business Permit System.
-        </p>
-
-        <div className="space-y-8">
-          {faqs.map((section) => (
-            <div key={section.category}>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">{section.category}</h2>
-              <div className="space-y-3">
-                {section.questions.map((faq, i) => (
-                  <details key={i} className="bg-white rounded-lg border group">
-                    <summary className="p-4 cursor-pointer font-medium text-gray-900 hover:text-blue-600 flex items-center justify-between">
-                      {faq.q}
-                      <svg className="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </summary>
-                    <div className="px-4 pb-4 text-gray-600 text-sm border-t pt-3">
-                      {faq.a}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            </div>
-          ))}
+      <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 sm:py-12">
+        {/* Page Header */}
+        <div className="mb-8 sm:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+            Frequently Asked Questions
+          </h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Find answers to common questions about the Online Business Permit System.
+          </p>
         </div>
 
+        {/* FAQ Accordion */}
+        <FaqsClient faqs={faqs} />
+
+        {/* Contact CTA */}
         <div className="mt-10 bg-white rounded-xl border p-6 text-center">
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <MessageCircle className="h-6 w-6 text-blue-600" />
+          </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Still have questions?</h3>
-          <p className="text-gray-600 mb-4">Contact our support team for assistance.</p>
-          <Link href="/contact" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-            Contact Us
+          <p className="text-gray-600 text-sm mb-5">
+            Our support team is ready to assist you during business hours.
+          </p>
+          <Link
+            href="/contact"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+          >
+            Contact Support
           </Link>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

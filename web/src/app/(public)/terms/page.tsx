@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicNav } from "@/components/public/public-nav";
+import { PublicFooter } from "@/components/public/public-footer";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -8,22 +10,11 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-blue-700">
-            🏛️ Online Business Permit
-          </Link>
-          <nav className="flex gap-4">
-            <Link href="/" className="text-gray-600 hover:text-blue-600 text-sm">Home</Link>
-            <Link href="/privacy" className="text-gray-600 hover:text-blue-600 text-sm">Privacy</Link>
-            <Link href="/login" className="text-blue-600 font-medium text-sm">Login</Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicNav />
 
-      <main className="max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 sm:py-12">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
         <p className="text-sm text-gray-500 mb-8">Last updated: March 1, 2026</p>
 
         <div className="bg-white rounded-xl shadow-sm border p-8 prose prose-gray max-w-none">
@@ -92,15 +83,15 @@ export default function TermsPage() {
           <p>
             We reserve the right to modify these terms at any time. Continued use of the system
             after changes constitutes acceptance of the updated terms.
-          </p>
-
-          <h2>10. Contact</h2>
+          </p>          <h2>10. Contact</h2>
           <p>
             For questions about these terms, please contact us through the{" "}
             <Link href="/contact">Contact Us</Link> page.
           </p>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

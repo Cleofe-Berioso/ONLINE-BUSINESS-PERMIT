@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicNav } from "@/components/public/public-nav";
+import { PublicFooter } from "@/components/public/public-footer";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,22 +10,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-blue-700">
-            🏛️ Online Business Permit
-          </Link>
-          <nav className="flex gap-4">
-            <Link href="/" className="text-gray-600 hover:text-blue-600 text-sm">Home</Link>
-            <Link href="/terms" className="text-gray-600 hover:text-blue-600 text-sm">Terms</Link>
-            <Link href="/login" className="text-blue-600 font-medium text-sm">Login</Link>
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicNav />
 
-      <main className="max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 sm:py-12">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
         <p className="text-sm text-gray-500 mb-8">Last updated: March 1, 2026</p>
 
         <div className="bg-white rounded-xl shadow-sm border p-8 prose prose-gray max-w-none">
@@ -87,9 +78,7 @@ export default function PrivacyPage() {
           <p>
             Personal data is retained for the duration required by applicable laws and regulations. Business permit
             records are retained for a minimum of 10 years as required by local government regulations.
-          </p>
-
-          <h2>8. Contact</h2>
+          </p>          <h2>8. Contact</h2>
           <p>
             For privacy-related inquiries, contact our Data Protection Officer at{" "}
             <a href="mailto:dpo@lgu.gov.ph">dpo@lgu.gov.ph</a> or visit the{" "}
@@ -97,6 +86,8 @@ export default function PrivacyPage() {
           </p>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

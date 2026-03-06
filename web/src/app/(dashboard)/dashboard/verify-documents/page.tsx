@@ -45,29 +45,27 @@ export default async function VerifyDocumentsPage() {
           description="All documents have been verified. Check back later."
         />
       ) : (
-        <div className="space-y-4">
-          {documents.map((doc) => (
+        <div className="space-y-4">          {documents.map((doc) => (
             <Card key={doc.id}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <FileText className="h-8 w-8 text-gray-400" />
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {doc.originalName}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {doc.documentType.replace(/_/g, " ")} · v{doc.version} ·{" "}
-                      {doc.application.applicationNumber}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Uploaded by {doc.uploader.firstName} {doc.uploader.lastName} on{" "}
-                      {formatDate(doc.createdAt)}
-                    </p>
+              <CardContent className="p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <FileText className="mt-0.5 h-7 w-7 flex-shrink-0 text-gray-400" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{doc.originalName}</p>
+                      <p className="text-sm text-gray-500">
+                        {doc.documentType.replace(/_/g, " ")} · v{doc.version} · {doc.application.applicationNumber}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Uploaded by {doc.uploader.firstName} {doc.uploader.lastName} on{" "}
+                        {formatDate(doc.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={doc.status} />
-                  <VerifyDocumentActions documentId={doc.id} />
+                  <div className="flex flex-shrink-0 items-center gap-3 pl-10 sm:pl-0">
+                    <StatusBadge status={doc.status} />
+                    <VerifyDocumentActions documentId={doc.id} />
+                  </div>
                 </div>
               </CardContent>
             </Card>

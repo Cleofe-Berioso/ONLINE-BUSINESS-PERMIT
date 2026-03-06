@@ -1,6 +1,7 @@
 /**
- * S3/MinIO Storage Module
+ * S3/MinIO Storage Module (with local filesystem fallback)
  * Handles file uploads, presigned URLs, and magic bytes validation
+ * Falls back to local ./uploads/ directory when S3_ENDPOINT is not configured or unreachable.
  */
 
 import {
@@ -11,6 +12,51 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// ============================================================================
+// Local Filesystem Fallback
+// ============================================================================
+
+const USE_LOCAL_STORAGE =
+  process.env.STORAGE_DRIVER === 'local' ||
+  (!process.env.S3_ENDPOINT && process.env.NODE_ENV === 'development');
+
+const LOCAL_UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const LOCAL_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+function ensureLocalDir(filePath: string) {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+async function localUpload(options: UploadOptions): Promise<UploadResult> {
+  try {
+    const fullPath = path.join(LOCAL_UPLOAD_DIR, options.key);
+    ensureLocalDir(fullPath);
+    fs.writeFileSync(fullPath, options.body);
+    return { success: true, key: options.key, url: `${LOCAL_BASE_URL}/api/files/${options.key}` };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Local upload failed' };
+  }
+}
+
+function localDelete(key: string): boolean {
+  try {
+    const fullPath = path.join(LOCAL_UPLOAD_DIR, key);
+    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    return true;
+  } catch { return false; }
+}
+
+function localExists(key: string): boolean {
+  return fs.existsSync(path.join(LOCAL_UPLOAD_DIR, key));
+}
+
+function localReadStream(key: string): fs.ReadStream {
+  return fs.createReadStream(path.join(LOCAL_UPLOAD_DIR, key));
+}
 
 // ============================================================================
 // S3 Client Configuration
@@ -76,6 +122,9 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResult> 
       };
     }
 
+    // Use local filesystem if S3 not configured
+    if (USE_LOCAL_STORAGE) return localUpload(options);
+
     await s3Client.send(
       new PutObjectCommand({
         Bucket: BUCKET,
@@ -108,6 +157,11 @@ export async function getPresignedDownloadUrl(
   key: string,
   expiresIn: number = 3600
 ): Promise<string> {
+  // Local storage: return a direct API route URL
+  if (USE_LOCAL_STORAGE) {
+    return `${LOCAL_BASE_URL}/api/files/${key}`;
+  }
+
   const command = new GetObjectCommand({
     Bucket: BUCKET,
     Key: key,
@@ -135,6 +189,7 @@ export async function getPresignedUploadUrl(
 // ============================================================================
 
 export async function deleteFile(key: string): Promise<boolean> {
+  if (USE_LOCAL_STORAGE) return localDelete(key);
   try {
     await s3Client.send(
       new DeleteObjectCommand({
@@ -150,6 +205,7 @@ export async function deleteFile(key: string): Promise<boolean> {
 }
 
 export async function fileExists(key: string): Promise<boolean> {
+  if (USE_LOCAL_STORAGE) return localExists(key);
   try {
     await s3Client.send(
       new HeadObjectCommand({
@@ -164,6 +220,7 @@ export async function fileExists(key: string): Promise<boolean> {
 }
 
 export async function getFileStream(key: string) {
+  if (USE_LOCAL_STORAGE) return localReadStream(key);
   const command = new GetObjectCommand({
     Bucket: BUCKET,
     Key: key,

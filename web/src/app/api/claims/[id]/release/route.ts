@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { broadcastNotification, sseBroadcaster, createSSEEvent } from "@/lib/sse";
+import { captureException } from "@/lib/monitoring";
 
 export async function POST(
   request: Request,
@@ -76,9 +78,7 @@ export async function POST(
         where: { id: reservation.id },
         data: { status: "COMPLETED" },
       });
-    }
-
-    // Log activity
+    }    // Log activity
     await prisma.activityLog.create({
       data: {
         userId: session.user.id,
@@ -92,10 +92,26 @@ export async function POST(
       },
     });
 
+    // Broadcast permit-released event to the applicant
+    sseBroadcaster.sendToUser(
+      claimRef.generatedBy,
+      createSSEEvent("permit_issued", {
+        claimReferenceId: id,
+        referenceNumber: claimRef.referenceNumber,
+        businessName: claimRef.businessName,
+      }, claimRef.generatedBy)
+    );
+    broadcastNotification(
+      claimRef.generatedBy,
+      "Permit Released",
+      `Your business permit for "${claimRef.businessName}" has been released. Please proceed to collect it.`,
+      "/dashboard/claim-reference"
+    );
+
     return NextResponse.json({
       message: "Permit released successfully",
-    });
-  } catch (error) {
+    });  } catch (error) {
+    captureException(error, { route: 'POST /api/claims/[id]/release' });
     console.error("Release claim error:", error);
     return NextResponse.json(
       { error: "Failed to release permit" },

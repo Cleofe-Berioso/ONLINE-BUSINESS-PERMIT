@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  serverExternalPackages: ["puppeteer", "@sentry/nextjs", "bullmq"],
-  experimental: {
+  serverExternalPackages: ["puppeteer", "@sentry/nextjs", "bullmq"],  experimental: {
+    instrumentationHook: true,
     serverActions: {
       bodySizeLimit: "10mb",
     },

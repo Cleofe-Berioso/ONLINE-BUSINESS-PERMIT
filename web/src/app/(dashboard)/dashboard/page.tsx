@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
+import { cacheOrCompute, CacheKeys, CacheTTL } from "@/lib/cache";
 import {
   FileText,
   Clock,
@@ -18,24 +19,30 @@ export default async function DashboardPage() {
   }
 
   const { role, firstName } = session.user;
-
   // Build filter: APPLICANT sees only their own; staff/admin see all
   const whereClause =
     role === "APPLICANT" ? { applicantId: session.user.id } : {};
 
-  const [totalApplications, underReview, approved, rejected] =
-    await Promise.all([
-      prisma.application.count({ where: whereClause }),
-      prisma.application.count({
-        where: { ...whereClause, status: "UNDER_REVIEW" },
-      }),
-      prisma.application.count({
-        where: { ...whereClause, status: "APPROVED" },
-      }),
-      prisma.application.count({
-        where: { ...whereClause, status: "REJECTED" },
-      }),
-    ]);
+  // Cache dashboard stats per role (2 min TTL)
+  const cacheKey = CacheKeys.dashboardStats(
+    role === "APPLICANT" ? session.user.id : role
+  );
+
+  const stats = await cacheOrCompute(
+    cacheKey,
+    async () => {
+      const [total, under, app, rej] = await Promise.all([
+        prisma.application.count({ where: whereClause }),
+        prisma.application.count({ where: { ...whereClause, status: "UNDER_REVIEW" } }),
+        prisma.application.count({ where: { ...whereClause, status: "APPROVED" } }),
+        prisma.application.count({ where: { ...whereClause, status: "REJECTED" } }),
+      ]);
+      return { total, under, app, rej };
+    },
+    CacheTTL.SHORT
+  );
+
+  const { total: totalApplications, under: underReview, app: approved, rej: rejected } = stats;
 
   return (
     <div>
@@ -163,14 +170,13 @@ function StatCard({
   label: string;
   value: string;
   bgColor: string;
-}) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className={`rounded-lg ${bgColor} p-3`}>{icon}</div>
+}) {  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className={`rounded-lg ${bgColor} p-2.5 sm:p-3`}>{icon}</div>
         <div>
-          <p className="text-sm text-gray-600">{label}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-xs sm:text-sm text-gray-600">{label}</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
         </div>
       </div>
     </div>

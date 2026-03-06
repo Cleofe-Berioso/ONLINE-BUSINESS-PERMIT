@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { reserveSlotSchema } from "@/lib/validations";
+import { sendClaimConfirmationEmail } from "@/lib/email";
+import { captureException } from "@/lib/monitoring";
 
 export async function POST(request: Request) {
   try {
@@ -112,9 +114,7 @@ export async function POST(request: Request) {
       });
 
       return res;
-    });
-
-    await prisma.activityLog.create({
+    });    await prisma.activityLog.create({
       data: {
         userId: session.user.id,
         action: "RESERVE_SLOT",
@@ -129,11 +129,38 @@ export async function POST(request: Request) {
       },
     });
 
+    // Send claim confirmation email (fire-and-forget)
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { email: true, firstName: true, lastName: true },
+      });
+      const claimRef = await prisma.claimReference.findFirst({
+        where: { applicationId },
+        select: { referenceNumber: true },
+      });
+      if (user && claimRef) {
+        const dateStr = new Date(timeSlot.schedule.date).toLocaleDateString("en-PH", {
+          weekday: "long", year: "numeric", month: "long", day: "numeric",
+        });
+        sendClaimConfirmationEmail(
+          user.email,
+          `${user.firstName} ${user.lastName}`,
+          application.applicationNumber,
+          claimRef.referenceNumber,
+          dateStr,
+          `${timeSlot.startTime} - ${timeSlot.endTime}`
+        ).catch((err: unknown) => console.error("Claim email error:", err));
+      }
+    } catch (emailErr) {
+      console.error("Claim confirmation email error:", emailErr);
+    }
+
     return NextResponse.json(
       { message: "Slot reserved successfully", reservation },
       { status: 201 }
-    );
-  } catch (error) {
+    );  } catch (error) {
+    captureException(error, { route: 'POST /api/schedules/reserve' });
     console.error("Reserve slot error:", error);
     return NextResponse.json(
       { error: "Failed to reserve slot" },

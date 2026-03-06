@@ -128,15 +128,14 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <div>      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Schedules</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Manage Schedules</h1>
           <p className="mt-1 text-sm text-gray-600">
             Configure claiming dates and time slots for permit collection
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           New Schedule
         </Button>
@@ -181,11 +180,10 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  {slots.map((slot, index) => (
+                <div className="space-y-2">                  {slots.map((slot, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 rounded-lg border p-3"
+                      className="flex flex-wrap items-center gap-2 rounded-lg border p-3"
                     >
                       <Input
                         type="time"
@@ -193,7 +191,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                         onChange={(e) =>
                           updateSlot(index, "startTime", e.target.value)
                         }
-                        className="w-32"
+                        className="w-32 min-w-0"
                       />
                       <span className="text-gray-400">to</span>
                       <Input
@@ -202,37 +200,37 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                         onChange={(e) =>
                           updateSlot(index, "endTime", e.target.value)
                         }
-                        className="w-32"
+                        className="w-32 min-w-0"
                       />
-                      <Input
-                        type="number"
-                        value={slot.maxCapacity}
-                        onChange={(e) =>
-                          updateSlot(index, "maxCapacity", e.target.value)
-                        }
-                        placeholder="Capacity"
-                        className="w-24"
-                      />
-                      <span className="text-xs text-gray-400">slots</span>
-                      {slots.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeSlot(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-400" />
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1 ml-auto">
+                        <Input
+                          type="number"
+                          value={slot.maxCapacity}
+                          onChange={(e) =>
+                            updateSlot(index, "maxCapacity", e.target.value)
+                          }
+                          placeholder="Cap"
+                          className="w-20 min-w-0"
+                        />
+                        <span className="text-xs text-gray-400 whitespace-nowrap">slots</span>
+                        {slots.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeSlot(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-400" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowForm(false)}>
+              </div>              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="outline" onClick={() => setShowForm(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} loading={creating}>
+                <Button onClick={handleCreate} loading={creating} className="w-full sm:w-auto">
                   Create Schedule
                 </Button>
               </div>

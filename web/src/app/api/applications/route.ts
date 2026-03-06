@@ -3,30 +3,46 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { applicationSchema } from "@/lib/validations";
 import { generateApplicationNumber } from "@/lib/utils";
+import { captureException } from "@/lib/monitoring";
+import {
+  cacheOrCompute,
+  invalidateApplicationCaches,
+  CacheKeys,
+  CacheTTL,
+} from "@/lib/cache";
 
 export async function GET() {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const where =
+    }    const where =
       session.user.role === "APPLICANT"
         ? { applicantId: session.user.id }
         : {};
 
-    const applications = await prisma.application.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        applicant: {
-          select: { firstName: true, lastName: true, email: true },
+    // Only cache applicant-scoped lists (staff/admin see all — too volatile)
+    const isApplicant = session.user.role === "APPLICANT";
+    const cacheKey = isApplicant
+      ? CacheKeys.userApplications(session.user.id)
+      : null;
+
+    const fetchApplications = () =>
+      prisma.application.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: {
+          applicant: {
+            select: { firstName: true, lastName: true, email: true },
+          },
+          documents: { select: { id: true, status: true } },
+          permit: { select: { id: true, permitNumber: true, status: true } },
         },
-        documents: { select: { id: true, status: true } },
-        permit: { select: { id: true, permitNumber: true, status: true } },
-      },
-    });
+      });
+
+    const applications = cacheKey
+      ? await cacheOrCompute(cacheKey, fetchApplications, CacheTTL.SHORT)
+      : await fetchApplications();
 
     return NextResponse.json({ applications });
   } catch (error) {
@@ -98,9 +114,7 @@ export async function POST(request: Request) {
           : "Application submitted",
         changedBy: session.user.id,
       },
-    });
-
-    // Log activity
+    });    // Log activity
     await prisma.activityLog.create({
       data: {
         userId: session.user.id,
@@ -111,8 +125,11 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ application }, { status: 201 });
-  } catch (error) {
+    // Invalidate the applicant's cached applications list
+    await invalidateApplicationCaches(application.id, session.user.id);
+
+    return NextResponse.json({ application }, { status: 201 });} catch (error) {
+    captureException(error, { route: 'POST /api/applications' });
     console.error("Create application error:", error);
     return NextResponse.json(
       { error: "Failed to create application" },

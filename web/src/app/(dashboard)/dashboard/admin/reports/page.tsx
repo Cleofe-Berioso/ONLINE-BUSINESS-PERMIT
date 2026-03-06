@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 import {
   FileText,
   Users,
@@ -12,6 +11,7 @@ import {
   TrendingUp,
   BarChart3,
   CalendarCheck,
+  Download,
 } from "lucide-react";
 
 export const metadata = { title: "Reports" };
@@ -105,25 +105,41 @@ export default async function AdminReportsPage() {
       bg: "bg-orange-50",
     },
   ];
-
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          System overview and application statistics
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+          <p className="mt-1 text-sm text-gray-600">System overview and application statistics</p>
+        </div>
+        {/* Export Buttons */}
+        <div className="flex flex-wrap gap-2">          {[
+            { type: "applications", label: "Applications" },
+            { type: "users", label: "Users" },
+            { type: "permits", label: "Permits" },
+            { type: "payments", label: "Payments" },
+            { type: "audit", label: "Audit Log" },
+          ].map(({ type, label }) => (
+            <a
+              key={type}
+              href={`/api/admin/reports/export?type=${type}`}
+              download
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {label} CSV
+            </a>
+          ))}
+        </div>
+      </div>      {/* Stats Grid */}
+      <div className="mb-8 grid gap-3 grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.label}>
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className={`rounded-lg ${stat.bg} p-3`}>{stat.icon}</div>
-              <div>
-                <p className="text-sm text-gray-600">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+            <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
+              <div className={`rounded-lg ${stat.bg} p-2 sm:p-3 flex-shrink-0`}>{stat.icon}</div>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-600 sm:text-sm truncate">{stat.label}</p>
+                <p className="text-xl font-bold text-gray-900 sm:text-2xl">{stat.value}</p>
               </div>
             </CardContent>
           </Card>

@@ -5,6 +5,7 @@ import { loginSchema } from "@/lib/validations";
 import { signIn } from "@/lib/auth";
 import { sendOtpEmail } from "@/lib/email";
 import { sendOtpSms } from "@/lib/sms";
+import { captureException } from "@/lib/monitoring";
 
 export async function POST(request: Request) {
   try {
@@ -46,22 +47,41 @@ export async function POST(request: Request) {
         { error: "Your account has been suspended. Contact support." },
         { status: 403 }
       );
-    }
-
-    if (user.status === "INACTIVE") {
+    }    if (user.status === "INACTIVE") {
       return NextResponse.json(
         { error: "Your account is inactive. Contact support." },
         { status: 403 }
       );
     }
 
-    // Verify password
+    // Check account lockout
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil(
+        (user.lockedUntil.getTime() - Date.now()) / 60000
+      );
+      return NextResponse.json(
+        {
+          error: `Account temporarily locked due to too many failed login attempts. Try again in ${minutesLeft} minute(s).`,
+        },
+        { status: 423 }
+      );
+    }    // Verify password
     const isPasswordValid = await compare(password, user.password);
     if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 }
-      );
+      // Increment failed attempts; lock after 5 failures for 15 minutes
+      const attempts = user.failedLoginAttempts + 1;
+      const lockout = attempts >= 5;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: attempts,
+          ...(lockout && { lockedUntil: new Date(Date.now() + 15 * 60 * 1000) }),
+        },
+      });
+      const message = lockout
+        ? "Too many failed attempts. Account locked for 15 minutes."
+        : `Invalid email or password (${5 - attempts} attempt(s) remaining)`;
+      return NextResponse.json({ error: message }, { status: 401 });
     }
 
     // Check if 2FA is enabled
@@ -97,7 +117,15 @@ export async function POST(request: Request) {
         },
         { status: 200 }
       );
-    }
+    }    // Update lastLoginAt and reset lockout counters
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
 
     // Sign in using NextAuth
     await signIn("credentials", {
@@ -118,8 +146,8 @@ export async function POST(request: Request) {
         },
       },
       { status: 200 }
-    );
-  } catch (error) {
+    );  } catch (error) {
+    captureException(error, { route: 'POST /api/auth/login' });
     console.error("Login error:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
