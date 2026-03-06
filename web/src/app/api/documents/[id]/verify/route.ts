@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { broadcastDocumentVerified, broadcastNotification } from "@/lib/sse";
+import { captureException } from "@/lib/monitoring";
 
 export async function POST(
   request: Request,
@@ -24,7 +26,12 @@ export async function POST(
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const document = await prisma.document.findUnique({ where: { id } });
+    const document = await prisma.document.findUnique({
+      where: { id },
+      include: {
+        application: { select: { applicantId: true } },
+      },
+    });
 
     if (!document) {
       return NextResponse.json(
@@ -43,9 +50,7 @@ export async function POST(
           rejectionReason: body.reason || "Document rejected during verification",
         }),
       },
-    });
-
-    await prisma.activityLog.create({
+    });    await prisma.activityLog.create({
       data: {
         userId: session.user.id,
         action: `DOCUMENT_${status}`,
@@ -54,8 +59,20 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ document: updated });
-  } catch (error) {
+    // Broadcast real-time event to the document owner
+    const applicantId = document.application.applicantId;
+    broadcastDocumentVerified(applicantId, id, document.originalName, status);
+    broadcastNotification(
+      applicantId,
+      status === "VERIFIED" ? "Document Verified" : "Document Rejected",
+      status === "VERIFIED"
+        ? `Your document "${document.originalName}" has been verified.`
+        : `Your document "${document.originalName}" was rejected. Please re-upload.`,
+      "/dashboard/documents"
+    );
+
+    return NextResponse.json({ document: updated });  } catch (error) {
+    captureException(error, { route: 'POST /api/documents/[id]/verify' });
     console.error("Verify document error:", error);
     return NextResponse.json(
       { error: "Failed to verify document" },

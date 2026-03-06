@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { generatePermitNumber, generateClaimReference } from "@/lib/utils";
+import {
+  broadcastApplicationStatusChange,
+  broadcastNotification,
+} from "@/lib/sse";
+import { sendApplicationStatusEmail } from "@/lib/email";
+import { captureException } from "@/lib/monitoring";
+import { reviewActionSchema } from "@/lib/validations";
 
 export async function POST(
   request: Request,
@@ -18,17 +25,19 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = await params;
-    const body = await request.json();
-    const { action, comment } = body;
-
-    if (!["APPROVE", "REJECT", "REQUEST_REVISION", "COMMENT"].includes(action)) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    const { id } = await params;    const body = await request.json();
+    const validated = reviewActionSchema.safeParse(body);
+    if (!validated.success) {
+      return NextResponse.json(
+        { error: validated.error.issues[0].message },
+        { status: 400 }
+      );
     }
+    const { action, comment } = validated.data;
 
     const application = await prisma.application.findUnique({
       where: { id },
-      include: { applicant: true },
+      include: { applicant: true, previousPermit: true },
     });
 
     if (!application) {
@@ -82,10 +91,16 @@ export async function POST(
           `Application ${action.toLowerCase().replace("_", " ")} by reviewer`,
         changedBy: session.user.id,
       },
-    });
-
-    // If approved, auto-generate permit
+    });    // If approved, auto-generate permit
     if (action === "APPROVE") {
+      // For renewals: mark the previous permit as RENEWED
+      if (application.type === "RENEWAL" && application.previousPermitId) {
+        await prisma.permit.update({
+          where: { id: application.previousPermitId },
+          data: { status: "RENEWED" },
+        });
+      }
+
       const permitCount = await prisma.permit.count();
       const permitNumber = generatePermitNumber(permitCount + 1);
 
@@ -125,9 +140,7 @@ export async function POST(
           status: "GENERATED",
         },
       });
-    }
-
-    // Log activity
+    }    // Log activity
     await prisma.activityLog.create({
       data: {
         userId: session.user.id,
@@ -136,13 +149,37 @@ export async function POST(
         entityId: id,
         details: { action, comment },
       },
-    });
+    });    // Broadcast real-time status change to the applicant
+    if (action !== "COMMENT") {
+      broadcastApplicationStatusChange(
+        application.applicantId,
+        id,
+        application.applicationNumber,
+        newStatus,
+        application.status
+      );
+      broadcastNotification(
+        application.applicantId,
+        "Application Status Updated",
+        `Your application ${application.applicationNumber} has been ${action.toLowerCase().replace("_", " ")}.`,
+        `/dashboard/applications/${id}`
+      );
+
+      // Send email notification (fire-and-forget)
+      sendApplicationStatusEmail(
+        application.applicant.email,
+        `${application.applicant.firstName} ${application.applicant.lastName}`,
+        application.applicationNumber,
+        newStatus,
+        action === "REJECT" ? (comment || undefined) : undefined
+      ).catch((err: unknown) => console.error("Email notification error:", err));
+    }
 
     return NextResponse.json({
       message: `Application ${action.toLowerCase().replace("_", " ")} successfully`,
       application: updatedApplication,
-    });
-  } catch (error) {
+    });  } catch (error) {
+    captureException(error, { route: 'POST /api/applications/[id]/review' });
     console.error("Review application error:", error);
     return NextResponse.json(
       { error: "Failed to process review action" },

@@ -138,17 +138,16 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
           <CardDescription>
             Enter the applicant&apos;s claim reference number to verify
           </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3">
+        </CardHeader>        <CardContent>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               name="searchRef"
               value={searchRef}
               onChange={(e) => setSearchRef(e.target.value)}
               placeholder="CLM-20260301-XXXXXX"
-              className="max-w-sm"
+              className="flex-1 sm:max-w-sm"
             />
-            <Button onClick={handleSearchRef}>Verify</Button>
+            <Button onClick={handleSearchRef} className="w-full sm:w-auto">Verify</Button>
           </div>
         </CardContent>
       </Card>
@@ -158,62 +157,77 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
         <CardHeader>
           <CardTitle>Today&apos;s Claiming Schedule</CardTitle>
         </CardHeader>
-        <CardContent>
-          {reservations.length === 0 ? (
+        <CardContent>          {reservations.length === 0 ? (
             <EmptyState
               icon={<Tag className="h-8 w-8 text-gray-400" />}
               title="No claims scheduled for today"
               description="There are no claiming appointments for today."
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b bg-gray-50 text-xs uppercase text-gray-600">
-                  <tr>
-                    <th className="px-4 py-3">Claim ID</th>
-                    <th className="px-4 py-3">Applicant</th>
-                    <th className="px-4 py-3">Business</th>
-                    <th className="px-4 py-3">Time Slot</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {reservations.map((res) => (
-                    <tr key={res.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-mono text-sm">
-                        {res.claimId || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {res.user.firstName} {res.user.lastName}
-                      </td>
-                      <td className="px-4 py-3">
-                        {res.application.businessName}
-                      </td>
-                      <td className="px-4 py-3">
-                        {res.timeSlot.startTime} – {res.timeSlot.endTime}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={res.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        {res.status === "CONFIRMED" && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleVerifyAndRelease(res.id)}
-                            loading={processing === res.id}
-                          >
-                            <CheckCircle className="h-3 w-3" /> Release
-                          </Button>
-                        )}
-                        {res.status === "COMPLETED" && (
-                          <span className="text-sm text-green-600">Released</span>
-                        )}
-                      </td>
+            <div>
+              {/* Mobile cards */}
+              <div className="space-y-3 md:hidden">
+                {reservations.map((res) => (
+                  <div key={res.id} className="rounded-lg border p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-gray-900">{res.user.firstName} {res.user.lastName}</p>
+                        <p className="text-sm text-gray-600">{res.application.businessName}</p>
+                        <p className="text-xs text-gray-500">{res.application.applicationNumber}</p>
+                      </div>
+                      <StatusBadge status={res.status} />
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      Time: {res.timeSlot.startTime} – {res.timeSlot.endTime}
+                      {res.claimId && <span className="ml-2 font-mono">{res.claimId}</span>}
+                    </p>
+                    {res.status === "CONFIRMED" && (
+                      <Button size="sm" className="mt-3 w-full" onClick={() => handleVerifyAndRelease(res.id)} loading={processing === res.id}>
+                        <CheckCircle className="h-3.5 w-3.5" /> Release Permit
+                      </Button>
+                    )}
+                    {res.status === "COMPLETED" && (
+                      <p className="mt-2 text-sm font-medium text-green-600">✓ Released</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b bg-gray-50 text-xs uppercase text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3">Claim ID</th>
+                      <th className="px-4 py-3">Applicant</th>
+                      <th className="px-4 py-3">Business</th>
+                      <th className="px-4 py-3">Time Slot</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {reservations.map((res) => (
+                      <tr key={res.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-mono text-sm">{res.claimId || "—"}</td>
+                        <td className="px-4 py-3">{res.user.firstName} {res.user.lastName}</td>
+                        <td className="px-4 py-3">{res.application.businessName}</td>
+                        <td className="px-4 py-3">{res.timeSlot.startTime} – {res.timeSlot.endTime}</td>
+                        <td className="px-4 py-3"><StatusBadge status={res.status} /></td>
+                        <td className="px-4 py-3">
+                          {res.status === "CONFIRMED" && (
+                            <Button size="sm" onClick={() => handleVerifyAndRelease(res.id)} loading={processing === res.id}>
+                              <CheckCircle className="h-3 w-3" /> Release
+                            </Button>
+                          )}
+                          {res.status === "COMPLETED" && (
+                            <span className="text-sm text-green-600">Released</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>

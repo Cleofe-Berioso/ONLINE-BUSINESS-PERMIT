@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowRight, AlertCircle } from "lucide-react";
+import { PublicNav } from "@/components/public/public-nav";
+import { PublicFooter } from "@/components/public/public-footer";
 
 export const metadata: Metadata = {
   title: "Requirements",
@@ -52,66 +55,97 @@ const requirements = [
 export default function RequirementsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-blue-700">
-            🏛️ Online Business Permit
-          </Link>
-          <nav className="flex gap-4">
-            <Link href="/how-to-apply" className="text-gray-600 hover:text-blue-600 text-sm">How to Apply</Link>
-            <Link href="/faqs" className="text-gray-600 hover:text-blue-600 text-sm">FAQs</Link>
-            <Link href="/login" className="text-blue-600 font-medium text-sm">Login</Link>
-          </nav>
+      <PublicNav />
+
+      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            Documentary Requirements
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 sm:text-base">
+            Please prepare the following documents before submitting your
+            application. All uploads must be clear, legible, PDF/JPEG/PNG format
+            (max 10 MB each).
+          </p>
         </div>
-      </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Documentary Requirements</h1>
-        <p className="text-gray-600 mb-8">
-          Please prepare the following documents before submitting your business permit application.
-          All uploaded documents must be clear, legible, and in PDF, JPEG, or PNG format (max 10MB each).
-        </p>
-
-        <div className="space-y-8">
+        {/* Requirements Cards */}
+        <div className="space-y-6">
           {requirements.map((section) => (
-            <div key={section.category} className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-600 rounded-full" />
+            <div
+              key={section.category}
+              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+            >
+              <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900 sm:text-lg">
+                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-blue-600" />
                 {section.category}
               </h2>
-              <div className="space-y-3">
+              <ol className="space-y-3">
                 {section.items.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <span className="text-blue-600 font-bold mt-0.5">{i + 1}.</span>
-                    <div>
-                      <p className="font-medium text-gray-900">{item.name}</p>
-                      <p className="text-sm text-gray-500">{item.description}</p>
+                  <li
+                    key={i}
+                    className="flex items-start gap-3 rounded-xl bg-gray-50 p-3"
+                  >
+                    <span className="mt-0.5 flex-shrink-0 text-sm font-bold text-blue-600">
+                      {i + 1}.
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900">
+                        {item.name}
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {item.description}
+                      </p>
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ol>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="font-semibold text-blue-900 mb-2">📌 Important Reminders</h3>
-          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>Ensure all documents are valid and not expired</li>
-            <li>Scanned documents should be clear and readable</li>
-            <li>File size per document must not exceed 10MB</li>
-            <li>Accepted formats: PDF, JPEG, PNG, WebP</li>
-            <li>Incomplete documents may delay your application processing</li>
+        {/* Reminders */}
+        <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 text-blue-600" />
+            <h3 className="font-semibold text-blue-900">Important Reminders</h3>
+          </div>
+          <ul className="space-y-1.5 text-sm text-blue-800">
+            {[
+              "Ensure all documents are valid and not expired",
+              "Scanned documents should be clear and fully readable",
+              "File size per document must not exceed 10 MB",
+              "Accepted formats: PDF, JPEG, PNG, WebP",
+              "Incomplete documents may delay your application",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                {item}
+              </li>
+            ))}
           </ul>
         </div>
 
-        <div className="mt-8 text-center">
-          <Link href="/register" className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-            Start Your Application →
+        {/* CTA */}
+        <div className="mt-10 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center">
+          <Link
+            href="/register"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto"
+          >
+            Start Your Application
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/how-to-apply"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+          >
+            How to Apply
           </Link>
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

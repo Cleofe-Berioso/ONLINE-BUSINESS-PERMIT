@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/utils";
 import { Tag } from "lucide-react";
+import { RescheduleButton } from "@/components/dashboard/reschedule-button";
 
 export const metadata = { title: "Claim References" };
 
@@ -100,6 +101,15 @@ export default async function ClaimReferencePage() {
                       </dd>
                     </div>
                   </dl>
+
+                  {/* Reschedule button — only for APPLICANT with reschedulable status */}
+                  {session.user.role === "APPLICANT" &&
+                    ["GENERATED", "VERIFIED"].includes(ref.status) && (
+                      <RescheduleButton
+                        applicationId={ref.applicationId}
+                        applicationNumber={ref.application.applicationNumber}
+                      />
+                    )}
                 </div>
               </CardContent>
             </Card>

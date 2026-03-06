@@ -160,6 +160,29 @@ export const verifyClaimSchema = z.object({
 });
 
 // ============================================================================
+// Payment Validations
+// ============================================================================
+
+export const paymentSchema = z.object({
+  applicationId: z.string().min(1, "Application ID is required"),
+  method: z.enum(["GCASH", "MAYA", "BANK_TRANSFER", "OTC", "CASH"]).refine(Boolean, {
+    message: "Invalid payment method",
+  }),
+  notes: z.string().max(500).optional(),
+});
+
+// ============================================================================
+// Review Action Validations
+// ============================================================================
+
+export const reviewActionSchema = z.object({
+  action: z.enum(["APPROVE", "REJECT", "REQUEST_REVISION", "COMMENT"]).refine(Boolean, {
+    message: "Invalid review action",
+  }),
+  comment: z.string().max(1000).optional(),
+});
+
+// ============================================================================
 // Type Exports (inferred from schemas)
 // ============================================================================
 
@@ -172,3 +195,5 @@ export type ApplicationInput = z.infer<typeof applicationSchema>;
 export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;
 export type ReserveSlotInput = z.infer<typeof reserveSlotSchema>;
 export type VerifyClaimInput = z.infer<typeof verifyClaimSchema>;
+export type PaymentInput = z.infer<typeof paymentSchema>;
+export type ReviewActionInput = z.infer<typeof reviewActionSchema>;

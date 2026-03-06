@@ -1,133 +1,185 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert } from "@/components/ui/alert";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Shield, Mail, Loader2 } from "lucide-react";
 
-export default function VerifyOtpPage() {
+function VerifyOtpForm() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const userId = params.get("userId") ?? "";
+  const email = params.get("email") ?? "";
+  const type = params.get("type") ?? "EMAIL_VERIFICATION";
+
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  if (!userId) {
+    return (
+      <div className="text-center py-4">
+        <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Shield className="h-7 w-7 text-red-500" />
+        </div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Invalid Verification Link</h2>
+        <p className="text-sm text-gray-600 mb-5">
+          This link is missing required information. Please register again.
+        </p>
+        <Link
+          href="/register"
+          className="inline-block bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700"
+        >
+          Back to Register
+        </Link>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (otp.length !== 6) { setError("Please enter the complete 6-digit OTP."); return; }
     setLoading(true);
     setError("");
     setSuccess("");
-
     try {
-      // Get userId and type from URL params
-      const params = new URLSearchParams(window.location.search);
-      const userId = params.get("userId");
-      const type = params.get("type") || "EMAIL_VERIFICATION";
-
-      if (!userId) {
-        setError("Invalid verification link. Please register again.");
-        return;
-      }
-
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ otp, userId, type }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Verification failed");
-        return;
-      }
-
-      setSuccess(data.message);
-
-      // Redirect to login after 2 seconds
+      if (!res.ok) { setError(data.error || "Verification failed. Please try again."); return; }
+      setSuccess(data.message || "Verified successfully!");
       if (data.verified) {
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 2000);
+        setTimeout(() => router.push("/login?verified=1"), 2000);
       }
     } catch {
-      setError("An unexpected error occurred");
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const userId = params.get("userId");
-    const type = params.get("type") || "EMAIL_VERIFICATION";
-
-    if (!userId) return;
-
+  const handleResend = async () => {
+    if (countdown > 0) return;
+    setResending(true);
+    setError("");
     try {
-      // TODO: Implement resend OTP API
+      const res = await fetch("/api/auth/resend-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, type }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Failed to resend OTP."); return; }
       setSuccess("A new OTP has been sent to your email.");
-      console.log("Resend OTP for:", userId, type);
+      setCountdown(60);
     } catch {
-      setError("Failed to resend OTP");
+      setError("Failed to resend OTP. Please try again.");
+    } finally {
+      setResending(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+    <>
+      <div className="text-center mb-6">
+        <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Mail className="h-7 w-7 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">Verify Your Email</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          We sent a 6-digit code to{" "}
+          {email ? <span className="font-medium text-gray-900">{email}</span> : "your registered email"}.
+          Enter it below to activate your account.
+        </p>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
+            One-Time Password (OTP)
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            required
+            placeholder="000000"
+            className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl tracking-[0.5em] font-mono focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+          <p className="mt-1.5 text-center text-xs text-gray-500">The code expires in 15 minutes</p>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || otp.length !== 6}
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {loading ? "Verifying…" : "Verify OTP"}
+        </button>
+      </form>
+
+      <div className="mt-6 space-y-3 text-center">
+        <p className="text-sm text-gray-600">
+          Didn&apos;t receive the code?{" "}
+          <button
+            onClick={handleResend}
+            disabled={resending || countdown > 0}
+            className="font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {resending ? "Sending…" : countdown > 0 ? `Resend in ${countdown}s` : "Resend OTP"}
+          </button>
+        </p>
+        <p className="text-sm">
+          <Link href="/login" className="text-gray-500 hover:text-gray-700">← Back to Login</Link>
+        </p>
+      </div>
+    </>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
+      <div className="w-full max-w-md">        <div className="mb-8 text-center">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <Shield className="h-8 w-8 text-blue-600 sm:h-10 sm:w-10 flex-shrink-0" />
+            <span className="text-lg font-bold text-gray-900 sm:text-2xl">Business Permit System</span>
+          </Link>
+        </div>
+        <div className="rounded-2xl bg-white p-6 sm:p-8 shadow-xl">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Verify Your Account</h1>
-            <p className="mt-2 text-gray-600">
-              Enter the 6-digit OTP sent to your registered email address
-            </p>
-          </div>
-
-          {error && <Alert variant="error" className="mb-4">{error}</Alert>}
-          {success && <Alert variant="success" className="mb-4">{success}</Alert>}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Input
-                label="One-Time Password (OTP)"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="text-center text-2xl tracking-[0.5em] font-mono"
-                required
-              />
-            </div>
-
-            <Button type="submit" className="w-full" loading={loading}>
-              Verify OTP
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center space-y-3">
-            <p className="text-sm text-gray-600">
-              Didn&apos;t receive the code?{" "}
-              <button
-                onClick={handleResendOtp}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Resend OTP
-              </button>
-            </p>
-            <p className="text-sm text-gray-500">
-              <Link href="/login" className="text-blue-600 hover:text-blue-700">
-                Back to Login
-              </Link>
-            </p>
-          </div>
+          }>
+            <VerifyOtpForm />
+          </Suspense>
         </div>
       </div>
     </div>

@@ -30,22 +30,24 @@ enum AccountStatus {
 }
 
 model User {
-  id                String        @id @default(cuid())
-  email             String        @unique
-  emailVerified     DateTime?
-  password          String
-  firstName         String
-  lastName          String
-  middleName        String?
-  phone             String?
-  role              Role          @default(APPLICANT)
-  status            AccountStatus @default(PENDING_VERIFICATION)
-  avatar            String?
-  twoFactorEnabled  Boolean       @default(false)
-  twoFactorSecret   String?
-  lastLoginAt       DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                    String        @id @default(cuid())
+  email                 String        @unique
+  emailVerified         DateTime?
+  password              String
+  firstName             String
+  lastName              String
+  middleName            String?
+  phone                 String?
+  role                  Role          @default(APPLICANT)
+  status                AccountStatus @default(PENDING_VERIFICATION)
+  avatar                String?
+  twoFactorEnabled      Boolean       @default(false)
+  twoFactorSecret       String?
+  lastLoginAt           DateTime?
+  failedLoginAttempts   Int           @default(0)
+  lockedUntil           DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
   // Relations
   applications      Application[]
@@ -57,6 +59,7 @@ model User {
   issuanceActions   PermitIssuance[] @relation("issuedBy")
   slotReservations  SlotReservation[]
   claimReferences   ClaimReference[]
+  payments          Payment[]
 
   @@index([email])
   @@index([role])
@@ -169,7 +172,6 @@ model Application {
   rejectionReason   String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
-
   // Relations
   documents         Document[]
   history           ApplicationHistory[]
@@ -177,6 +179,7 @@ model Application {
   claimSchedule     SlotReservation?
   claimReference    ClaimReference?
   permit            Permit?           @relation("permitApplication")
+  payments          Payment[]
 
   @@index([applicantId])
   @@index([status])
@@ -439,4 +442,54 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// ============================================================================
+// MODULE 11: Payment System
+// ============================================================================
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  GCASH
+  MAYA
+  BANK_TRANSFER
+  OTC
+  CASH
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  applicationId   String
+  payerId         String
+  amount          Decimal       @db.Decimal(12, 2)
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?       @unique
+  receiptNumber   String?       @unique
+  referenceNumber String?
+  checkoutUrl     String?
+  paidAt          DateTime?
+  failedAt        DateTime?
+  refundedAt      DateTime?
+  notes           String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  application     Application   @relation(fields: [applicationId], references: [id])
+  payer           User          @relation(fields: [payerId], references: [id])
+
+  @@index([applicationId])
+  @@index([payerId])
+  @@index([status])
+  @@index([transactionId])
+  @@map("payments")
 }

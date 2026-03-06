@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/email";
+import { captureException } from "@/lib/monitoring";
 
 export async function POST(request: Request) {
   try {
@@ -54,8 +55,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message: "If an account exists with this email, you will receive reset instructions.",
-    });
-  } catch (error) {
+    });  } catch (error) {
+    captureException(error, { route: "POST /api/auth/forgot-password" });
     console.error("Forgot password error:", error);
     return NextResponse.json(
       { error: "Failed to process request" },

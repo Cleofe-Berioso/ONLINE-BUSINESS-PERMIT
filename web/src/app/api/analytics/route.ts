@@ -6,19 +6,24 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { cacheOrCompute, CacheKeys, CacheTTL } from '@/lib/cache';
 
 export async function GET(request: Request) {
   try {
     const session = await auth();
     if (!session?.user || !['ADMINISTRATOR', 'STAFF', 'REVIEWER'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { searchParams } = new URL(request.url);
+    }    const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || '30'; // days
     const daysAgo = parseInt(period);
     const startDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
 
+    // Cache key varies by period; analytics are expensive — use 15 min TTL
+    const cacheKey = `${CacheKeys.analytics()}:${period}d`;
+
+    const analytics = await cacheOrCompute(
+      cacheKey,
+      async () => {
     // Run all analytics queries in parallel
     const [
       totalApplications,
@@ -112,8 +117,7 @@ export async function GET(request: Request) {
         WHERE "createdAt" >= $1
         GROUP BY EXTRACT(HOUR FROM "createdAt")
         ORDER BY hour ASC
-      `, startDate),
-    ]);
+      `, startDate),    ]);
 
     // Calculate approval rate
     const approvedCount = applicationsByStatus.find((s) => s.status === 'APPROVED')?._count.status || 0;
@@ -121,7 +125,7 @@ export async function GET(request: Request) {
     const decidedCount = approvedCount + rejectedCount;
     const approvalRate = decidedCount > 0 ? ((approvedCount / decidedCount) * 100).toFixed(1) : '0';
 
-    const analytics = {
+    return {
       period: `${daysAgo} days`,
       generatedAt: new Date().toISOString(),
 
@@ -173,6 +177,9 @@ export async function GET(request: Request) {
         })),
       },
     };
+      }, // end cacheOrCompute compute fn
+      CacheTTL.VERY_LONG // 30 min
+    );
 
     return NextResponse.json(analytics);
   } catch (error) {

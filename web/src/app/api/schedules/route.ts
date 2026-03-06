@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createScheduleSchema } from "@/lib/validations";
+import {
+  cacheOrCompute,
+  cacheDel,
+  cacheDelPattern,
+  CacheKeys,
+  CacheTTL,
+} from "@/lib/cache";
 
 export async function GET(request: Request) {
   try {
@@ -12,9 +19,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get("date");
-    const upcoming = searchParams.get("upcoming") === "true";
-
-    const where: Record<string, unknown> = {};
+    const upcoming = searchParams.get("upcoming") === "true";    const where: Record<string, unknown> = {};
 
     if (dateStr) {
       where.date = new Date(dateStr);
@@ -22,25 +27,37 @@ export async function GET(request: Request) {
       where.date = { gte: new Date() };
     }
 
-    const schedules = await prisma.claimSchedule.findMany({
-      where,
-      orderBy: { date: "asc" },
-      include: {
-        timeSlots: {
-          orderBy: { startTime: "asc" },
+    // Build a stable cache key from the query params
+    const cacheKey = dateStr
+      ? CacheKeys.scheduleSlots(dateStr)
+      : upcoming
+        ? "schedule:slots:upcoming"
+        : "schedule:slots:all";
+
+    const schedules = await cacheOrCompute(
+      cacheKey,
+      () =>
+        prisma.claimSchedule.findMany({
+          where,
+          orderBy: { date: "asc" },
           include: {
-            reservations: {
-              select: {
-                id: true,
-                status: true,
-                userId: true,
-                applicationId: true,
+            timeSlots: {
+              orderBy: { startTime: "asc" },
+              include: {
+                reservations: {
+                  select: {
+                    id: true,
+                    status: true,
+                    userId: true,
+                    applicationId: true,
+                  },
+                },
               },
             },
           },
-        },
-      },
-    });
+        }),
+      CacheTTL.LONG // 10 min — slots change infrequently
+    );
 
     return NextResponse.json({ schedules });
   } catch (error) {
@@ -102,9 +119,7 @@ export async function POST(request: Request) {
       include: {
         timeSlots: true,
       },
-    });
-
-    await prisma.activityLog.create({
+    });    await prisma.activityLog.create({
       data: {
         userId: session.user.id,
         action: "CREATE_SCHEDULE",
@@ -113,6 +128,14 @@ export async function POST(request: Request) {
         details: { date, slotsCount: timeSlots.length },
       },
     });
+
+    // Invalidate schedule caches so next GET reflects the new schedule
+    await Promise.all([
+      cacheDel(CacheKeys.scheduleSlots(date)),
+      cacheDel("schedule:slots:upcoming"),
+      cacheDel("schedule:slots:all"),
+      cacheDelPattern("schedule:slots:*"),
+    ]);
 
     return NextResponse.json(
       { message: "Schedule created successfully", schedule },

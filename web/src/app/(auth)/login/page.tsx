@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const justVerified = params.get("verified") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,9 +19,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
-    try {
+    setLoading(true);    try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -43,23 +44,28 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
+      <div className="w-full max-w-md">        {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Shield className="h-10 w-10 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">
+            <Shield className="h-8 w-8 text-blue-600 sm:h-10 sm:w-10 flex-shrink-0" />
+            <span className="text-lg font-bold text-gray-900 sm:text-2xl">
               Business Permit System
             </span>
           </Link>
         </div>
 
         {/* Form Card */}
-        <div className="rounded-2xl bg-white p-8 shadow-xl">
+        <div className="rounded-2xl bg-white p-6 sm:p-8 shadow-xl">
           <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
           <p className="mt-1 text-sm text-gray-600">
             Sign in to your account to continue
           </p>
+
+          {justVerified && (
+            <div className="mt-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+              ✓ Email verified successfully! You can now sign in.
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
@@ -133,14 +139,13 @@ export default function LoginPage() {
               >
                 Forgot password?
               </Link>
-            </div>
-
-            <button
+            </div>            <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
 
@@ -156,5 +161,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

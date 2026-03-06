@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { cacheOrCompute, CacheKeys, CacheTTL } from "@/lib/cache";
 
 export async function GET(
   _request: Request,
@@ -10,29 +11,32 @@ export async function GET(
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    }    const { id } = await params;
 
-    const { id } = await params;
-
-    const application = await prisma.application.findUnique({
-      where: { id },
-      include: {
-        applicant: {
-          select: { firstName: true, lastName: true, email: true },
-        },
-        documents: { orderBy: { createdAt: "desc" } },
-        history: { orderBy: { createdAt: "desc" } },
-        reviewActions: {
-          orderBy: { createdAt: "desc" },
+    const application = await cacheOrCompute(
+      CacheKeys.application(id),
+      () =>
+        prisma.application.findUnique({
+          where: { id },
           include: {
-            reviewer: { select: { firstName: true, lastName: true } },
+            applicant: {
+              select: { firstName: true, lastName: true, email: true },
+            },
+            documents: { orderBy: { createdAt: "desc" } },
+            history: { orderBy: { createdAt: "desc" } },
+            reviewActions: {
+              orderBy: { createdAt: "desc" },
+              include: {
+                reviewer: { select: { firstName: true, lastName: true } },
+              },
+            },
+            permit: true,
+            claimReference: true,
+            claimSchedule: { include: { timeSlot: true } },
           },
-        },
-        permit: true,
-        claimReference: true,
-        claimSchedule: { include: { timeSlot: true } },
-      },
-    });
+        }),
+      CacheTTL.MEDIUM // 5 min
+    );
 
     if (!application) {
       return NextResponse.json(

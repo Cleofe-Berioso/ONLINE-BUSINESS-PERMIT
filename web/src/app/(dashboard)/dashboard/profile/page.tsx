@@ -71,9 +71,8 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
-  };
-  return (
-    <div className="mx-auto max-w-2xl">
+  };  return (
+    <div className="mx-auto max-w-2xl px-0 sm:px-0">
       {loading ? (
         <div className="flex justify-center py-12">
           <LoadingSpinner size="lg" />
@@ -81,7 +80,7 @@ export default function ProfilePage() {
       ) : (
       <>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Profile</h1>
         <p className="mt-1 text-sm text-gray-600">
           Manage your account information and security settings
         </p>
@@ -147,10 +146,8 @@ export default function ProfilePage() {
                   setProfile({ ...profile, phone: e.target.value })
                 }
                 placeholder="09171234567"
-              />
-
-              <div className="flex justify-end">
-                <Button onClick={handleSave} loading={saving}>
+              />              <div className="flex justify-end">
+                <Button onClick={handleSave} loading={saving} className="w-full sm:w-auto">
                   Save Changes
                 </Button>
               </div>
@@ -172,10 +169,9 @@ export default function ProfilePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-4">              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-3">
-                  <Key className="h-5 w-5 text-gray-400" />
+                  <Key className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   <div>
                     <p className="font-medium text-gray-900">Password</p>
                     <p className="text-sm text-gray-500">
@@ -183,14 +179,14 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   Change
                 </Button>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-gray-400" />
+                  <Shield className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   <div>
                     <p className="font-medium text-gray-900">
                       Two-Factor Authentication
@@ -205,6 +201,7 @@ export default function ProfilePage() {
                 <Button
                   variant={profile.twoFactorEnabled ? "destructive" : "default"}
                   size="sm"
+                  className="w-full sm:w-auto"
                 >
                   {profile.twoFactorEnabled ? "Disable" : "Enable"}
                 </Button>

@@ -49,7 +49,9 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/verify-otp?email=" + encodeURIComponent(formData.email));
+      router.push(
+        `/verify-otp?userId=${encodeURIComponent(data.userId)}&email=${encodeURIComponent(formData.email)}&type=EMAIL_VERIFICATION`
+      );
     } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
@@ -68,10 +70,8 @@ export default function RegisterPage() {
               Business Permit System
             </span>
           </Link>
-        </div>
-
-        {/* Form Card */}
-        <div className="rounded-2xl bg-white p-8 shadow-xl">
+        </div>        {/* Form Card */}
+        <div className="rounded-2xl bg-white p-6 sm:p-8 shadow-xl">
           <h2 className="text-2xl font-bold text-gray-900">
             Create your account
           </h2>
