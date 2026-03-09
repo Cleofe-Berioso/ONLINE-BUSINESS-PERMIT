@@ -1,0 +1,823 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "metadata": {
+    "application": "Online Business Permit System",
+    "description": "Business Permit Application & Management System for Philippine LGUs",
+    "version": "v1.0.0",
+    "generatedAt": "2026-03-09",
+    "totalWorkflows": 24,
+    "techStack": {
+      "framework": "Next.js 16 (App Router)",
+      "frontend": "React 19 + TypeScript 5.9 + Tailwind CSS v4",
+      "orm": "Prisma 7 with @prisma/adapter-pg",
+      "database": "PostgreSQL 16",
+      "auth": "NextAuth v5 (Auth.js) — JWT strategy",
+      "realtime": "Server-Sent Events (SSE)",
+      "payments": "PayMongo (GCash, Maya)",
+      "storage": "S3/MinIO with local fallback",
+      "deployment": "Docker (standalone build)"
+    }
+  },
+  "summary": {
+    "userFacing": 18,
+    "system": 4,
+    "integration": 2,
+    "categories": {
+      "authentication": 4,
+      "application": 5,
+      "documents": 3,
+      "scheduling": 3,
+      "permits": 3,
+      "payments": 2,
+      "admin": 4
+    }
+  },
+  "userRoles": [
+    {
+      "role": "APPLICANT",
+      "description": "Business owners applying for permits",
+      "permissions": [
+        "create_application",
+        "upload_documents",
+        "track_status",
+        "schedule_claim",
+        "view_permit",
+        "manage_profile"
+      ]
+    },
+    {
+      "role": "STAFF",
+      "description": "BPLO clerks handling daily operations",
+      "permissions": [
+        "verify_documents",
+        "manage_schedules",
+        "process_claims",
+        "issue_permits",
+        "record_payments",
+        "view_reports"
+      ]
+    },
+    {
+      "role": "REVIEWER",
+      "description": "BPLO officers reviewing and approving applications",
+      "permissions": [
+        "review_applications",
+        "approve_reject",
+        "view_reports",
+        "export_data"
+      ]
+    },
+    {
+      "role": "ADMINISTRATOR",
+      "description": "Full system access and user management",
+      "permissions": [
+        "manage_all",
+        "manage_users",
+        "system_settings",
+        "view_analytics",
+        "manage_schedules",
+        "view_audit_logs"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "WF-AUTH-001",
+      "name": "User Registration",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User clicks Register from login page or nav"
+      },
+      "components": [
+        {
+          "file": "src/app/(auth)/register/page.tsx",
+          "type": "page",
+          "description": "Registration form"
+        },
+        {
+          "file": "src/lib/validations.ts",
+          "type": "validation",
+          "description": "registerSchema (Zod)"
+        },
+        {
+          "file": "src/app/api/auth/register/route.ts",
+          "type": "api",
+          "description": "POST /api/auth/register"
+        }
+      ],
+      "statusFlow": [
+        "form_fill",
+        "validate_input",
+        "create_user",
+        "generate_otp",
+        "pending_verification"
+      ]
+    },
+    {
+      "id": "WF-AUTH-002",
+      "name": "User Login",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User submits login form"
+      },
+      "components": [
+        {
+          "file": "src/app/(auth)/login/page.tsx",
+          "type": "page",
+          "description": "Login form"
+        },
+        {
+          "file": "src/lib/auth.ts",
+          "type": "lib",
+          "description": "NextAuth Credentials provider"
+        },
+        {
+          "file": "src/lib/auth.config.ts",
+          "type": "lib",
+          "description": "Edge-safe auth config"
+        }
+      ],
+      "statusFlow": [
+        "enter_credentials",
+        "validate",
+        "check_status",
+        "check_lockout",
+        "authenticate",
+        "redirect_dashboard"
+      ]
+    },
+    {
+      "id": "WF-AUTH-003",
+      "name": "OTP Verification",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User enters OTP code"
+      },
+      "components": [
+        {
+          "file": "src/app/(auth)/verify-otp/page.tsx",
+          "type": "page",
+          "description": "OTP input form"
+        },
+        {
+          "file": "src/app/api/auth/verify-otp/route.ts",
+          "type": "api",
+          "description": "POST /api/auth/verify-otp"
+        }
+      ],
+      "statusFlow": [
+        "enter_otp",
+        "validate_token",
+        "mark_used",
+        "activate_account"
+      ]
+    },
+    {
+      "id": "WF-AUTH-004",
+      "name": "Password Reset",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User clicks Forgot Password"
+      },
+      "components": [
+        {
+          "file": "src/app/(auth)/forgot-password/page.tsx",
+          "type": "page",
+          "description": "Forgot password form"
+        },
+        {
+          "file": "src/app/api/auth/forgot-password/route.ts",
+          "type": "api",
+          "description": "POST /api/auth/forgot-password"
+        }
+      ],
+      "statusFlow": [
+        "enter_email",
+        "generate_reset_otp",
+        "send_email",
+        "verify_otp",
+        "set_new_password"
+      ]
+    },
+    {
+      "id": "WF-APP-001",
+      "name": "Create New Application",
+      "category": "application",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant clicks New Application"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/applications/new/page.tsx",
+          "type": "page",
+          "description": "Multi-step application form"
+        },
+        {
+          "file": "src/app/api/applications/route.ts",
+          "type": "api",
+          "description": "POST /api/applications"
+        },
+        {
+          "file": "src/lib/validations.ts",
+          "type": "validation",
+          "description": "applicationSchema (Zod)"
+        }
+      ],
+      "statusFlow": [
+        "fill_business_info",
+        "upload_documents",
+        "review_summary",
+        "submit"
+      ]
+    },
+    {
+      "id": "WF-APP-002",
+      "name": "Application Review",
+      "category": "application",
+      "type": "user-facing",
+      "trigger": {
+        "type": "status-change",
+        "description": "Application submitted for review"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/review/page.tsx",
+          "type": "page",
+          "description": "Review queue"
+        },
+        {
+          "file": "src/app/(dashboard)/dashboard/review/[id]/page.tsx",
+          "type": "page",
+          "description": "Application detail review"
+        },
+        {
+          "file": "src/app/api/applications/[id]/route.ts",
+          "type": "api",
+          "description": "PATCH review action"
+        }
+      ],
+      "statusFlow": [
+        "view_queue",
+        "open_application",
+        "check_documents",
+        "approve_or_reject_or_return"
+      ]
+    },
+    {
+      "id": "WF-APP-003",
+      "name": "Application Tracking",
+      "category": "application",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant checks status"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/tracking/page.tsx",
+          "type": "page",
+          "description": "Real-time tracking dashboard"
+        },
+        {
+          "file": "src/app/(public)/track/page.tsx",
+          "type": "page",
+          "description": "Public tracking page"
+        },
+        {
+          "file": "src/hooks/use-sse.ts",
+          "type": "hook",
+          "description": "SSE client hook"
+        },
+        {
+          "file": "src/lib/sse.ts",
+          "type": "lib",
+          "description": "SSE broadcaster"
+        }
+      ],
+      "statusFlow": [
+        "enter_application_number",
+        "fetch_status",
+        "subscribe_sse",
+        "receive_updates"
+      ]
+    },
+    {
+      "id": "WF-APP-004",
+      "name": "Government Registration Verification",
+      "category": "application",
+      "type": "integration",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant enters DTI/BIR/SEC number"
+      },
+      "components": [
+        {
+          "file": "src/lib/government-api.ts",
+          "type": "lib",
+          "description": "DTI/BIR/SEC mock API"
+        },
+        {
+          "file": "src/app/api/applications/verify-registration/route.ts",
+          "type": "api",
+          "description": "POST verification"
+        }
+      ],
+      "statusFlow": [
+        "enter_registration_number",
+        "call_government_api",
+        "return_verification_result"
+      ]
+    },
+    {
+      "id": "WF-APP-005",
+      "name": "Application Status Lifecycle",
+      "category": "application",
+      "type": "system",
+      "trigger": {
+        "type": "status-change",
+        "description": "Application status transitions"
+      },
+      "statusFlow": [
+        "DRAFT",
+        "SUBMITTED",
+        "UNDER_REVIEW",
+        "APPROVED_or_REJECTED_or_CANCELLED"
+      ],
+      "models": ["Application", "ApplicationHistory", "ReviewAction"]
+    },
+    {
+      "id": "WF-DOC-001",
+      "name": "Document Upload",
+      "category": "documents",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant uploads required document"
+      },
+      "components": [
+        {
+          "file": "src/components/ui/file-upload.tsx",
+          "type": "component",
+          "description": "File upload UI"
+        },
+        {
+          "file": "src/app/api/documents/upload/route.ts",
+          "type": "api",
+          "description": "POST /api/documents/upload"
+        },
+        {
+          "file": "src/lib/storage.ts",
+          "type": "lib",
+          "description": "S3/MinIO with local fallback"
+        }
+      ],
+      "statusFlow": [
+        "select_file",
+        "validate_type_size",
+        "magic_bytes_check",
+        "upload_to_storage",
+        "create_db_record"
+      ]
+    },
+    {
+      "id": "WF-DOC-002",
+      "name": "Document Verification",
+      "category": "documents",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Staff verifies uploaded document"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/verify-documents/page.tsx",
+          "type": "page",
+          "description": "Verification queue"
+        },
+        {
+          "file": "src/components/dashboard/verify-document-actions.tsx",
+          "type": "component",
+          "description": "Verify/Reject actions"
+        },
+        {
+          "file": "src/app/api/documents/[id]/route.ts",
+          "type": "api",
+          "description": "PATCH verify/reject"
+        }
+      ],
+      "statusFlow": [
+        "view_queue",
+        "open_document",
+        "review_content",
+        "verify_or_reject"
+      ]
+    },
+    {
+      "id": "WF-DOC-003",
+      "name": "Document Download",
+      "category": "documents",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User downloads a document"
+      },
+      "components": [
+        {
+          "file": "src/app/api/documents/[id]/route.ts",
+          "type": "api",
+          "description": "GET presigned URL"
+        },
+        {
+          "file": "src/lib/storage.ts",
+          "type": "lib",
+          "description": "getPresignedUrl / localReadStream"
+        }
+      ],
+      "statusFlow": [
+        "request_download",
+        "check_ownership",
+        "generate_presigned_url",
+        "serve_file"
+      ]
+    },
+    {
+      "id": "WF-SCHED-001",
+      "name": "Create Claim Schedule",
+      "category": "scheduling",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Staff/Admin creates schedule with time slots"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/schedule/page.tsx",
+          "type": "page",
+          "description": "Schedule management"
+        },
+        {
+          "file": "src/app/api/schedules/route.ts",
+          "type": "api",
+          "description": "POST /api/schedules"
+        }
+      ],
+      "statusFlow": [
+        "select_date",
+        "define_time_slots",
+        "set_capacity",
+        "save_schedule"
+      ],
+      "models": ["ClaimSchedule", "TimeSlot"]
+    },
+    {
+      "id": "WF-SCHED-002",
+      "name": "Reserve Claim Slot",
+      "category": "scheduling",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant books a claim time slot"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/claims/page.tsx",
+          "type": "page",
+          "description": "Claim scheduling page"
+        },
+        {
+          "file": "src/app/api/schedules/reserve/route.ts",
+          "type": "api",
+          "description": "POST /api/schedules/reserve"
+        }
+      ],
+      "statusFlow": [
+        "view_available_slots",
+        "select_slot",
+        "temporary_hold",
+        "confirm_reservation"
+      ],
+      "models": ["SlotReservation"]
+    },
+    {
+      "id": "WF-SCHED-003",
+      "name": "Reschedule Claim",
+      "category": "scheduling",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant reschedules their claim slot"
+      },
+      "components": [
+        {
+          "file": "src/components/dashboard/reschedule-button.tsx",
+          "type": "component",
+          "description": "Reschedule action"
+        },
+        {
+          "file": "src/app/api/schedules/reschedule/route.ts",
+          "type": "api",
+          "description": "POST /api/schedules/reschedule"
+        }
+      ],
+      "statusFlow": [
+        "request_reschedule",
+        "select_new_slot",
+        "release_old_slot",
+        "confirm_new_slot"
+      ]
+    },
+    {
+      "id": "WF-CLAIM-001",
+      "name": "Process Claim",
+      "category": "scheduling",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Staff processes walk-in claim"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/claims/page.tsx",
+          "type": "page",
+          "description": "Claims processing"
+        },
+        {
+          "file": "src/app/api/claims/verify/route.ts",
+          "type": "api",
+          "description": "Verify claim reference"
+        }
+      ],
+      "statusFlow": [
+        "scan_reference",
+        "verify_identity",
+        "process_claim",
+        "mark_completed"
+      ],
+      "models": ["ClaimReference"]
+    },
+    {
+      "id": "WF-PERMIT-001",
+      "name": "Permit Generation",
+      "category": "permits",
+      "type": "system",
+      "trigger": {
+        "type": "status-change",
+        "description": "Application approved → permit generated"
+      },
+      "components": [
+        {
+          "file": "src/lib/pdf.ts",
+          "type": "lib",
+          "description": "PDF generation with QR codes"
+        },
+        {
+          "file": "src/app/api/permits/[id]/route.ts",
+          "type": "api",
+          "description": "GET permit PDF"
+        }
+      ],
+      "statusFlow": [
+        "application_approved",
+        "create_permit_record",
+        "generate_pdf",
+        "generate_qr_code"
+      ],
+      "models": ["Permit"]
+    },
+    {
+      "id": "WF-PERMIT-002",
+      "name": "Permit Issuance",
+      "category": "permits",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Staff issues/releases permit"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/issuance/page.tsx",
+          "type": "page",
+          "description": "Issuance management"
+        },
+        {
+          "file": "src/app/api/issuance/[id]/route.ts",
+          "type": "api",
+          "description": "PATCH issuance status"
+        }
+      ],
+      "statusFlow": ["PREPARED", "ISSUED", "RELEASED", "COMPLETED"],
+      "models": ["PermitIssuance"]
+    },
+    {
+      "id": "WF-PERMIT-003",
+      "name": "Permit Verification (Public)",
+      "category": "permits",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Anyone scans QR code to verify permit"
+      },
+      "components": [
+        {
+          "file": "src/app/(public)/verify-permit/page.tsx",
+          "type": "page",
+          "description": "Public verification page"
+        },
+        {
+          "file": "src/app/api/public/verify-permit/route.ts",
+          "type": "api",
+          "description": "GET verification"
+        }
+      ],
+      "statusFlow": ["scan_qr", "lookup_permit", "display_validity"]
+    },
+    {
+      "id": "WF-PAY-001",
+      "name": "Online Payment",
+      "category": "payments",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Applicant pays permit fees online"
+      },
+      "components": [
+        {
+          "file": "src/components/dashboard/pay-now-button.tsx",
+          "type": "component",
+          "description": "Payment trigger"
+        },
+        {
+          "file": "src/lib/payments.ts",
+          "type": "lib",
+          "description": "PayMongo integration"
+        },
+        {
+          "file": "src/app/api/payments/route.ts",
+          "type": "api",
+          "description": "POST /api/payments"
+        },
+        {
+          "file": "src/app/api/payments/webhook/route.ts",
+          "type": "api",
+          "description": "Payment webhook"
+        }
+      ],
+      "statusFlow": [
+        "select_method",
+        "create_checkout",
+        "redirect_to_gateway",
+        "webhook_confirmation",
+        "update_status"
+      ],
+      "models": ["Payment"]
+    },
+    {
+      "id": "WF-PAY-002",
+      "name": "OTC Payment Recording",
+      "category": "payments",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Staff records over-the-counter payment"
+      },
+      "components": [
+        {
+          "file": "src/app/api/payments/route.ts",
+          "type": "api",
+          "description": "POST OTC payment"
+        }
+      ],
+      "statusFlow": [
+        "receive_cash",
+        "record_payment",
+        "generate_receipt",
+        "update_application"
+      ]
+    },
+    {
+      "id": "WF-ADMIN-001",
+      "name": "User Management",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin manages user accounts"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/admin/users/page.tsx",
+          "type": "page",
+          "description": "User management page"
+        },
+        {
+          "file": "src/components/dashboard/admin-users-client.tsx",
+          "type": "component",
+          "description": "Client-side user table"
+        },
+        {
+          "file": "src/app/api/admin/users/route.ts",
+          "type": "api",
+          "description": "Admin user CRUD"
+        }
+      ],
+      "statusFlow": [
+        "view_users",
+        "search_filter",
+        "create_edit_suspend",
+        "change_role"
+      ]
+    },
+    {
+      "id": "WF-ADMIN-002",
+      "name": "System Settings",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin configures system parameters"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/admin/settings/page.tsx",
+          "type": "page",
+          "description": "Settings page"
+        },
+        {
+          "file": "src/components/dashboard/admin-settings-client.tsx",
+          "type": "component",
+          "description": "Settings form"
+        },
+        {
+          "file": "src/app/api/admin/settings/route.ts",
+          "type": "api",
+          "description": "Settings CRUD"
+        }
+      ],
+      "statusFlow": ["view_settings", "modify_values", "save"],
+      "models": ["SystemSetting"]
+    },
+    {
+      "id": "WF-ADMIN-003",
+      "name": "Analytics & Reports",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin views analytics or generates reports"
+      },
+      "components": [
+        {
+          "file": "src/app/(dashboard)/dashboard/admin/reports/page.tsx",
+          "type": "page",
+          "description": "Reports page"
+        },
+        {
+          "file": "src/app/api/analytics/route.ts",
+          "type": "api",
+          "description": "Analytics data"
+        }
+      ],
+      "statusFlow": [
+        "select_report_type",
+        "set_date_range",
+        "generate",
+        "export_csv_pdf"
+      ]
+    },
+    {
+      "id": "WF-SYS-001",
+      "name": "Cron: Expire Holds & Permits",
+      "category": "admin",
+      "type": "system",
+      "trigger": { "type": "scheduled", "description": "Periodic cron job" },
+      "components": [
+        {
+          "file": "src/app/api/cron/expire-holds/route.ts",
+          "type": "api",
+          "description": "Expire temporary slot holds"
+        },
+        {
+          "file": "src/app/api/cron/expire-permits/route.ts",
+          "type": "api",
+          "description": "Mark expired permits"
+        }
+      ],
+      "statusFlow": [
+        "trigger_cron",
+        "find_expired_records",
+        "update_statuses",
+        "log_results"
+      ]
+    }
+  ]
+}
