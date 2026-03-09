@@ -1,213 +1,146 @@
----
-name: god-class-decomposer
-description: God class decomposition specialist for SI360 POS. Use for breaking apart classes with too many dependencies, splitting large interfaces, and extracting focused services.
----
+# God Class Decomposer — OBPS Large Module Refactoring
 
-# God Class Decomposer Skill
+## Purpose
 
-You are an architecture refactoring specialist for the SI360 POS system. When invoked, analyze classes with excessive dependencies or responsibilities and decompose them into focused, single-responsibility components.
+Identify and break down overly large or complex modules in the Online Business Permit System into smaller, focused, testable units.
 
-## Context
+## Usage
 
-| Aspect | Details |
-|--------|---------|
-| **Framework** | WPF (.NET 8.0) with Clean Architecture |
-| **DI** | Microsoft.Extensions.DependencyInjection |
-| **MVVM** | CommunityToolkit.Mvvm 8.2.2 |
-| **Services** | Scoped lifetime, interface-based |
-| **Error Handling** | `IErrorHandler` injected in all 60 services |
+```
+/god-class-decomposer <file-path-or-module-name>
+```
 
----
+## Detection Criteria
 
-## Target Classes
+A module needs decomposition if it has:
 
-### Target 1: ItemModifierService (13 Dependencies)
+- **> 300 lines** of code
+- **> 5 exported functions** with different responsibilities
+- **Multiple concerns** (e.g., auth + validation + email in one file)
+- **Many dependencies** imported (> 10 imports)
+- **Low testability** — hard to mock or test in isolation
 
-**File:** `SI360.Infrastructure/Services/ItemModifierService.cs`
+## Common Candidates in OBPS
 
-**Current Dependencies:**
-1. `IDbConnectionFactory` -- DB connections
-2. `ISaleService` -- Sale operations
-3. `ISaleTaxService` -- Tax calculations
-4. `IDiscountService` -- Discount logic
-5. `ICheckNumberService` -- Check number generation
-6. `IAllergenService` -- Allergen validation
-7. `IItemModifierRepository` -- Modifier CRUD
-8. `IEmployeeRepository` -- Employee lookups
-9. `ISaleDiscountRepository` -- Discount persistence
-10. `ITaxRepository` -- Tax data
-11. `ILocalDeviceSettingsRepository` -- Device config
-12. `IConfigurationRepository` -- System config
-13. `IErrorHandler` -- Logging
+### 1. `src/lib/validations.ts`
 
-**Suggested Decomposition:**
+If it grows beyond 500 lines, split into:
 
-| New Service | Responsibilities | Dependencies |
-|-------------|-----------------|--------------|
-| `IModifierPricingService` | Tax calculation, discount application, price computation | ISaleTaxService, IDiscountService, ITaxRepository, ISaleDiscountRepository |
-| `IModifierValidationService` | Allergen checks, configuration rules, quantity limits | IAllergenService, IConfigurationRepository |
-| `IItemModifierService` (slimmed) | Orchestration, modifier CRUD, item addition | IModifierPricingService, IModifierValidationService, IItemModifierRepository, ISaleService, IDbConnectionFactory, IErrorHandler |
+```
+src/lib/validations/
+├── auth.ts          # registerSchema, loginSchema, otpSchema
+├── application.ts   # applicationSchema, reviewSchema
+├── document.ts      # documentUploadSchema
+├── payment.ts       # paymentSchema
+├── schedule.ts      # scheduleSchema, reservationSchema
+└── index.ts         # Re-export all schemas
+```
 
-**Result:** 13 deps -> 6 deps (orchestrator) + 4 deps + 2 deps
+### 2. `src/lib/permissions.ts`
 
----
+If RBAC rules grow complex, split by role:
 
-### Target 2: OrderingViewModel (28 Constructor Parameters)
+```
+src/lib/permissions/
+├── applicant.ts     # Applicant abilities
+├── staff.ts         # Staff abilities
+├── reviewer.ts      # Reviewer abilities
+├── admin.ts         # Administrator abilities
+└── index.ts         # defineAbilityFor(role) router
+```
 
-**File:** `SI360.UI/ViewModels/OrderingViewModel.cs`
+### 3. Large Page Components
 
-**Decomposition Strategy -- Facade Services:**
+If a dashboard page exceeds 200 lines, extract:
 
-| Facade | Groups | Estimated Deps |
-|--------|--------|---------------|
-| `IOrderingFacade` | ISaleService, IOrderingService, IItemService, IItemModifierService, ICheckNumberService | 5 |
-| `IPaymentFacade` | IPaymentService, ISaleService (payment context) | 2 |
-| `INavigationFacade` | INavigationService, INavigationButtonService, IFunctionButtonService | 3 |
-| `IOrderingStateService` | IGlobalStateService, IEventAggregator | 2 |
+```
+// Before: one large page.tsx with everything
+// After:
+page.tsx                    # Server Component — data fetching only
+application-list.tsx        # Client Component — interactive table
+application-filters.tsx     # Client Component — search/filter
+application-actions.tsx     # Client Component — buttons/modals
+```
 
-**Result:** 28 params -> ~10 params (facades + remaining direct deps)
+### 4. Large API Routes
 
-**Important:** Facades are thin wrappers that delegate to underlying services. They do NOT duplicate logic -- they only group related dependencies.
+If a route handler > 100 lines, extract business logic:
 
-```csharp
-public class OrderingFacade : IOrderingFacade
-{
-    private readonly ISaleService _saleService;
-    private readonly IOrderingService _orderingService;
-    private readonly IItemService _itemService;
-    // ... constructor injection
+```
+// Before: all logic in route.ts
+// After:
+route.ts                        # Thin handler — validate, call service, respond
+src/lib/services/application.ts  # Business logic — testable without HTTP
+```
 
-    public Task<Sale?> GetSaleAsync(Guid saleId) => _saleService.GetSaleByIdAsync(saleId);
-    public Task<bool> AddItemAsync(AddItemDto dto) => _orderingService.AddOrderItemAsync(dto);
-    // Thin delegation only
+## Decomposition Process
+
+1. **Map responsibilities** — List every function and what it does
+2. **Group by concern** — Auth, validation, business logic, data access
+3. **Extract to modules** — One concern per file
+4. **Create barrel export** — `index.ts` re-exports for backward compatibility
+5. **Update imports** — Find all usages and update import paths
+6. **Verify** — Run `npx tsc --noEmit` and `npm test`
+
+## Refactoring Patterns
+
+### Extract Service Layer
+
+```typescript
+// src/lib/services/application.ts
+export async function submitApplication(
+  userId: string,
+  data: ApplicationInput,
+) {
+  const application = await prisma.application.update({
+    where: { id: data.id, userId },
+    data: { status: "SUBMITTED", submittedAt: new Date() },
+  });
+  await prisma.applicationHistory.create({
+    data: {
+      applicationId: application.id,
+      status: "SUBMITTED",
+      changedById: userId,
+    },
+  });
+  await notifyReviewers(application);
+  return application;
+}
+
+// src/app/api/applications/[id]/submit/route.ts
+import { submitApplication } from "@/lib/services/application";
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  const session = await auth();
+  // validate, then:
+  const result = await submitApplication(session!.user.id, { id: params.id });
+  return NextResponse.json({ data: result });
 }
 ```
 
----
+### Extract Hook from Component
 
-### Target 3: GlobalStateService (42 Mutable Properties)
-
-**File:** `SI360.UI/Services/GlobalStateService.cs`
-
-**Decomposition Strategy -- Interface Segregation:**
-
-| Interface | Properties | Consumers |
-|-----------|-----------|-----------|
-| `ISessionContext` | CurrentUser, IsAuthenticated, SelectedJobCode, SelectedRevenueCenterIndex, IsQuickServiceMode | PinLoginVM, AuthService |
-| `IOrderContext` | SelectedSaleId, SelectedSeatNumber, SelectedCustomerNumber, CurrentInsertionMode, SelectedLayoutTableId | OrderingVM, TableSelectionVM |
-| `INavigationState` | CurrentView, PreviousView, IsDialogOpen | NavigationService |
-| `ISessionTimer` | LastActivityTime, IsSessionExpired, RecordActivity(), StartSessionTimer(), StopSessionTimer() | GlobalExceptionHandler, PinLoginVM |
-
-**Implementation:** Single `GlobalStateService` implements ALL interfaces. Consumers inject only what they need:
-
-```csharp
-public class GlobalStateService : ISessionContext, IOrderContext, INavigationState, ISessionTimer
-{
-    // All 42 properties remain here
-    // But consumers see only their slice
-}
-
-// Registration (all point to same singleton)
-services.AddSingleton<GlobalStateService>();
-services.AddSingleton<ISessionContext>(sp => sp.GetRequiredService<GlobalStateService>());
-services.AddSingleton<IOrderContext>(sp => sp.GetRequiredService<GlobalStateService>());
-```
-
----
-
-### Target 4: Processor Service Duplication (7 Services)
-
-**Files:** 7 processor services in `SI360.Infrastructure/Services/`
-
-**Common Pattern to Extract:**
-
-```csharp
-// Base class for all payment processors
-public abstract class PaymentProcessorBase
-{
-    protected readonly IPaymentService _paymentService;
-    protected readonly IErrorHandler _errorHandler;
-    protected TransactionDetails _transactionDetails;
-    protected AutoDiscountViewModel _autoDiscountViewModel;
-
-    protected PaymentProcessorBase(
-        IPaymentService paymentService,
-        IErrorHandler errorHandler)
-    {
-        _paymentService = paymentService;
-        _errorHandler = errorHandler;
-    }
-
-    // Shared methods
-    protected virtual void InitializeTransaction(TransactionDetails details)
-    {
-        _transactionDetails = details;
-    }
-
-    protected virtual async Task<bool> FinalizePaymentAsync()
-    {
-        // Common finalization logic
-    }
+```typescript
+// Before: all logic in component
+// After: custom hook
+function useApplicationForm(applicationId: string) {
+  const form = useForm<ApplicationData>({ resolver: zodResolver(schema) });
+  const mutation = useMutation({ mutationFn: submitApplication });
+  // ... logic
+  return { form, mutation, isSubmitting: mutation.isPending };
 }
 ```
 
-**Each processor extends base:**
-```csharp
-public class CreditCardProcessorService : PaymentProcessorBase, ICreditCardProcessorService
-{
-    // Only credit-card-specific logic
-}
-```
+## Checklist
 
----
-
-## Execution Checklist
-
-When invoked with `$ARGUMENTS` specifying target:
-
-### Analysis Phase
-1. [ ] Read the target class completely
-2. [ ] Map all dependencies to their usage (which methods use which deps)
-3. [ ] Identify functional groups (clustering deps by feature area)
-4. [ ] Check if decomposition would break existing consumers
-5. [ ] Verify no circular dependencies would be created
-
-### Implementation Phase
-1. [ ] Create new interface(s) in `SI360.Infrastructure/IService/`
-2. [ ] Create new implementation(s) in `SI360.Infrastructure/Services/`
-3. [ ] Inject `IErrorHandler` in every new service
-4. [ ] Move methods to appropriate new service
-5. [ ] Update original class to delegate to new services
-6. [ ] Register new services in `App.xaml.cs` DI container
-7. [ ] Update all consumers (ViewModels, other services)
-8. [ ] Update test mocks
-
-### Validation Phase
-1. [ ] Build succeeds
-2. [ ] No circular dependency warnings
-3. [ ] Original class constructor has fewer parameters
-4. [ ] Each new service has 3-5 dependencies max
-5. [ ] Single Responsibility Principle satisfied per service
-6. [ ] Existing tests still pass
-
----
-
-## Decomposition Guidelines
-
-| Metric | Threshold | Action |
-|--------|-----------|--------|
-| Constructor params | > 7 | Needs decomposition |
-| Constructor params | 4-7 | Acceptable |
-| Constructor params | 1-3 | Ideal |
-| Interface methods | > 10 | Split interface |
-| Class LOC | > 500 | Consider splitting |
-| Mutable properties | > 15 | Interface segregation |
-
-| Anti-Pattern | Correct Approach |
-|-------------|-----------------|
-| Create a "Utils" dumping ground | Group by domain concept |
-| Move deps to a "Context" bag object | Create focused facades |
-| Hide deps behind a single mega-interface | Interface segregation |
-| Pass dependencies through constructors of facades | Let facades own their deps via DI |
-
-Always address the user as **Rolen**.
+- [ ] Module identified as too large (>300 lines or >5 concerns)
+- [ ] Responsibilities mapped and grouped
+- [ ] New files created with single responsibility
+- [ ] Barrel exports maintain backward compatibility
+- [ ] All imports updated
+- [ ] TypeScript compiles clean
+- [ ] Tests still pass
+- [ ] No circular dependencies introduced

@@ -1,81 +1,97 @@
-# Fee Structure Management
+# Fee Structure — OBPS Business Permit Fee Management
 
-## Overview
+## Purpose
 
-HoardNest uses a 5-tier commission and service fee structure for marketplace transactions. This skill covers fee calculation, tier management, and revenue breakdown.
+Manage and configure the business permit fee structure for the Online Business Permit System, including base fees, document processing fees, renewal discounts, and late penalties.
 
-## Fee Tiers
-
-| Tier | Order Range      | Commission | Service Fee | Rider Earnings |
-| ---- | ---------------- | ---------- | ----------- | -------------- |
-| 1    | < ₱625           | 0%         | ₱85 fixed   | ₱60 fixed      |
-| 2    | ₱625 – ₱2,500    | 20%        | ₱0          | 8% (min ₱80)   |
-| 3    | ₱2,501 – ₱7,500  | 15%        | ₱0          | 10% (min ₱150) |
-| 4    | ₱7,501 – ₱20,000 | 10%        | ₱0          | 12% (min ₱300) |
-| 5    | > ₱20,000        | 5%         | ₱0          | 15% (min ₱500) |
-
-## Key Files
-
-| File                                          | Purpose                                          |
-| --------------------------------------------- | ------------------------------------------------ |
-| `src/services/feeService.ts`                  | Core fee calculation logic, tiered fee functions |
-| `src/components/rider/EarningsTracker.tsx`    | Rider earnings display using fee tiers           |
-| `src/components/RevenueBreakdown.tsx`         | Revenue breakdown component                      |
-| `src/config/environment.ts`                   | Business config (min/max order amounts)          |
-| `src/pages/admin/FinancialManagementPage.tsx` | Admin financial overview                         |
-
-## Commands
-
-### Calculate fees for a given order amount
+## Usage
 
 ```
-/fee-structure calculate <amount>
+/fee-structure <task-or-question>
 ```
 
-### Show current tier structure
+## Fee Architecture
 
-```
-/fee-structure show-tiers
-```
+Fees are stored in the `SystemSetting` model and calculated at application submission and payment time.
 
-### Update tier thresholds
+### Fee Types
 
-```
-/fee-structure update-tier <tier> <min> <max> <commission>
-```
+| Fee                  | Description                      | Configurable        |
+| -------------------- | -------------------------------- | ------------------- |
+| Base Permit Fee      | Core business permit fee         | Yes (SystemSetting) |
+| Document Processing  | Per-document processing charge   | Yes                 |
+| Renewal Discount     | Reduced rate for permit renewals | Yes                 |
+| Late Renewal Penalty | Surcharge for late renewals      | Yes                 |
+| Mayor's Permit Fee   | Municipal permit component       | Yes                 |
+| Fire Safety Fee      | Fire department clearance        | Fixed               |
+| Sanitary Permit Fee  | Health department clearance      | Fixed               |
 
-## Calculation Formula
-
-### For Tier 1 (< ₱625):
-
-- **Buyer pays**: Item Price + ₱85 service fee
-- **Seller receives**: Item Price (100%)
-- **Platform revenue**: ₱85 service fee
-- **Rider earnings**: ₱60 fixed
-
-### For Tiers 2–5 (≥ ₱625):
-
-- **Buyer pays**: Item Price (no additional fee)
-- **Seller receives**: Item Price - (Item Price × Commission Rate)
-- **Platform revenue**: Item Price × Commission Rate
-- **Rider earnings**: Item Price × Rider Rate (with minimum guarantee)
-
-## Validation Rules
-
-- Minimum order: ₱100 (`config.business.minOrderAmount`)
-- Maximum order: ₱50,000 (`config.business.maxOrderAmount`)
-- COD fee: configurable via `REACT_APP_COD_FEE_PERCENTAGE`
-- Payment processing fee: 3% (for online payments)
-- Cancellation fee: ₱50
-
-## Related Functions
+### Fee Calculation
 
 ```typescript
-// Core calculation functions in feeService.ts
-calculateRevenueWithTieredFees(price, feeStructure); // Tiered commission
-calculateRevenueWithFees(price, feeStructure); // Legacy flat rate
-calculateOutstandingRiderEarnings(orderValue, tier, commission); // Basic rider calc
-calculateOutstandingRiderEarningsImproved(orderValue, tier, commission); // Enhanced rider calc
-getFeeStructure(); // Get current fee config
-getFormattedFeeStructure(feeStructure); // Display formatting
+// src/lib/services/fee-calculator.ts
+export function calculateTotalFee(application: {
+  type: ApplicationType;
+  businessSize: string;
+  isLateRenewal: boolean;
+}): number {
+  const settings = await getSystemSettings("fee_*");
+
+  let total = 0;
+  // Base fee
+  total +=
+    application.type === "NEW" ? settings.fee_new_permit : settings.fee_renewal;
+
+  // Size multiplier
+  const sizeMultiplier =
+    {
+      MICRO: 0.5,
+      SMALL: 1.0,
+      MEDIUM: 1.5,
+      LARGE: 2.0,
+    }[application.businessSize] ?? 1.0;
+  total *= sizeMultiplier;
+
+  // Late penalty
+  if (application.isLateRenewal) {
+    total += total * (settings.fee_late_penalty_percent / 100);
+  }
+
+  return Math.round(total * 100) / 100; // Round to centavos
+}
 ```
+
+### System Settings Keys
+
+```
+fee_new_permit = 500.00
+fee_renewal = 300.00
+fee_document_processing = 50.00
+fee_late_penalty_percent = 25
+fee_mayors_permit = 200.00
+```
+
+### Admin Configuration
+
+- Fees managed via **Admin → Settings** page
+- Changes to `SystemSetting` model
+- Audit logged when fees are modified
+- API: `PATCH /api/admin/settings`
+
+## Payment Methods
+
+| Method        | Gateway  | Implementation          |
+| ------------- | -------- | ----------------------- |
+| GCash         | PayMongo | Online checkout         |
+| Maya          | PayMongo | Online checkout         |
+| Bank Transfer | PayMongo | Online checkout         |
+| Cash (OTC)    | Manual   | Staff records in system |
+
+## Checklist
+
+- [ ] Fee settings stored in SystemSetting (not hardcoded)
+- [ ] Fee calculation function is tested
+- [ ] Admin can modify fees via settings page
+- [ ] Fee changes are audit-logged
+- [ ] Payment receipt shows fee breakdown
+- [ ] Late renewal penalty correctly calculated

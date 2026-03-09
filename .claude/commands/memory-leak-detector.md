@@ -1,303 +1,158 @@
----
-name: memory-leak-detector
-description: Memory leak detection specialist for SI360 POS. Use for finding event subscription leaks, undisposed resources, unbounded collections, and timer/handler cleanup issues.
----
+# Memory Leak Detector — OBPS Client & Server Leak Prevention
 
-# Memory Leak Detector Skill
+## Purpose
 
-You are a memory leak detection and prevention specialist for the SI360 POS system. When invoked, systematically identify memory leaks from event subscriptions, undisposed resources, unbounded collections, and improper cleanup patterns in the WPF/.NET 8.0 application.
+Detect and fix memory leaks in the Online Business Permit System — React component leaks, SSE connection leaks, Zustand store leaks, Prisma connection exhaustion, and server-side accumulation.
 
-## Context
+## Usage
 
-| Aspect | Details |
-|--------|---------|
-| **Framework** | WPF (.NET 8.0) with Clean Architecture |
-| **MVVM** | CommunityToolkit.Mvvm 8.2.2 |
-| **Real-time** | SignalR (PosSignalRClient) with event subscriptions |
-| **DI Lifetimes** | Singleton (GlobalState, SignalR), Scoped (Services), Transient (ViewModels, Views) |
-| **Timers** | DispatcherTimer in App.xaml.cs, polling timers in ViewModels |
-| **Long-Running** | POS app runs 12-16 hours continuously per shift |
-
----
-
-## Leak Categories
-
-### Category 1: Event Subscription Leaks
-
-**How WPF Events Cause Leaks:**
-```csharp
-// LEAK: Publisher (long-lived) holds reference to subscriber (short-lived)
-// ViewModel subscribes to singleton event but never unsubscribes
-_globalState.PropertyChanged += OnGlobalStateChanged;
-
-// When ViewModel is "destroyed" (view navigated away):
-// - GC cannot collect ViewModel because GlobalState holds reference
-// - All ViewModel's dependencies also cannot be collected
-// - Each navigation creates a new ViewModel → memory grows indefinitely
+```
+/memory-leak-detector <area-or-symptom>
 ```
 
-**Detection Patterns:**
-```csharp
-// SEARCH FOR: Event subscriptions in constructors/Loaded without matching unsubscribe
-// Pattern 1: += without corresponding -=
-someObject.SomeEvent += Handler;      // FOUND
-someObject.SomeEvent -= Handler;      // MISSING?
+## Common Leak Sources
 
-// Pattern 2: Lambda subscriptions (can never unsubscribe!)
-someObject.SomeEvent += (s, e) => { }; // LEAK - lambda creates closure
+### 1. SSE (Server-Sent Events) Leaks
 
-// Pattern 3: SignalR .On() without .Off() or Dispose
-_connection.On<DbChangeEvent>("DbChanged", OnDbChanged); // Can this be cleaned up?
+**Risk**: `useSSE` hook not cleaning up EventSource connections
+
+```typescript
+// ✅ Correct pattern in src/hooks/use-sse.ts
+useEffect(() => {
+  const eventSource = new EventSource("/api/events");
+  eventSource.onmessage = handleMessage;
+
+  return () => {
+    eventSource.close(); // MUST close on unmount
+  };
+}, []);
 ```
 
-**Known Risk Areas:**
+**Check**: Does the SSE hook clean up on component unmount?
 
-| File | Subscription | Unsubscription | Status |
-|------|-------------|----------------|--------|
-| `ChargeTipDialog.xaml.cs` | `Loaded += OnLoaded` (line 20) | `OnClosed -= handler` (line 40) | GOOD |
-| `CheckDetailsDialog.xaml.cs` | `Loaded += OnLoaded` (line 46) | No Unloaded/Closed handler | LEAK RISK |
-| `OrderingViewModel.cs` | SignalR `_connection.On(...)` | Unknown - check for Dispose | LEAK RISK |
-| `App.xaml.cs` | `DispatcherTimer` (line 105) | `Timer.Stop()` but no dispose | LOW RISK |
-| `PosSignalRClient.cs` | `Reconnecting/Reconnected/Closed` | Unknown | CHECK |
+### 2. React useEffect Cleanup
 
-### Category 2: IDisposable Violations
+**Risk**: Subscriptions, intervals, or event listeners not cleaned up
 
-**Rule:** Any class that holds unmanaged resources, event subscriptions, timers, or IDisposable dependencies MUST implement IDisposable.
+```typescript
+// ❌ Leak: interval never cleared
+useEffect(() => {
+  setInterval(fetchStatus, 5000);
+}, []);
 
-**Pattern for ViewModels:**
-```csharp
-public partial class OrderingViewModel : ObservableObject, IDisposable
-{
-    private readonly CompositeDisposable _disposables = new();
-    private bool _disposed;
+// ✅ Fixed: clear on unmount
+useEffect(() => {
+  const id = setInterval(fetchStatus, 5000);
+  return () => clearInterval(id);
+}, []);
+```
 
-    public OrderingViewModel(/* deps */)
-    {
-        // Track subscriptions
-        _globalState.PropertyChanged += OnGlobalStateChanged;
-        _disposables.Add(() => _globalState.PropertyChanged -= OnGlobalStateChanged);
+### 3. Zustand Store Subscriptions
 
-        // Track SignalR
-        _disposables.Add(() => _posSignalRClient?.DisposeAsync().AsTask().Wait());
-    }
+**Risk**: Store subscriptions in components that unmount
 
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-        _disposables.Dispose();
-        GC.SuppressFinalize(this);
-    }
+```typescript
+// ✅ Zustand handles this automatically with useStore selector
+// But manual subscribe() calls need cleanup:
+useEffect(() => {
+  const unsubscribe = useAppStore.subscribe((state) => {
+    // handle state change
+  });
+  return () => unsubscribe();
+}, []);
+```
+
+### 4. React Query Stale Queries
+
+**Risk**: Queries keep running for unmounted components
+
+```typescript
+// ✅ React Query handles this — but verify:
+const { data } = useQuery({
+  queryKey: ["applications"],
+  queryFn: fetchApplications,
+  enabled: isVisible, // Only run when component is visible
+  refetchInterval: isVisible ? 30000 : false, // Stop polling when hidden
+});
+```
+
+### 5. Prisma Connection Exhaustion (Server-side)
+
+**Risk**: Too many Prisma Client instances in development
+
+```typescript
+// ✅ Correct pattern in src/lib/prisma.ts
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+export const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+```
+
+**Check**: Is Prisma client stored in globalThis for dev hot-reload?
+
+### 6. File Handle / Stream Leaks (Server-side)
+
+**Risk**: File streams or S3 streams not closed
+
+```typescript
+// ✅ Always close streams in finally block
+const stream = await storage.getReadStream(filePath);
+try {
+  // process stream
+} finally {
+  stream.destroy();
 }
 ```
 
-**Simple CompositeDisposable:**
-```csharp
-public class CompositeDisposable : IDisposable
-{
-    private readonly List<Action> _cleanupActions = new();
+### 7. BullMQ Worker Leaks
 
-    public void Add(Action cleanup) => _cleanupActions.Add(cleanup);
+**Risk**: Job workers not shut down gracefully
 
-    public void Add(IDisposable disposable) =>
-        _cleanupActions.Add(disposable.Dispose);
-
-    public void Dispose()
-    {
-        foreach (var action in _cleanupActions)
-        {
-            try { action(); } catch { /* log but don't throw */ }
-        }
-        _cleanupActions.Clear();
-    }
-}
+```typescript
+// ✅ In src/lib/queue.ts — ensure graceful shutdown
+process.on("SIGTERM", async () => {
+  await worker.close();
+  await queue.close();
+});
 ```
 
-### Category 3: Unbounded Collections
+## Detection Tools
 
-**Risk:** ObservableCollections that grow without bounds during long shifts.
+### Browser (Client-side)
 
-**Detection Pattern:**
-```csharp
-// RISK: Collection.Add() without corresponding Clear() or size check
-public ObservableCollection<LogEntry> Logs { get; } = new();
-
-public void AddLog(string message)
-{
-    Logs.Add(new LogEntry(message)); // Grows forever!
-}
-
-// FIX: Bounded collection
-public void AddLog(string message)
-{
-    Logs.Add(new LogEntry(message));
-    while (Logs.Count > MaxLogEntries)
-        Logs.RemoveAt(0);
-}
+```
+Chrome DevTools → Memory tab → Heap snapshot
+1. Take snapshot before opening dashboard
+2. Navigate around, open/close features
+3. Take snapshot again
+4. Compare — look for detached DOM nodes, growing arrays
 ```
 
-**Known Risk Areas:**
-
-| Collection | File | Max Size | Growth Pattern |
-|------------|------|----------|----------------|
-| `_transactions` (List) | `PaymentService.cs:21` | Unbounded | Grows per payment |
-| `GroupedSeatOrders` | `OrderingViewModel.cs` | Per-sale | Rebuilt on refresh |
-| `OpenChecks` | `OrderingViewModel.cs` | Per-room | Rebuilt on refresh |
-| `MenuItems` | `OrderingViewModel.cs` | Per-department | Rebuilt on selection |
-| `LoggedMessages` | `TestErrorHandler.cs` | Unbounded (tests only) | OK for tests |
-
-### Category 4: Timer and Polling Leaks
-
-**Risk:** Timers that continue running after their owning view is destroyed.
-
-**Detection Pattern:**
-```csharp
-// LEAK: Timer starts but is never stopped when view navigates away
-private readonly DispatcherTimer _pollingTimer;
-
-public void StartPolling()
-{
-    _pollingTimer.Start(); // Starts ticking
-}
-// Missing: StopPolling() called on view unload
-
-// FIX: Stop timer on view destruction
-public void Dispose()
-{
-    _pollingTimer?.Stop();
-    _pollingTimer?.IsEnabled = false;
-}
-```
-
-**Known Timers:**
-
-| Timer | File | Start | Stop | Status |
-|-------|------|-------|------|--------|
-| `DispatcherTimer` | `App.xaml.cs:105` | OnStartup | OnExit | CHECK |
-| `_orderPollingTimer` | `TableSelectionViewModel.cs` | LoadTables | Unknown | CHECK |
-| Polling ViewModels | `OrderItemPollingViewModel.cs` | Initialize | Unknown | CHECK |
-| Polling ViewModels | `PaymentStatusPollingViewModel.cs` | Initialize | Unknown | CHECK |
-
-### Category 5: WPF-Specific Leaks
-
-**Binding Leaks:**
-```xml
-<!-- LEAK: Binding to non-INotifyPropertyChanged source -->
-<TextBlock Text="{Binding SomeProperty}" />
-<!-- If DataContext is plain object (not ObservableObject), WPF creates
-     a PropertyDescriptor that pins the object in memory -->
-
-<!-- FIX: Always use ObservableObject or [ObservableProperty] -->
-```
-
-**Static Resource Leaks:**
-```xml
-<!-- SAFE: StaticResource evaluated once -->
-<TextBlock Style="{StaticResource BodyTextStyle}" />
-
-<!-- RISK: DynamicResource creates binding that holds references -->
-<TextBlock Style="{DynamicResource BodyTextStyle}" />
-<!-- Use DynamicResource only when theme switching is needed -->
-```
-
-**Event Handler in XAML:**
-```xml
-<!-- LEAK RISK: Click handler keeps view alive if handler is on long-lived object -->
-<Button Click="OnButtonClick" />
-
-<!-- SAFER: Command binding (auto-disconnects with DataContext) -->
-<Button Command="{Binding ClickCommand}" />
-```
-
----
-
-## Execution Checklist
-
-When invoked with `$ARGUMENTS`:
-
-### Phase 1: Event Subscription Audit
-- [ ] Search all `.cs` files for `+=` event subscriptions
-- [ ] For each subscription, verify matching `-=` unsubscription exists
-- [ ] Flag lambda event subscriptions (can never unsubscribe)
-- [ ] Check SignalR `.On()` subscriptions for cleanup
-- [ ] Verify all dialog code-behind has Closed/Unloaded cleanup
-
-### Phase 2: IDisposable Audit
-- [ ] List all classes that subscribe to events from longer-lived objects
-- [ ] List all classes that create timers
-- [ ] List all classes that hold IDisposable references
-- [ ] Verify each implements IDisposable with proper cleanup
-- [ ] Check that DI container disposes scoped/transient IDisposables
-
-### Phase 3: Collection Bounds Audit
-- [ ] Find all `ObservableCollection<T>` declarations
-- [ ] For each, identify growth pattern (bounded rebuild vs. unbounded add)
-- [ ] Flag any collection that grows without limit during normal operation
-- [ ] Verify polling ViewModels clear old data on refresh
-- [ ] Check `List<PaymentTransaction>` for size management
-
-### Phase 4: Timer Lifecycle Audit
-- [ ] List all DispatcherTimer instances
-- [ ] Verify each has Stop() called on view/ViewModel destruction
-- [ ] Check polling intervals are reasonable (not too frequent)
-- [ ] Verify timers don't reference disposed objects in callbacks
-
-### Phase 5: WPF Binding Audit
-- [ ] Check for bindings to non-ObservableObject DataContexts
-- [ ] Minimize DynamicResource usage (prefer StaticResource)
-- [ ] Verify Command bindings used instead of event handlers where possible
-- [ ] Check for x:Name references that could pin objects
-
----
-
-## Diagnostic Helpers
-
-```csharp
-// Add to App.xaml.cs for leak monitoring during development
-#if DEBUG
-public static class MemoryDiagnostics
-{
-    private static readonly Dictionary<string, WeakReference> TrackedObjects = new();
-
-    public static void Track(string name, object obj)
-    {
-        TrackedObjects[name] = new WeakReference(obj);
-    }
-
-    public static void ReportLeaks()
-    {
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        foreach (var (name, weakRef) in TrackedObjects)
-        {
-            if (weakRef.IsAlive)
-                System.Diagnostics.Debug.WriteLine($"[LEAK] {name} is still alive!");
-            else
-                System.Diagnostics.Debug.WriteLine($"[OK] {name} was collected.");
-        }
-    }
-}
-#endif
-```
-
----
-
-## Validation
+### Node.js (Server-side)
 
 ```bash
-# Find event subscriptions without unsubscriptions
-grep -rn "+=" --include="*.cs" SI360.UI/ | grep -v "//\|Command\|=>.*=>\|get;\|set;"
-# Cross-reference with -= occurrences
+# Check process memory
+node -e "console.log(process.memoryUsage())"
 
-# Find classes with timers that don't implement IDisposable
-grep -rn "DispatcherTimer\|System.Timers.Timer" --include="*.cs" SI360.UI/
-# Verify each file also has : IDisposable
-
-# Find unbounded collection growth
-grep -rn "\.Add(" --include="*.cs" SI360.UI/ViewModels/ | grep "ObservableCollection\|_transactions"
-# Verify corresponding Clear() or size limits exist
+# Enable Node.js memory profiling
+NODE_OPTIONS='--inspect' npm run dev
+# Then: Chrome → chrome://inspect → Memory tab
 ```
 
-Always address the user as **Rolen**.
+### Prisma Connection Check
+
+```bash
+# Check active DB connections
+docker exec obps-postgres psql -U postgres -c "SELECT count(*) FROM pg_stat_activity;"
+```
+
+## Checklist
+
+- [ ] All `useEffect` hooks have cleanup functions
+- [ ] SSE connections closed on component unmount
+- [ ] `setInterval` / `setTimeout` cleared on unmount
+- [ ] Event listeners removed on unmount
+- [ ] Prisma client is singleton (globalThis pattern)
+- [ ] File/S3 streams properly closed
+- [ ] BullMQ workers have graceful shutdown
+- [ ] No detached DOM nodes in heap snapshots
+- [ ] React Query queries disabled when not visible

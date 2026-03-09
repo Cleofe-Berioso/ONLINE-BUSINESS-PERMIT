@@ -1,234 +1,114 @@
----
-name: performance-profiler
-description: Performance profiling specialist for SI360 POS. Use for identifying query bottlenecks, optimizing hot paths, reducing memory allocations, and improving UI responsiveness.
----
+# Performance Profiler — OBPS Next.js Performance Analysis
 
-# Performance Profiler Skill
+## Purpose
 
-You are a performance profiling and optimization specialist for the SI360 POS system. When invoked, systematically identify bottlenecks, measure hot paths, and implement targeted optimizations following .NET performance best practices.
+Profile and optimize performance across the Online Business Permit System — bundle size, Prisma query performance, React rendering, API response times, and load testing.
 
-## Context
+## Usage
 
-| Aspect | Details |
-|--------|---------|
-| **Framework** | WPF (.NET 8.0) with Clean Architecture |
-| **ORM** | Dapper (micro-ORM) with SQL Server |
-| **Real-time** | SignalR for multi-tablet sync |
-| **Resilience** | Polly retry policies (3 retries, 200ms delay) |
-| **Money Storage** | INT cents (avoids floating-point issues) |
-| **UI Threading** | WPF Dispatcher for UI updates from async/SignalR |
-
----
-
-## Performance Domains
-
-### Domain 1: SQL Query Optimization
-
-**Profiling Pattern:**
-```csharp
-var sw = System.Diagnostics.Stopwatch.StartNew();
-var result = await connection.QueryAsync<T>(sql, parameters);
-sw.Stop();
-if (sw.ElapsedMilliseconds > 100) // Threshold: 100ms
-{
-    await _errorHandler.LogWarningAsync(
-        $"Slow query ({sw.ElapsedMilliseconds}ms): {sql.Substring(0, 80)}...",
-        nameof(RepositoryName));
-}
+```
+/performance-profiler <area-or-page-to-profile>
 ```
 
-**Common Bottleneck Patterns:**
+## Profiling Areas
 
-| Pattern | Location | Fix |
-|---------|----------|-----|
-| Missing NOLOCK on reads | Various repos | Add `WITH (NOLOCK)` |
-| SELECT * on large tables | Some repos | Select specific columns |
-| Nested subqueries for seat ranges | AllergenRepository | Convert to CTE/window functions |
-| N+1 in loops (if found) | Service layer | Batch with `QueryMultipleAsync` |
-| Missing indexes | Schema | Add covering indexes |
-| Excessive MERGE/UPSERT | DapperTool | Batch operations |
+### 1. Next.js Bundle Analysis
 
-**CTE Optimization Template:**
-```sql
--- BEFORE: Nested subqueries
-SELECT * FROM SaleItem
-WHERE ItemIndex >= (SELECT MIN(ItemIndex) FROM SaleItem WHERE Flags = 4 AND ...)
-  AND ItemIndex < ISNULL((SELECT MIN(ItemIndex) FROM SaleItem WHERE Flags = 4 AND ItemIndex > ...), 999999)
+```bash
+# Analyze bundle size
+ANALYZE=true npm run build
 
--- AFTER: CTE with window functions
-WITH SeatBoundaries AS (
-    SELECT ItemIndex,
-           LEAD(ItemIndex) OVER (ORDER BY ItemIndex) AS NextSeatIndex
-    FROM SaleItem WITH (NOLOCK)
-    WHERE SaleId = @SaleId AND Flags = 4
-)
-SELECT si.* FROM SaleItem si WITH (NOLOCK)
-INNER JOIN SeatBoundaries sb ON si.ItemIndex >= sb.ItemIndex
-    AND si.ItemIndex < ISNULL(sb.NextSeatIndex, 999999)
-WHERE si.SaleId = @SaleId AND sb.ItemIndex = @SeatMarkerIndex
+# Check build output
+npm run build  # Review .next/standalone size and page sizes
 ```
 
-### Domain 2: Memory Allocation Optimization
+**Targets**: First Load JS < 100KB per route, Total < 300KB
 
-**Key Areas:**
+### 2. Prisma Query Performance
 
-| Issue | Location | Fix |
-|-------|----------|-----|
-| String concatenation in loops | Various services | Use `StringBuilder` |
-| LINQ `.ToList()` when enumerable suffices | Repositories | Return `IEnumerable<T>` |
-| Large ObservableCollections rebuilt entirely | ViewModels | Use incremental updates |
-| Closure allocations in lambdas | Retry policies | Use static lambdas |
-| Boxing in Dapper parameters | DapperTool | Use `DynamicParameters` |
-
-**ObservableCollection Optimization:**
-```csharp
-// BEFORE: Full rebuild on every refresh
-GroupedSeatOrders = new ObservableCollection<SeatOrderGroup>(newGroups);
-
-// AFTER: Incremental update (preserves UI scroll position)
-private void UpdateGroupedSeatOrders(IList<SeatOrderGroup> newGroups)
-{
-    for (int i = GroupedSeatOrders.Count - 1; i >= 0; i--)
-    {
-        if (!newGroups.Any(g => g.SeatNumber == GroupedSeatOrders[i].SeatNumber))
-            GroupedSeatOrders.RemoveAt(i);
-    }
-    foreach (var group in newGroups)
-    {
-        var existing = GroupedSeatOrders.FirstOrDefault(g => g.SeatNumber == group.SeatNumber);
-        if (existing == null)
-            GroupedSeatOrders.Add(group);
-        else
-            existing.UpdateFrom(group);
-    }
-}
+```typescript
+// Enable query logging in development
+prisma.$on("query", (e) => {
+  console.log(`Query: ${e.query}`);
+  console.log(`Duration: ${e.duration}ms`);
+});
 ```
 
-### Domain 3: UI Responsiveness
+**Checklist**:
 
-**WPF Performance Patterns:**
+- [ ] No N+1 queries — use `include` or `select` properly
+- [ ] Cursor-based pagination (not offset) for large tables
+- [ ] Indexes on frequently filtered columns
+- [ ] `@@index` composites for multi-column WHERE clauses
+- [ ] Transactions don't hold locks too long
 
-| Issue | Symptom | Fix |
-|-------|---------|-----|
-| Heavy work on UI thread | UI freeze during load | `await Task.Run()` for CPU work |
-| Binding to complex properties | Slow rendering | Use `INotifyPropertyChanged` efficiently |
-| Large DataGrid rendering | Scroll lag | Enable virtualization |
-| Frequent property updates | CPU spike | Batch with `Dispatcher.BeginInvoke` |
-| SignalR callbacks on UI thread | Intermittent freezes | Use `ConfigureAwait(false)` where safe |
+### 3. React Rendering
 
-**DataGrid Virtualization Template:**
-```xml
-<DataGrid VirtualizingPanel.IsVirtualizing="True"
-          VirtualizingPanel.VirtualizationMode="Recycling"
-          VirtualizingPanel.ScrollUnit="Pixel"
-          EnableRowVirtualization="True"
-          EnableColumnVirtualization="True"
-          MaxHeight="600">
+- Use React DevTools Profiler to detect unnecessary re-renders
+- Server Components by default — only `'use client'` when needed
+- Memoize expensive computations with `useMemo`
+- Lazy load heavy components with `dynamic()`
+- Use Suspense boundaries for streaming
+
+### 4. API Response Times
+
+```bash
+# k6 load test
+npx k6 run tests/performance/load-test.js
 ```
 
-### Domain 4: SignalR Message Optimization
+**Targets**: p95 < 500ms for reads, p95 < 1000ms for writes
 
-**Current Issues:**
-- All tablets receive ALL changes (no group filtering)
-- No message batching during rapid updates
-- No message size optimization
+### 5. Caching Strategy
 
-**Group-Based Broadcasting:**
-```csharp
-// Instead of Clients.All.SendAsync (broadcasts to every tablet)
-await Clients.Group($"room-{roomId}").SendAsync("DbChanged", change);
-await Clients.Group($"table-{tableId}").SendAsync("OrderUpdated", orderData);
+| Layer       | Implementation                      | TTL                  |
+| ----------- | ----------------------------------- | -------------------- |
+| Redis       | `src/lib/cache.ts` (ioredis)        | Per-key configurable |
+| In-memory   | Map fallback when Redis unavailable | Same                 |
+| React Query | Client-side stale-while-revalidate  | 5 min default        |
+| Next.js     | ISR / revalidate for public pages   | Varies               |
+
+### 6. Image & Asset Optimization
+
+- Use `next/image` for automatic optimization
+- Icons: pre-generated PWA icon set in `public/icons/`
+- Fonts: Use `next/font` for zero-layout-shift loading
+
+## Performance Monitoring
+
+- **Sentry**: Performance tracing (optional, `src/lib/monitoring.ts`)
+- **Prometheus**: Metrics endpoint at `/api/metrics`
+- **Web Vitals**: Track LCP, FID, CLS in production
+
+## Optimization Patterns
+
+```typescript
+// Dynamic import for heavy components
+const PdfViewer = dynamic(() => import('@/components/pdf-viewer'), {
+  loading: () => <Skeleton className="h-96" />,
+  ssr: false,
+});
+
+// React Query with proper stale time
+const { data } = useQuery({
+  queryKey: ['applications', page],
+  queryFn: () => fetchApplications(page),
+  staleTime: 5 * 60 * 1000, // 5 minutes
+});
+
+// Prisma: select only needed fields
+const users = await prisma.user.findMany({
+  select: { id: true, name: true, email: true, role: true },
+  where: { status: 'ACTIVE' },
+});
 ```
 
-**Message Batching:**
-```csharp
-private readonly Channel<DbChangeEvent> _messageQueue = Channel.CreateBounded<DbChangeEvent>(100);
+## Checklist
 
-public async Task QueueNotification(DbChangeEvent change)
-{
-    await _messageQueue.Writer.WriteAsync(change);
-}
-
-private async Task ProcessBatchAsync(CancellationToken ct)
-{
-    var batch = new List<DbChangeEvent>();
-    await foreach (var msg in _messageQueue.Reader.ReadAllAsync(ct))
-    {
-        batch.Add(msg);
-        if (batch.Count >= 10 || !_messageQueue.Reader.TryPeek(out _))
-        {
-            await _hub.Clients.All.SendAsync("DbChangedBatch", batch, ct);
-            batch.Clear();
-        }
-    }
-}
-```
-
----
-
-## Execution Checklist
-
-When invoked with `$ARGUMENTS`:
-
-### Phase 1: Profiling & Measurement
-- [ ] Add `Stopwatch` timing to top 10 most-called repository methods
-- [ ] Identify queries taking >100ms via log analysis
-- [ ] Measure ObservableCollection rebuild frequency in OrderingViewModel
-- [ ] Count SignalR messages per minute during peak ordering
-- [ ] Check DataGrid virtualization status on all views with grids
-- [ ] Profile memory usage via `GC.GetTotalMemory()` at key checkpoints
-
-### Phase 2: Query Optimization
-- [ ] Add missing NOLOCK hints (5-8 identified queries)
-- [ ] Convert nested subqueries to CTEs where beneficial
-- [ ] Replace `SELECT *` with column lists in hot paths
-- [ ] Add `QueryMultipleAsync` for related entity fetches
-- [ ] Verify covering indexes exist for frequent WHERE clauses
-
-### Phase 3: Memory Optimization
-- [ ] Replace string concatenation in loops with StringBuilder
-- [ ] Remove unnecessary `.ToList()` calls
-- [ ] Implement incremental ObservableCollection updates
-- [ ] Use `static` lambdas for Polly retry callbacks
-- [ ] Verify IDisposable implemented where needed
-
-### Phase 4: UI Optimization
-- [ ] Enable DataGrid virtualization on all grid views
-- [ ] Move heavy loading to background threads
-- [ ] Batch rapid property change notifications
-- [ ] Optimize SignalR message handling with group filtering
-
----
-
-## Validation
-
-```csharp
-// Add to critical paths for ongoing monitoring
-public static class PerformanceMonitor
-{
-    public static async Task<T> MeasureAsync<T>(
-        Func<Task<T>> operation,
-        string operationName,
-        IErrorHandler errorHandler,
-        int warningThresholdMs = 100)
-    {
-        var sw = Stopwatch.StartNew();
-        try
-        {
-            return await operation();
-        }
-        finally
-        {
-            sw.Stop();
-            if (sw.ElapsedMilliseconds > warningThresholdMs)
-            {
-                await errorHandler.LogWarningAsync(
-                    $"[PERF] {operationName}: {sw.ElapsedMilliseconds}ms",
-                    "PerformanceMonitor");
-            }
-        }
-    }
-}
-```
-
-Always address the user as **Rolen**.
+- [ ] Bundle size within targets
+- [ ] No N+1 Prisma queries
+- [ ] Redis caching for hot paths
+- [ ] React Server Components used where possible
+- [ ] Lazy loading for non-critical components
+- [ ] k6 load test passes under expected load
+- [ ] Core Web Vitals within "Good" thresholds

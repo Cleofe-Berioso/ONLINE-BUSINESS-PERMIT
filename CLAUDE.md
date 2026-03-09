@@ -1,465 +1,473 @@
-# HoardNest - Agentic Workflow Guide
+# Online Business Permit System — Agentic Workflow Guide
 
 ## Project Overview
 
-**HoardNest** is a community-based marketplace platform for Silay City, Negros Occidental, Philippines. It connects local buyers, sellers, and delivery riders with a tiered commission system.
+**Online Business Permit System (OBPS)** is a comprehensive web-based Business Permit Application & Management System built for Philippine Local Government Units (LGUs). It digitizes the end-to-end business permit lifecycle: application, document verification, review, payment, permit generation, and claim scheduling.
 
-| Aspect         | Technology                                                       |
-| -------------- | ---------------------------------------------------------------- |
-| **Frontend**   | React 18 + TypeScript                                            |
-| **UI Library** | Material-UI (MUI) v5                                             |
-| **Backend**    | Express.js 5 + TypeScript                                        |
-| **ORM**        | Prisma (PostgreSQL)                                              |
-| **Database**   | PostgreSQL                                                       |
-| **Auth**       | JWT httpOnly cookies + refresh token rotation (bcrypt 12 rounds) |
-| **State**      | React Context API                                                |
-| **Routing**    | React Router v7                                                  |
-| **Charts**     | Recharts                                                         |
-| **Build**      | Create React App (react-scripts)                                 |
+| Aspect            | Technology                                                                    |
+| ----------------- | ----------------------------------------------------------------------------- |
+| **Framework**     | Next.js 16 (App Router, Server Components, Server Actions)                    |
+| **Frontend**      | React 19 + TypeScript 5.9                                                     |
+| **Styling**       | Tailwind CSS v4 + class-variance-authority (CVA)                              |
+| **UI Components** | Custom UI library (`src/components/ui/`) with Lucide React icons              |
+| **State**         | Zustand 5 (UI store, application store) + React Query (TanStack Query v5)     |
+| **Forms**         | React Hook Form 7 + Zod 4 validation                                          |
+| **ORM**           | Prisma 7 with `@prisma/adapter-pg` (PostgreSQL adapter)                       |
+| **Database**      | PostgreSQL 16                                                                 |
+| **Auth**          | NextAuth v5 (Auth.js) — Credentials provider, JWT strategy, 30-min sessions   |
+| **Real-Time**     | Server-Sent Events (SSE) via `/api/events`                                    |
+| **File Storage**  | S3/MinIO with local filesystem fallback                                       |
+| **Caching**       | Redis (ioredis) with in-memory fallback                                       |
+| **Job Queue**     | BullMQ (Redis-backed)                                                         |
+| **Email**         | Nodemailer (SMTP/Resend/SES)                                                  |
+| **SMS**           | Semaphore / Globe Labs API                                                    |
+| **Payments**      | PayMongo (GCash, Maya, bank transfer) + OTC/Cash                              |
+| **PDF**           | QR code generation (qrcode lib) + HTML-to-PDF (Puppeteer)                     |
+| **2FA**           | otplib TOTP (Google Authenticator compatible)                                 |
+| **i18n**          | next-intl (English + Filipino)                                                |
+| **RBAC**          | CASL.js (`@casl/ability` + `@casl/prisma`)                                    |
+| **Testing**       | Vitest + Testing Library (unit), Playwright (E2E), k6 (perf), OWASP ZAP (sec) |
+| **Build**         | Next.js standalone output, Docker multi-stage                                 |
+| **SEO**           | next-sitemap, JSON-LD structured data, Open Graph                             |
+| **PWA**           | Service worker, manifest.json, offline fallback                               |
+| **Monitoring**    | Sentry (optional) + Prometheus metrics endpoint                               |
+| **Notifications** | sonner (toast), Lucide icons                                                  |
+| **Theme**         | next-themes (light/dark support)                                              |
+
+---
+
+## Seven Core Modules
+
+| #   | Module                              | Key Models & Features                                                                                        |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | **User & Access Management**        | 4 roles (APPLICANT, STAFF, REVIEWER, ADMINISTRATOR), OTP login, 2FA/TOTP, session management, activity logs  |
+| 2   | **Permit Application Management**   | NEW/RENEWAL applications, status lifecycle (DRAFT→SUBMITTED→UNDER_REVIEW→APPROVED/REJECTED), review workflow |
+| 3   | **Digital Document Management**     | Upload with magic bytes validation, virus scanning stub, verification workflow, version tracking             |
+| 4   | **Application & Renewal Tracking**  | Real-time SSE updates, status timeline, dashboard widgets                                                    |
+| 5   | **Claim Scheduling Management**     | Time slot management, capacity limits, rescheduling, walk-in handling                                        |
+| 6   | **Claim Reference & Reporting**     | Reference numbers with QR codes, analytics, CSV/PDF export                                                   |
+| 7   | **Permit Issuance & Certification** | PDF generation with QR codes, permit printing, status updates                                                |
+
+### Additional Systems
+
+- **Payment System** — GCash, Maya, bank transfer, OTC, cash (PayMongo integration)
+- **Government API Integration** — DTI, BIR, SEC verification (mock mode for dev)
+- **Notification System** — Email (Nodemailer), SMS (Semaphore), real-time (SSE)
 
 ---
 
 ## Code Quality Standards
 
-- **TypeScript**: Strict mode, 0 production errors (`npx tsc --noEmit`)
-- **No debug console.logs**: All emoji/debug console.logs must be removed
-- **Security**: No OAuth tokens, API keys, or secrets in code
-- **Auth pattern**: Multi-method login via `identifier` field (email / phone / Messenger ID). JWT access tokens (15min httpOnly) + opaque refresh tokens (7d, SHA-256 hashed)
-- **Soft delete**: `users`, `items`, `orders` have `deletedAt` field — always filter with `deletedAt: null` in queries
+- **TypeScript**: Strict mode, 0 production errors (`npm run typecheck`)
+- **Validation**: All forms use Zod schemas from `src/lib/validations.ts`
+- **Security**: No API keys in code — use env vars. Security headers in `next.config.js`
+- **Auth pattern**: NextAuth v5 Credentials provider. Edge-safe config split (`auth.config.ts` + `auth.ts`)
 - **Null safety**: Always use optional chaining (`user?.id`) for nullable references
-- **Type casting**: Use `as unknown as Type` for incompatible type conversions
+- **Data sanitization**: Use `sanitizeUser()` from `src/lib/sanitize.ts` before sending user data in responses
+- **No debug console.logs**: Use `console.warn`/`console.error` only in error handlers
+- **Financial amounts**: Use `Decimal(12,2)` or `Decimal(15,2)` via Prisma — never store money as Float
 
-### Code Quality Mandate
+### Code Quality Targets
 
-**All code must meet Grade A quality (9/10 minimum) per category.** Assessed via `/codebase-assessment` skill.
-
-| Category                  | Minimum | Standard                                                                                                                                                |
-| ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Security                  | 9/10    | No hardcoded secrets, JWT via env vars, `verifyToken` + `requireAdmin` on all protected routes, parameterized Prisma queries, explicit CORS origins     |
-| API & Data Integrity      | 9/10    | `express-validator` on all POST/PUT, try/catch on all handlers, `$transaction` for multi-table ops, Decimal(10,2) for financial amounts                 |
-| TypeScript & Code Quality | 9/10    | 0 TS errors, no `as any` in API/service files, no god components >500 lines without decomposition, no TODO/FIXME in production code                     |
-| Frontend Quality          | 9/10    | Loading states on all data-fetching components, `useEffect` cleanup on subscriptions/timers, no hardcoded API URLs, `key` props on all `.map()` renders |
-| Testing                   | 8/10    | Test coverage for auth, financial, order, and delivery critical paths, no mock data in production components                                            |
-| Architecture & Patterns   | 9/10    | No circular dependencies, no cross-layer imports, env config for all ports/URLs, WebSocket listeners cleaned up                                         |
+| Category                  | Standard                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| Security                  | No hardcoded secrets, env vars for all config, rate limiting, security headers, CSRF protection  |
+| API & Data Integrity      | Zod validation on all inputs, try/catch on all handlers, Prisma transactions for multi-table ops |
+| TypeScript & Code Quality | 0 TS errors, no `as any` in API/lib files, components decomposed under 500 lines                 |
+| Frontend Quality          | Loading states, error boundaries, SSE cleanup, `key` props on all `.map()` renders               |
+| Testing                   | Unit tests for critical paths, E2E for core workflows, accessibility testing                     |
+| Architecture & Patterns   | No circular dependencies, env config for all URLs/ports, SSE listeners cleaned up                |
 
 ### Enforcement Rules
 
-- **No hardcoded API URLs** — use `apiClient` from `src/api/client.ts` (auto-prefixes base URL)
-- **No direct Prisma imports in routes** — use repository pattern (or `(prisma as any)` for Prisma cache workaround only)
+- **No hardcoded API URLs** — use relative paths in Next.js API routes
+- **No direct Prisma imports in components** — Prisma only in `src/lib/` and `src/app/api/` (server-side)
 - **No `console.log` in production** — use proper error responses; `console.error` only in catch blocks
 - **No empty catch blocks** — all exceptions must be logged or re-thrown
-- **No `async` functions without `try/catch`** — all async route handlers and useEffect callbacks must handle errors
-- **All route handlers must validate input** — use `express-validator` with `validationResult` check
-- **All financial amounts must use Decimal(10,2)** — never store money as Float or Int
-- **All WebSocket listeners must have cleanup** — return unsubscribe function from `useEffect`
-- **Build must produce 0 errors** before any commit (`npx tsc --noEmit`)
-- **All Prisma schema changes must validate** (`npx prisma validate --schema=backend/prisma/schema.prisma`)
-- **Soft-delete queries must filter `deletedAt: null`** — User, Item, and Order queries must exclude soft-deleted records
-- **Migration names must be descriptive** — name must reflect exactly what the migration does (not vague names like "update_schema")
-- **Full-width primary action buttons** — all primary form submit buttons (login, signup, reset password, contact, etc.) must use `fullWidth` prop with `sx={{ py: 1.25 }}` for consistent sizing. Reference: `LoginPage.tsx` button pattern.
-- **Auth page card layout** — auth pages (login, signup, forgot-password, reset-password) must wrap content in `<Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>` inside `<Container maxWidth="sm" sx={{ py: 8 }}>`. Use `variant="h4"` with `fontWeight="bold"` for headings. Reference: `LoginPage.tsx`, `SignupPage.tsx`, `ForgotPasswordPage.tsx`, `ResetPasswordPage.tsx`.
+- **All API route handlers must validate input** — use Zod schemas from `src/lib/validations.ts`
+- **All financial amounts must use Decimal** — never store money as Float or Int
+- **SSE listeners must have cleanup** — return cleanup function from `useEffect`
+- **Build must produce 0 errors** before any commit (`npm run typecheck`)
+- **All Prisma schema changes must validate** — `npx prisma validate` from `web/`
 
 ---
 
 ## Project Structure
 
 ```
-react-hoardnest/
+ONLINE-BUSINESS-PERMIT/
+├── CLAUDE.md                   # This file (agentic workflow guide)
+├── START_HERE.md               # Comprehensive setup & walkthrough guide
+├── PROJECT-PLAN.md             # Full project plan with architecture
+├── MISSING_REQUIREMENTS.md     # Missing API keys & services status
+├── tasks.md                    # Comprehensive audit & task tracker
+├── docker-compose.yml          # PostgreSQL 16 + Redis 7 + MinIO + App
+├── package.json                # Root workspace scripts (proxy to web/)
 ├── .claude/                    # Agentic workflow configuration
-│   ├── AVAILABLE_SKILLS.md    # Skill catalog
-│   ├── commands/              # Skill definitions (17 total)
-│   └── reference/             # Reference documentation
-├── CLAUDE.md                  # This file (project guide)
-├── .env                       # Single env config (frontend + backend)
-├── .env.test                  # Test-only overrides (isolated DB, JWT)
-├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma      # Database schema (940+ lines, 22 models)
-│   │   └── migrations/        # Prisma migrations (4 applied)
-│   └── src/
-│       ├── index.ts           # Express server entry point (+ httpServer for Socket.IO)
-│       ├── config/            # Backend configuration
-│       ├── middleware/         # Auth, validation middleware
-│       ├── repositories/      # Data access layer
-│       ├── routes/            # 24 route files
-│       └── websocket/
-│           └── socketServer.ts # Socket.IO server (auth, rooms, emit helpers)
-├── src/
-│   ├── api/                   # Frontend API clients (18 modules)
-│   ├── components/            # Reusable React components
-│   │   ├── admin/             # Admin-specific components
-│   │   ├── buyer/             # Buyer components
-│   │   ├── rider/             # Rider components (EarningsTracker, etc.)
-│   │   ├── seller/            # Seller components
-│   │   └── ...                # Shared components (Navbar, Footer, etc.)
-│   ├── config/
-│   │   └── environment.ts     # Centralized HoardNestConfig
-│   ├── contexts/
-│   │   ├── AuthContext.tsx     # Auth provider (CANONICAL - single source)
-│   │   └── SocketContext.tsx   # WebSocket provider + real-time hooks
-│   ├── dashboard/             # Dashboard panels (10 modules)
-│   ├── hooks/                 # Custom React hooks
-│   ├── pages/                 # Page components
-│   │   ├── admin/             # Admin pages
-│   │   ├── rider/             # Rider pages
-│   │   └── seller/            # Seller pages
-│   ├── services/              # Business logic services (19 files)
-│   ├── types/                 # TypeScript type definitions
-│   └── utils/                 # Utility functions
-├── Docs/                      # Project documentation
-│   ├── IMPLEMENTATION_PLAN.md # Master implementation plan
-│   ├── API/                   # API documentation
-│   ├── Architecture/          # Architecture docs
-│   └── ...                    # Other doc categories
-└── docker/                    # Docker configuration (PostgreSQL)
+│   ├── AVAILABLE_SKILLS.md     # Skill catalog (22 skills)
+│   ├── command-reference.md    # Quick command reference
+│   ├── commands/               # 22 skill definition files (.md)
+│   ├── workflows.json          # Machine-readable workflow definitions
+│   └── settings.local.json     # Claude Code permissions
+│
+└── web/                        # Next.js 16 application
+    ├── package.json            # Dependencies & scripts
+    ├── next.config.js          # Next.js config (security headers, CSP, standalone)
+    ├── tsconfig.json           # TypeScript configuration
+    ├── vitest.config.ts        # Unit test config (Vitest + jsdom)
+    ├── playwright.config.ts    # E2E test config (Playwright + Chromium)
+    ├── eslint.config.mjs       # ESLint 9 flat config
+    ├── postcss.config.js       # PostCSS + Tailwind CSS v4
+    ├── Dockerfile              # Production Docker image (standalone)
+    │
+    ├── prisma/
+    │   ├── schema.prisma       # Database schema (16 models, 11 enums, ~500 lines)
+    │   └── seed.js             # Test data seeder (6 users, 5 apps, permits, etc.)
+    │
+    ├── public/
+    │   ├── manifest.json       # PWA manifest
+    │   ├── sw.js               # Service worker (offline support)
+    │   ├── offline.html        # Offline fallback page
+    │   ├── robots.txt          # SEO robots file
+    │   └── icons/              # PWA icons (72px → 512px)
+    │
+    ├── e2e/                    # Playwright E2E tests
+    │   ├── app.spec.ts
+    │   ├── accessibility.spec.ts
+    │   └── visual-regression.spec.ts
+    │
+    ├── tests/
+    │   ├── performance/load-test.js  # k6 load tests
+    │   └── security/                 # OWASP ZAP scan scripts
+    │
+    └── src/
+        ├── middleware.ts        # Auth + rate limiting + RBAC middleware (Edge Runtime)
+        ├── instrumentation.ts   # Server instrumentation hook
+        │
+        ├── lib/                 # Core business logic (22 files)
+        │   ├── auth.ts          # NextAuth v5 config (Credentials provider)
+        │   ├── auth.config.ts   # Edge-safe auth config (no Node.js imports)
+        │   ├── prisma.ts        # PrismaClient singleton (PrismaPg adapter)
+        │   ├── validations.ts   # Zod schemas for all forms
+        │   ├── permissions.ts   # CASL.js RBAC (4 roles × 10 actions × 10 subjects)
+        │   ├── payments.ts      # PayMongo (GCash, Maya), bank transfer, OTC
+        │   ├── sms.ts           # Semaphore + Globe Labs SMS
+        │   ├── email.ts         # Nodemailer (SMTP/Resend/SES)
+        │   ├── storage.ts       # S3/MinIO with local filesystem fallback
+        │   ├── pdf.ts           # Permit PDF generation with QR codes
+        │   ├── two-factor.ts    # TOTP 2FA (otplib)
+        │   ├── rate-limit.ts    # Sliding window rate limiter
+        │   ├── queue.ts         # BullMQ job queues
+        │   ├── government-api.ts # DTI/BIR/SEC verification (mock mode in dev)
+        │   ├── sse.ts           # Server-Sent Events broadcaster
+        │   ├── i18n.ts          # Filipino/English i18n
+        │   ├── stores.ts        # Zustand stores (UI state, notifications)
+        │   ├── cache.ts         # Redis + in-memory cache fallback
+        │   ├── monitoring.ts    # Sentry + Prometheus metrics
+        │   ├── sanitize.ts      # Data sanitization
+        │   ├── logger.ts        # Structured logging
+        │   └── utils.ts         # Utility functions (cn, formatDate, etc.)
+        │
+        ├── hooks/
+        │   └── use-sse.ts       # SSE client hook with auto-reconnect
+        │
+        ├── messages/            # i18n translations
+        │   ├── en.json          # English
+        │   └── fil.json         # Filipino
+        │
+        ├── components/
+        │   ├── ui/              # 14 reusable UI components
+        │   ├── dashboard/       # Dashboard shell, sidebar, header, notification bell
+        │   ├── privacy/         # Cookie consent (RA 10173 compliance)
+        │   ├── seo/             # JSON-LD structured data schemas
+        │   ├── pwa/             # Service worker registration
+        │   ├── public/          # Public nav, footer
+        │   └── providers/       # QueryProvider, ThemeProvider
+        │
+        ├── app/
+        │   ├── layout.tsx       # Root layout (providers, SEO, PWA, Toaster)
+        │   ├── page.tsx         # Landing page
+        │   │
+        │   ├── (public)/        # 9 public pages (no auth required)
+        │   │   ├── contact/, data-privacy/, faqs/, how-to-apply/
+        │   │   ├── privacy/, requirements/, terms/
+        │   │   ├── track/, verify-permit/
+        │   │
+        │   ├── (auth)/          # 4 auth pages
+        │   │   ├── login/, register/, forgot-password/, verify-otp/
+        │   │
+        │   ├── (dashboard)/dashboard/  # Protected dashboard pages
+        │   │   ├── applications/       # Application CRUD + new
+        │   │   ├── documents/          # Document management
+        │   │   ├── tracking/           # Real-time tracking
+        │   │   ├── review/             # Reviewer queue
+        │   │   ├── verify-documents/   # Staff document verification
+        │   │   ├── schedule/           # Schedule management
+        │   │   ├── claims/             # Claim processing
+        │   │   ├── claim-reference/    # Reference numbers
+        │   │   ├── issuance/           # Permit issuance
+        │   │   ├── profile/            # User profile + 2FA
+        │   │   └── admin/              # Admin: users, settings, schedules, reports, audit-logs
+        │   │
+        │   └── api/                    # 18 API route groups
+        │       ├── auth/, applications/, documents/, schedules/
+        │       ├── claims/, permits/, issuance/, payments/
+        │       ├── events/, analytics/, metrics/, health/
+        │       ├── profile/, privacy/, admin/, public/
+        │       ├── files/, cron/
+        │
+        └── __tests__/               # Unit tests (Vitest)
 ```
 
 ---
 
 ## User Roles
 
-| Role       | Description                               | Key Pages                                |
-| ---------- | ----------------------------------------- | ---------------------------------------- |
-| **Buyer**  | Browse, purchase, track orders            | HomePage, MarketplacePage, DashboardPage |
-| **Seller** | List items, manage orders, track earnings | UploadSellModal, seller/ pages           |
-| **Rider**  | Accept deliveries, track earnings         | RiderDashboard, EarningsTracker          |
-| **Admin**  | Manage users, finances, system config     | admin/ pages (FinancialManagement, etc.) |
+| Role              | Description                                    | Key Pages                                                         |
+| ----------------- | ---------------------------------------------- | ----------------------------------------------------------------- |
+| **APPLICANT**     | Business owners applying for permits           | Dashboard, Applications, Documents, Track, Claims                 |
+| **STAFF**         | BPLO clerks handling daily operations          | Verify Documents, Manage Schedules, Process Claims, Issue Permits |
+| **REVIEWER**      | BPLO officers reviewing/approving applications | Review Queue, Approve/Reject, Reports                             |
+| **ADMINISTRATOR** | Full system access and user management         | All pages + Admin Users, Settings, Reports, Audit Logs            |
 
 ---
 
-## Business Rules
+## Authentication Architecture
 
-### City Restriction
+```
+┌─────────────────────────────────────────────────────────────┐
+│  middleware.ts (Edge Runtime)                                │
+│  ├── Rate limiting (auth:10/min, api:100/min, otp:5/15min) │
+│  ├── Auth redirects (login ↔ dashboard)                     │
+│  └── Role-based access (admin routes, review routes)        │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│  auth.config.ts (Edge-safe — no Node.js imports)            │
+│  ├── JWT callbacks (role, firstName, lastName in token)     │
+│  ├── Session callbacks (attach user data)                   │
+│  └── Session: JWT strategy, 30-min maxAge                   │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│  auth.ts (Node.js Runtime — Credentials provider)           │
+│  ├── Email + password login (bcryptjs comparison)           │
+│  ├── Account status check (ACTIVE required)                 │
+│  ├── Update lastLoginAt on successful login                 │
+│  └── Activity log creation                                  │
+└─────────────────────────────────────────────────────────────┘
+```
 
-- Operations restricted to **Silay City** only
-- Configured via `REACT_APP_ALLOWED_CITY` and `REACT_APP_DEFAULT_CITY`
-- City field is read-only on registration forms
-- Barangay selection required for addresses
+### Key Auth Patterns
 
-### 5-Tier Fee Structure
+```typescript
+// Server Component — get session
+import { auth } from "@/lib/auth";
+const session = await auth();
+const role = session?.user?.role;
 
-| Tier | Order Range      | Commission | Service Fee | Rider Earnings |
-| ---- | ---------------- | ---------- | ----------- | -------------- |
-| 1    | < ₱625           | 0%         | ₱85 fixed   | ₱60 fixed      |
-| 2    | ₱625 – ₱2,500    | 20%        | ₱0          | 8% (min ₱80)   |
-| 3    | ₱2,501 – ₱7,500  | 15%        | ₱0          | 10% (min ₱150) |
-| 4    | ₱7,501 – ₱20,000 | 10%        | ₱0          | 12% (min ₱300) |
-| 5    | > ₱20,000        | 5%         | ₱0          | 15% (min ₱500) |
+// API Route — protect endpoint
+import { auth } from "@/lib/auth";
+export async function GET() {
+  const session = await auth();
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
 
-### Order Limits
+// Middleware — rate limiting + RBAC handled automatically by src/middleware.ts
+```
 
-- Minimum order: ₱100
-- Maximum order: ₱50,000
-- Payment processing fee: 3% (online payments)
-- Cancellation fee: ₱50
+---
+
+## Database Schema (16 Models, 11 Enums)
+
+| Model                | Module | Purpose                                               |
+| -------------------- | ------ | ----------------------------------------------------- |
+| `User`               | 1      | Accounts with 4 roles, 2FA, lockout                   |
+| `Session`            | 1      | Active user sessions                                  |
+| `OtpToken`           | 1      | OTP codes (email verification, login, password reset) |
+| `ActivityLog`        | 1      | Audit trail of all user actions                       |
+| `Application`        | 2      | Business permit applications (NEW/RENEWAL)            |
+| `ApplicationHistory` | 2      | Status change history with timestamps                 |
+| `ReviewAction`       | 2      | Reviewer decisions (APPROVE/REJECT/REQUEST_REVISION)  |
+| `Document`           | 3      | Uploaded files with verification status               |
+| `ClaimSchedule`      | 5      | Available dates for permit claiming                   |
+| `TimeSlot`           | 5      | Time windows within a schedule date                   |
+| `SlotReservation`    | 5      | Applicant bookings for time slots                     |
+| `ClaimReference`     | 6      | Generated reference numbers with QR codes             |
+| `Permit`             | 7      | Issued permits with validity periods                  |
+| `PermitIssuance`     | 7      | Issuance records and printing status                  |
+| `SystemSetting`      | —      | Configurable system parameters                        |
+| `Payment`            | —      | Payment records (GCash, Maya, bank, OTC, cash)        |
+
+### Enums
+
+`Role` (4), `AccountStatus` (4), `ApplicationType` (2), `ApplicationStatus` (6), `DocumentStatus` (4), `ReservationStatus` (5), `ClaimReferenceStatus` (4), `PermitStatus` (4), `IssuanceStatus` (4), `PaymentStatus` (6), `PaymentMethod` (5)
 
 ---
 
 ## Development Commands
 
 ```bash
-# Frontend
-yarn start                  # Start React dev server (port 3000)
-yarn build                  # Production build
-yarn test                   # Run tests
-npx tsc --noEmit            # TypeScript type checking (must return 0 errors)
+cd web
 
-# Backend
-yarn backend                # Start Express backend (port 3001)
-yarn backend:build          # Build backend TypeScript
-yarn dev:all                # Start both frontend and backend
+# Development
+npm run dev                   # Start dev server (port 3000)
+npm run build                 # Production build
+npm run typecheck             # TypeScript check (must return 0 errors)
+npm run lint                  # ESLint
 
 # Database
-yarn prisma:studio          # Open Prisma Studio
-yarn prisma:generate        # Regenerate Prisma client
-npx prisma migrate dev      # Run migrations (development only)
-npx prisma migrate deploy   # Run migrations (production — NEVER use migrate dev in prod)
+npm run db:push               # Push schema to DB (dev)
+npm run db:migrate            # Create & run migrations (production)
+npm run db:seed               # Seed test data
+npm run db:studio             # Prisma Studio (port 5555)
 
-# Docker
-docker-compose -f docker/docker-compose.postgres.yml up -d  # Start PostgreSQL
+# Testing
+npm test                      # Vitest unit tests
+npm run test:e2e              # Playwright E2E
+npm run test:a11y             # WCAG 2.1 AA
+npm run test:coverage         # Coverage report
+
+# Docker (from project root)
+docker compose up -d                       # All services
+docker compose up -d postgres redis minio  # Infrastructure only
 ```
 
 ---
 
-## Database & Migration Conventions
+## API Routes (18 Groups)
 
-### Migration Naming
+| Group           | Path                | Key Endpoints                              |
+| --------------- | ------------------- | ------------------------------------------ |
+| `auth/`         | `/api/auth/`        | Login, register, OTP, 2FA, forgot-password |
+| `applications/` | `/api/applications` | CRUD, verify-registration, review          |
+| `documents/`    | `/api/documents`    | Upload, verify, download                   |
+| `schedules/`    | `/api/schedules`    | CRUD, reserve, reschedule                  |
+| `claims/`       | `/api/claims`       | List, today, verify                        |
+| `permits/`      | `/api/permits`      | Details, PDF generation                    |
+| `issuance/`     | `/api/issuance`     | Record issuance, update status             |
+| `payments/`     | `/api/payments`     | Create payment, webhook                    |
+| `events/`       | `/api/events`       | SSE real-time stream                       |
+| `analytics/`    | `/api/analytics`    | Dashboard analytics (admin)                |
+| `metrics/`      | `/api/metrics`      | Prometheus metrics                         |
+| `health/`       | `/api/health`       | Health check                               |
+| `profile/`      | `/api/profile`      | User profile CRUD                          |
+| `privacy/`      | `/api/privacy`      | Data privacy (RA 10173)                    |
+| `admin/`        | `/api/admin/`       | Users, settings, reports                   |
+| `public/`       | `/api/public/`      | Public track + verify-permit               |
+| `files/`        | `/api/files/`       | Local file serving                         |
+| `cron/`         | `/api/cron/`        | Expire holds, expire permits               |
 
-**Always use descriptive, accurate migration names.** The name should reflect exactly what the migration does.
+---
 
-```bash
-# ✅ Good — describes exactly what changes
-npx prisma migrate dev --name add_soft_delete_and_login_indexes
-npx prisma migrate dev --name add_password_reset_fields
-npx prisma migrate dev --name add_delivery_tracking_columns
+## Real-Time (SSE)
 
-# ❌ Bad — vague or misleading
-npx prisma migrate dev --name update_schema
-npx prisma migrate dev --name add_telemetry_fields  # if it actually creates the entire DB
-```
+| Event                        | Trigger                        |
+| ---------------------------- | ------------------------------ |
+| `application_status_changed` | Application status updates     |
+| `document_verified`          | Document verification complete |
+| `claim_scheduled`            | Claim slot booked              |
+| `permit_issued`              | Permit issued                  |
+| `slot_availability_changed`  | Schedule slot changes          |
+| `notification`               | Generic user notification      |
+| `heartbeat`                  | Keep-alive (30s interval)      |
 
-### Applied Migrations (4 total)
+---
 
-| #   | Migration Name                                     | What It Does                                                                              |
-| --- | -------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 1   | `20260228160303_add_telemetry_fields`              | **Initial schema** — creates all 22 tables, 3 enums, 80+ indexes, 25+ FKs                 |
-| 2   | `20260228180846_add_security_fields`               | Adds account lockout, email verify, refresh token fields to User; delivery timestamps     |
-| 3   | `20260228200622_add_password_reset_fields`         | Adds `passwordResetToken` + `passwordResetExpires` to User                                |
-| 4   | `20260228205603_add_soft_delete_and_login_indexes` | Adds `deletedAt` to User/Item/Order; indexes on `phone`, `messengerUsername`, `deletedAt` |
-
-### Soft-Delete Pattern
-
-Three models support soft-delete: **User**, **Item**, **Order**. Records are never physically deleted — instead `deletedAt` is set to a timestamp.
-
-**Rules:**
-
-- All listing/search queries MUST include `deletedAt: null` in their `where` clause
-- Raw SQL queries MUST include `AND deleted_at IS NULL`
-- Auth routes exclude soft-deleted users from login and `/me`
-- Registration checks exclude soft-deleted users (allows email re-use)
-- Use `softDelete(id)` from BaseRepository instead of `delete(id)` for User/Item/Order
-- Use `softDeleteUserAndData(userId)` in UserRepository for cascading soft-delete
-- Hard delete (`delete()` / `deleteUserAndData()`) is still available for GDPR "right to erasure"
+## Key Patterns
 
 ```typescript
-// ✅ Correct — excludes soft-deleted records
-const items = await prisma.item.findMany({
-  where: { userId, deletedAt: null },
-});
+// Prisma Client (singleton with PrismaPg adapter)
+import prisma from "@/lib/prisma";
 
-// ❌ Wrong — returns soft-deleted records too
-const items = await prisma.item.findMany({
-  where: { userId },
-});
+// Zod validation
+import { registerSchema } from "@/lib/validations";
+const result = registerSchema.safeParse(body);
 
-// ✅ Soft-delete via repository
-await userRepository.softDelete(userId);
-await userRepository.softDeleteUserAndData(userId); // cascades to items + orders
+// CASL permissions
+import { defineAbilitiesFor } from "@/lib/permissions";
+const ability = defineAbilitiesFor(session.user.role);
 
-// ✅ Restore a soft-deleted record
-await userRepository.restore(userId);
-```
+// Zustand store
+import { useUIStore } from "@/lib/stores";
 
-### Production Deployment
+// Cache (Redis + in-memory fallback)
+import { cacheOrCompute } from "@/lib/cache";
 
-```bash
-# ALWAYS use `migrate deploy` in production (NOT `migrate dev`)
-# It skips shadow database creation and won't auto-generate migrations
-npx prisma migrate deploy
+// Data sanitization (strip password from responses)
+import { sanitizeUser } from "@/lib/sanitize";
 
-# Verify after deployment
-npx prisma migrate status
+// File upload (S3/MinIO with local fallback)
+import { uploadFile } from "@/lib/storage";
 ```
 
 ---
 
-## Backend API Routes (24 Route Files)
+## Test Accounts (after `npm run db:seed`)
 
-| Route File                     | Base Path                 | Purpose                                |
-| ------------------------------ | ------------------------- | -------------------------------------- |
-| `auth.routes.ts`               | `/api/auth`               | Login, register, token refresh         |
-| `auth-extended.routes.ts`      | `/api/auth`               | Password reset, email verification     |
-| `user.routes.ts`               | `/api/users`              | User CRUD                              |
-| `user-profile.routes.ts`       | `/api/profile`            | Profile management                     |
-| `item.routes.ts`               | `/api/items`              | Item CRUD, search                      |
-| `category.routes.ts`           | `/api/categories`         | Category management                    |
-| `tag.routes.ts`                | `/api/tags`               | Tag management                         |
-| `order.routes.ts`              | `/api/orders`             | Order lifecycle                        |
-| `delivery.routes.ts`           | `/api/deliveries`         | Delivery management                    |
-| `delivery-address.routes.ts`   | `/api/delivery-addresses` | Address CRUD                           |
-| `rider.routes.ts`              | `/api/riders`             | Rider operations                       |
-| `rider-application.routes.ts`  | `/api/rider-applications` | Rider registration                     |
-| `payment-method.routes.ts`     | `/api/payment-methods`    | Payment methods                        |
-| `notification.routes.ts`       | `/api/notifications`      | Notification system                    |
-| `financial.routes.ts`          | `/api/financial`          | Financial management                   |
-| `payout.routes.ts`             | `/api/payouts`            | Payout request/approve/reject/complete |
-| `moderation.routes.ts`         | `/api/moderation`         | Moderation queue/review/history/flag   |
-| `admin.routes.ts`              | `/api/admin`              | Admin operations                       |
-| `analytics.routes.ts`          | `/api/analytics`          | Analytics & reporting                  |
-| `listing-management.routes.ts` | `/api/listings`           | Listing moderation                     |
-| `location.routes.ts`           | `/api/locations`          | Location services                      |
-| `qa-workflow.routes.ts`        | `/api/qa`                 | QA workflow                            |
-| `system-config.routes.ts`      | `/api/system-config`      | System configuration                   |
-| `test-data.routes.ts`          | `/api/test-data`          | Test data generation                   |
+| Role          | Email                 | Password       |
+| ------------- | --------------------- | -------------- |
+| Administrator | `admin@lgu.gov.ph`    | `Password123!` |
+| Reviewer      | `reviewer@lgu.gov.ph` | `Password123!` |
+| Staff         | `staff@lgu.gov.ph`    | `Password123!` |
+| Applicant     | `juan@example.com`    | `Password123!` |
+| Applicant     | `pedro@example.com`   | `Password123!` |
+| Pending       | `ana@example.com`     | `Password123!` |
 
 ---
 
-## Frontend API Clients (18 Modules)
+## Infrastructure
 
-Located in `src/api/`:
-`admin.ts`, `client.ts`, `contact.ts`, `deliveries.ts`, `deliveryAddresses.ts`, `financial.ts`, `items.ts`, `moderation.ts`, `notifications.ts`, `orders.ts`, `paymentMethods.ts`, `payouts.ts`, `riderApplications.ts`, `riders.ts`, `services/`, `systemConfig.ts`, `userProfile.ts`
-
----
-
-## Key Patterns & Conventions
-
-### Authentication
-
-```typescript
-import { useAuth } from "../contexts/AuthContext"; // ALWAYS use contexts/ (not context/)
-const { currentUser, login, logout, register } = useAuth();
-const userId = currentUser?.id;
-// Login uses identifier field (email, phone, or Messenger ID):
-// authService.login({ identifier: "user@email.com", password: "..." })
-```
-
-### API Calls
-
-```typescript
-import apiClient from "../api/client";
-const response = await apiClient.get("/api/items");
-const data = await apiClient.post("/api/orders", payload);
-```
-
-### Environment Config
-
-```typescript
-import config from "../config/environment";
-config.business.defaultCity; // "Silay City"
-config.delivery.city; // "Silay City"
-config.api.baseUrl; // "http://localhost:3001"
-config.business.minOrderAmount; // 100
-config.business.maxOrderAmount; // 50000
-```
-
-### Fee Calculations
-
-```typescript
-import {
-  calculateRevenueWithTieredFees,
-  getFeeStructure,
-} from "../services/feeService";
-const feeStructure = await getFeeStructure();
-const breakdown = calculateRevenueWithTieredFees(price, feeStructure);
-```
+| Service    | Container       | Port(s)    | Fallback if unavailable      |
+| ---------- | --------------- | ---------- | ---------------------------- |
+| PostgreSQL | `obps-postgres` | 5432       | None (required)              |
+| Redis      | `obps-redis`    | 6379       | In-memory cache              |
+| MinIO      | `obps-minio`    | 9000, 9001 | Local `./uploads/` directory |
 
 ---
 
-## Current State (as of session)
+## Philippine Compliance
 
-### Working Features
-
-- ✅ JWT httpOnly authentication (multi-method login: email/phone/Messenger ID)
-- ✅ Password change, forgot-password, reset-password flows
-- ✅ Account lockout (5 failed attempts / 15 min), email verification tokens
-- ✅ Refresh token rotation (SHA-256 hashed, 7-day expiry)
-- ✅ CSRF protection (double-submit cookie), Helmet CSP, rate limiting
-- ✅ User registration with city/barangay/address fields
-- ✅ Item listing and marketplace browsing
-- ✅ Order creation and management
-- ✅ Delivery address management
-- ✅ Rider registration and application
-- ✅ Rider earnings tracking with tiered fees
-- ✅ Admin financial management page
-- ✅ Dashboard with personal info, orders, payments
-- ✅ Prisma ORM with PostgreSQL schema (940+ lines, 22 models)
-- ✅ Soft-delete pattern on User, Item, Order (deletedAt field + indexes)
-- ✅ Indexes on phone + messengerUsername for multi-method login lookups
-- ✅ 24 backend route files with 95+ endpoints
-- ✅ 0 TypeScript production errors (frontend + backend)
-- ✅ All 5 frontend API clients fully wired to backend
-- ✅ Console.log cleanup complete (0 debug logs)
-- ✅ All API clients use centralized apiClient (riders.ts, notifications.ts refactored)
-- ✅ WebSocket real-time notifications (Socket.IO v4.8.3)
-- ✅ UI pages wired to real API calls (mock data removed)
-- ✅ Rider payout system (Payout model, repository, 8 API endpoints, frontend client)
-- ✅ RiderProfile.tsx de-mocked — fetches from API via getRiderByUserId
-- ✅ RiderSettings.tsx de-mocked — persists via updateRider + real logout
-- ✅ EnhancedProfile.tsx de-mocked — removed fake demo data fallback
-- ✅ Admin moderation workflow (ModerationAction model, queue/review/history/flag endpoints, ModerationQueue component, AdminDashboard Moderation tab)
-
-### WebSocket Architecture
-
-| Component | File                                    | Purpose                                                                                                                                                                        |
-| --------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Server    | `backend/src/websocket/socketServer.ts` | Socket.IO server with JWT auth, rooms, emit helpers                                                                                                                            |
-| Context   | `src/contexts/SocketContext.tsx`        | SocketProvider + hooks (useSocket, useRealtimeNotifications, useDeliveryTracking, useAdminRealtime, useRealtimeModeration)                                                     |
-| Rooms     | —                                       | `user:{id}`, `role:{role}`, `admin:dashboard`, `admin:financial`, `admin:moderation`, `riders:active`, `delivery:{id}`                                                         |
-| Emitters  | —                                       | `emitNotification`, `emitDeliveryUpdate`, `emitOrderUpdate`, `emitFinancialUpdate`, `emitAdminStatsUpdate`, `emitRoleNotification`, `emitPayoutUpdate`, `emitModerationUpdate` |
-
-### UI → API Wiring Status
-
-| Page/Component                 | API Client                                              | Status                                             |
-| ------------------------------ | ------------------------------------------------------- | -------------------------------------------------- |
-| AdminOverview.tsx              | adminUtils → admin.ts                                   | ✅ Wired                                           |
-| UserManagement.tsx             | adminUtils → admin.ts                                   | ✅ Wired                                           |
-| RiderApplicationManagement.tsx | riderApplicationUtils → riderApplications.ts            | ✅ Wired                                           |
-| ListingManagement.tsx          | listingManagementUtils → items.ts                       | ✅ Wired                                           |
-| FinancialManagementPage.tsx    | financialService → financial.ts                         | ✅ Wired                                           |
-| Notifications.tsx (dashboard)  | notifications.ts + WebSocket                            | ✅ Wired + real-time                               |
-| Earnings.tsx (dashboard)       | financial.ts                                            | ✅ Wired                                           |
-| RiderDeliveries.tsx            | riders.ts + WebSocket                                   | ✅ Wired (mock data removed)                       |
-| RiderEarnings.tsx              | riders.ts (getRiderEarnings, requestPayout)             | ✅ Wired (mock data removed)                       |
-| RiderProfile.tsx               | riders.ts (getRiderByUserId, updateRider)               | ✅ Wired (mock data removed, uses useAuth)         |
-| RiderSettings.tsx              | riders.ts (getRiderByUserId, updateRider) + useAuth     | ✅ Wired (mock data removed, real logout)          |
-| EnhancedProfile.tsx            | riderApplicationUtils + rider prop                      | ✅ De-mocked (no fake demo data fallback)          |
-| ModerationQueue.tsx            | moderation.ts (queue, stats, review, history)           | ✅ Wired (queue + history views, review dialog)    |
-| ManageListings.tsx             | items.ts (getSellerItems, updateItemStatus, deleteItem) | ✅ Wired (mock data removed)                       |
-| riderUtils.ts                  | riders.ts + polling fallback                            | ✅ Upgraded (15s polling, WebSocket in components) |
-
-### Frontend API Client Coverage
-
-| API Client         | Functions | Backend Endpoints Covered |
-| ------------------ | --------- | ------------------------- |
-| `admin.ts`         | 21        | 20/20 admin routes        |
-| `financial.ts`     | 14        | 14/14 financial routes    |
-| `riders.ts`        | 17        | 17/17 rider routes        |
-| `payouts.ts`       | 9         | 9/9 payout routes         |
-| `moderation.ts`    | 6         | 6/6 moderation routes     |
-| `items.ts`         | 14        | 13/13 item routes         |
-| `notifications.ts` | 12        | 12/12 notification routes |
-
-### Backend WebSocket Emit Integration
-
-| Route File               | Emit Event                                                      | Purpose                                           |
-| ------------------------ | --------------------------------------------------------------- | ------------------------------------------------- |
-| `notification.routes.ts` | `emitNotification`                                              | Real-time notification push on creation           |
-| `delivery.routes.ts`     | `emitDeliveryUpdate`                                            | Delivery status update broadcast                  |
-| `order.routes.ts`        | `emitOrderUpdate` + `emitNotification`                          | New order alerts to seller + all parties          |
-| `payout.routes.ts`       | `emitPayoutUpdate` + `emitNotification` + `emitFinancialUpdate` | Payout lifecycle (create/approve/reject/complete) |
-| `moderation.routes.ts`   | `emitModerationUpdate` + `emitNotification`                     | Moderation review + flag actions                  |
-
-### Needs Implementation
-
-- ✅ Advanced analytics engine (wired to Socket.IO + REST polling via `/api/analytics/*`)
-- ✅ Email notification delivery (backend `email.routes.ts` + frontend service wired)
-- ✅ Financial forecasting service (wired to existing `/api/financial/forecast` + `/api/analytics/revenue`)
-- ✅ Automated reporting (backend `reports.routes.ts` + frontend service wired)
+- **RA 11032** — Ease of Doing Business (online application, real-time tracking)
+- **RA 10173** — Data Privacy Act (cookie consent, data privacy page, data export)
+- **DICT Standards** — Government cloud compatible, WCAG 2.1 AA
+- **NBCP** — Fire safety document requirements
 
 ---
 
-## Available Skills (invoke with `/skill-name`)
+## Available Skills
 
-| Skill                     | Purpose                                                   |
-| ------------------------- | --------------------------------------------------------- |
-| `/backend-service`        | Express.js routes, controllers, services                  |
-| `/database-query`         | Prisma queries for PostgreSQL                             |
-| `/debug-issue`            | Diagnose and fix issues across the stack                  |
-| `/frontend-design`        | React components with Material-UI                         |
-| `/qa-testing`             | Test scenarios and verification                           |
-| `/workflow-definitions`   | Machine-readable workflow specs                           |
-| `/workflow-verificator`   | Pre-deployment validation                                 |
-| `/cleanup-codebase`       | Console.log removal, dead code cleanup                    |
-| `/fee-structure`          | 5-tier fee management and calculation                     |
-| `/city-restriction`       | Silay City restriction and barangay management            |
-| `/implementation-plan`    | Sprint planning and feature prioritization                |
-| `/codebase-assessment`    | Quantitative dual-grading (F→A+, /10) across 6 categories |
-| `/security-hardening`     | Auth audit, secret scan, input validation, OWASP Top 10   |
-| `/performance-profiler`   | Prisma queries, React renders, bundle size, API response  |
-| `/migration-helper`       | Prisma migrations, schema evolution, data transforms      |
-| `/pwa-offline`            | Service worker, caching, offline queue, install prompt    |
-| `/full-system-validation` | 6-phase cross-cutting validation (routes→types→WebSocket) |
+| Skill                     | Purpose                                           |
+| ------------------------- | ------------------------------------------------- |
+| `/backend-service`        | Next.js API routes, server actions, lib modules   |
+| `/database-query`         | Prisma queries, migrations, schema management     |
+| `/debug-issue`            | Diagnose and fix issues across the stack          |
+| `/frontend-design`        | React components with Tailwind CSS + CVA          |
+| `/qa-testing`             | Vitest unit tests, Playwright E2E, test scenarios |
+| `/workflow-definitions`   | Application workflow documentation                |
+| `/workflow-verificator`   | Pre-deployment validation                         |
+| `/cleanup-codebase`       | Dead code, console.log removal, TODO tracking     |
+| `/codebase-assessment`    | Quantitative grading across 6 categories          |
+| `/security-hardening`     | Auth audit, OWASP Top 10, CSP headers             |
+| `/performance-profiler`   | Prisma queries, bundle size, API response         |
+| `/pwa-offline`            | Service worker, caching, offline support          |
+| `/full-system-validation` | Cross-cutting validation (routes→types→SSE→auth)  |
+| `/implementation-plan`    | Sprint planning, feature prioritization           |
+| `/payment-integration`    | PayMongo, GCash, Maya, webhook handling           |
+| `/accessibility-auditor`  | WCAG 2.1 AA compliance                            |
+| `/test-gap-filler`        | Identify untested paths, generate test suites     |
+| `/code-cleanup`           | Dead code removal, naming fixes                   |
+| `/god-class-decomposer`   | Break apart large components/modules              |
+| `/memory-leak-detector`   | SSE cleanup, timer leaks, subscriptions           |
+| `/code-behind-extractor`  | Extract inline logic to lib modules               |
+| `/migration-helper`       | Prisma migrations, schema evolution               |
 
 ---
 
 ## Reference Documentation
 
-Located in `.claude/`:
-
-- `AVAILABLE_SKILLS.md` — Full skill catalog with usage examples
-- `commands/` — 17 skill definitions (`.md` files)
-- `reference/CLAUDE.md` — Reference template (from SI360 project)
-- `reference/commands/` — 26 reference command templates (SI360 patterns)
-- `reference/docs/` — Setup and validation guides
-- `workflows.json` — Machine-readable workflow definitions
-- `Workflows.mermaid` — Visual workflow diagrams
+- `.claude/AVAILABLE_SKILLS.md` — Full skill catalog with usage examples
+- `.claude/command-reference.md` — Quick command reference
+- `.claude/commands/` — 22 skill definitions
+- `.claude/workflows.json` — Machine-readable workflow definitions

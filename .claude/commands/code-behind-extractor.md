@@ -1,227 +1,143 @@
----
-name: code-behind-extractor
-description: MVVM code-behind extraction specialist for SI360 POS. Use for moving business logic from XAML code-behind to proper ViewModels.
----
+# Code-Behind Extractor — OBPS Component Logic Extraction
 
-# Code-Behind Extractor Skill
+## Purpose
 
-You are an MVVM refactoring specialist for the SI360 POS system. When invoked, extract business logic from XAML code-behind files into proper ViewModels following CommunityToolkit.Mvvm patterns.
+Extract business logic, data fetching, and state management from React components into reusable hooks, services, and utilities. Keeps components focused on rendering.
 
-## Context
+## Usage
 
-| Aspect | Details |
-|--------|---------|
-| **Framework** | WPF (.NET 8.0) |
-| **MVVM Toolkit** | CommunityToolkit.Mvvm 8.2.2 |
-| **Base Class** | `ObservableObject` (or custom `BaseViewModel`) |
-| **Properties** | `[ObservableProperty]` attribute |
-| **Commands** | `[RelayCommand]` attribute |
-| **DI** | Microsoft.Extensions.DependencyInjection |
-| **Error Handling** | `IErrorHandler` for structured logging |
+```
+/code-behind-extractor <component-file-path>
+```
 
----
+## Extraction Patterns
 
-## Target Dialogs
+### 1. Extract to Custom Hook
 
-| Dialog | Code-Behind LOC | Business Logic | Priority |
-|--------|----------------|----------------|----------|
-| `CombineCheckDialog` | 322 | Check combination, filtering, validation | HIGH |
-| `SupervisorPinDialog` | 163 | PIN verification, security level check | HIGH (layer violation) |
-| `ChargeTipCheckSelectionDialog` | 102 | Check selection, tip assignment | MEDIUM |
-| `CheckDetailsDialog` | 69 | Sale item display, formatting | LOW |
+**When**: Component has complex state logic, effects, or data fetching
 
----
+```typescript
+// Before: all logic in component
+'use client';
+export function ApplicationList() {
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({});
 
-## Extraction Pattern
+  useEffect(() => {
+    fetch('/api/applications?' + new URLSearchParams(filters))
+      .then(res => res.json())
+      .then(data => { setApplications(data); setLoading(false); });
+  }, [filters]);
 
-### Step 1: Identify What Moves to ViewModel
+  // 50 more lines of logic...
+  return <div>{/* render */}</div>;
+}
 
-| Belongs in ViewModel | Stays in Code-Behind |
-|---------------------|---------------------|
-| Data properties (observable) | `InitializeComponent()` |
-| Business logic methods | `DialogResult` assignment |
-| Service/repository calls | `Owner` window reference |
-| Filtering and sorting | Static `ShowDialog()` factory |
-| Validation rules | Window event wiring (`Loaded`, `Closing`) |
-| State management | Focus management |
-| Data loading | Sub-dialog launching (needs `Window` reference) |
+// After: hook extracted
+// hooks/use-applications.ts
+export function useApplications(filters: Filters) {
+  return useQuery({
+    queryKey: ['applications', filters],
+    queryFn: () => fetch('/api/applications?' + new URLSearchParams(filters)).then(r => r.json()),
+  });
+}
 
-### Step 2: Create ViewModel
-
-```csharp
-// SI360.UI/ViewModels/{DialogName}ViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-
-namespace SI360.UI.ViewModels;
-
-public partial class {DialogName}ViewModel : ObservableObject
-{
-    private readonly IErrorHandler _errorHandler;
-
-    // Observable properties (auto-generates public property + PropertyChanged)
-    [ObservableProperty]
-    private bool _isBusy;
-
-    [ObservableProperty]
-    private ObservableCollection<ItemType> _items = new();
-
-    [ObservableProperty]
-    private ItemType? _selectedItem;
-
-    // Constructor with DI
-    public {DialogName}ViewModel(IService service, IErrorHandler errorHandler)
-    {
-        _errorHandler = errorHandler;
-    }
-
-    // Commands (auto-generates {Name}Command property)
-    [RelayCommand]
-    private async Task LoadDataAsync()
-    {
-        try
-        {
-            IsBusy = true;
-            var data = await _service.GetDataAsync();
-            Items = new ObservableCollection<ItemType>(data);
-        }
-        catch (Exception ex)
-        {
-            await _errorHandler.LogErrorAsync(ex, "Failed to load", "System");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
+// components/application-list.tsx
+'use client';
+export function ApplicationList() {
+  const [filters, setFilters] = useState({});
+  const { data: applications, isLoading } = useApplications(filters);
+  return <div>{/* render — much simpler */}</div>;
 }
 ```
 
-### Step 3: Update Code-Behind
+### 2. Extract to Server Component
 
-```csharp
-public partial class {DialogName}Dialog : Window
-{
-    private readonly {DialogName}ViewModel _viewModel;
+**When**: Component only displays data with no interactivity
 
-    // Expose properties needed by caller
-    public ResultType? Result => _viewModel.Result;
+```typescript
+// Before: client component fetching data
+'use client';
+export function ApplicationDetails({ id }: { id: string }) {
+  const [data, setData] = useState(null);
+  useEffect(() => { fetch(`/api/applications/${id}`).then(/*...*/); }, [id]);
+  return <div>{/* render data */}</div>;
+}
 
-    public {DialogName}Dialog(IService service, IErrorHandler errorHandler)
-    {
-        InitializeComponent();
-        _viewModel = new {DialogName}ViewModel(service, errorHandler);
-        DataContext = _viewModel;
-        Loaded += async (_, _) => await _viewModel.LoadDataAsync();
-    }
-
-    // Only dialog-specific handlers remain
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
-    }
-
-    private void ConfirmButton_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = true;
-        Close();
-    }
+// After: server component (no 'use client')
+export default async function ApplicationDetails({ id }: { id: string }) {
+  const application = await prisma.application.findUnique({ where: { id } });
+  return <div>{/* render directly — no loading state needed */}</div>;
 }
 ```
 
-### Step 4: Update XAML Bindings
+### 3. Extract to Service Module
 
-Replace `x:Name` references with data bindings:
+**When**: Business logic is reused across API routes or components
 
-```xml
-<!-- BEFORE (code-behind driven) -->
-<TextBlock x:Name="StatusText" Text="Ready"/>
-<DataGrid x:Name="ItemsGrid" SelectionChanged="ItemsGrid_SelectionChanged"/>
-<Button Click="ConfirmButton_Click"/>
+```typescript
+// Before: logic duplicated in multiple API routes
+// api/applications/route.ts has fee calculation
+// api/payments/route.ts has same fee calculation
 
-<!-- AFTER (ViewModel bound) -->
-<TextBlock Text="{Binding StatusText}"/>
-<DataGrid ItemsSource="{Binding Items}"
-          SelectedItem="{Binding SelectedItem}"/>
-<Button Command="{Binding ConfirmCommand}"/>
-```
-
----
-
-## SupervisorPinDialog Special Case (Layer Violation)
-
-The `SupervisorPinDialog` currently depends on `IEmployeeRepository` directly (View -> Repository = layer violation). The extraction MUST route through a service:
-
-```csharp
-// WRONG (current): View -> IEmployeeRepository
-public SupervisorPinDialog(IEmployeeRepository employeeRepository, ...)
-
-// RIGHT (after): View -> ViewModel -> IAuthService (or ISecurityService)
-public SupervisorPinDialogViewModel(IAuthService authService, IErrorHandler errorHandler, ...)
-```
-
----
-
-## Execution Checklist
-
-When invoked with `$ARGUMENTS` specifying which dialog(s):
-
-### Per Dialog:
-1. [ ] Read the code-behind file completely
-2. [ ] Read the matching XAML file
-3. [ ] Check if a ViewModel already exists
-4. [ ] Identify all properties that are data-bound or used as state
-5. [ ] Identify all methods that contain business logic
-6. [ ] Identify service/repository dependencies
-7. [ ] Create new ViewModel with `[ObservableProperty]` and `[RelayCommand]`
-8. [ ] Move business logic methods to ViewModel
-9. [ ] Update code-behind to delegate to ViewModel
-10. [ ] Update XAML bindings (`x:Name` -> `{Binding}`)
-11. [ ] Verify dialog still compiles
-12. [ ] Check no `x:Name` references are broken
-
-### Validation:
-- [ ] Code-behind only contains: constructor, `InitializeComponent()`, `DialogResult` handling, sub-dialog launching
-- [ ] No service/repository calls in code-behind
-- [ ] All observable state in ViewModel with `[ObservableProperty]`
-- [ ] All user actions are `[RelayCommand]` or thin event handlers delegating to ViewModel
-
----
-
-## Common Patterns for Dialog Extraction
-
-### Dialog Result Pattern
-```csharp
-// ViewModel exposes result
-[ObservableProperty]
-private CheckItem? _selectedCheck;
-
-// Code-behind reads it
-public CheckItem? CheckToReopen => _viewModel.SelectedCheck;
-```
-
-### Sub-Dialog Pattern (stays in code-behind)
-```csharp
-// Sub-dialogs need Window context -- keep in code-behind
-private void ViewDetailsButton_Click(object sender, RoutedEventArgs e)
-{
-    if (_viewModel.SelectedItem == null) return;
-
-    _viewModel.IsDialogOpen = true;
-    var detailsDialog = new CheckDetailsDialog(_viewModel.SelectedItem)
-    {
-        Owner = this
-    };
-    detailsDialog.ShowDialog();
-    _viewModel.IsDialogOpen = false;
+// After: shared service
+// src/lib/services/fee-calculator.ts
+export function calculatePermitFee(
+  applicationType: ApplicationType,
+  businessSize: string,
+): number {
+  const baseFee = applicationType === "NEW" ? 500 : 300;
+  const sizeFactor = { SMALL: 1, MEDIUM: 1.5, LARGE: 2 }[businessSize] ?? 1;
+  return baseFee * sizeFactor;
 }
 ```
 
-### BooleanToVisibility Pattern
-```xml
-<Border Visibility="{Binding HasSelectedItem,
-    Converter={StaticResource BooleanToVisibilityConverter}}"/>
+### 4. Extract Form Logic to Schema + Hook
+
+**When**: Form has complex validation and submission logic
+
+```typescript
+// Before: all in one component
+// After:
+// 1. Schema in validations.ts
+export const applicationSchema = z.object({ businessName: z.string().min(2) });
+
+// 2. Custom hook
+export function useApplicationForm(applicationId?: string) {
+  const form = useForm<z.infer<typeof applicationSchema>>({
+    resolver: zodResolver(applicationSchema),
+  });
+  const mutation = useMutation({
+    mutationFn: (data) => fetch('/api/applications', { method: 'POST', body: JSON.stringify(data) }),
+  });
+  return { form, mutation };
+}
+
+// 3. Clean component
+export function ApplicationForm() {
+  const { form, mutation } = useApplicationForm();
+  return <form onSubmit={form.handleSubmit(mutation.mutate)}>{/* fields */}</form>;
+}
 ```
 
-Always address the user as **Rolen**.
+## Decision Matrix
+
+| Condition               | Extract To                               |
+| ----------------------- | ---------------------------------------- |
+| Complex state + effects | Custom hook (`hooks/use-*.ts`)           |
+| Data display only       | Server Component (remove `'use client'`) |
+| Reused business logic   | Service module (`lib/services/*.ts`)     |
+| Form validation         | Zod schema + hook                        |
+| API call pattern        | React Query hook                         |
+| Utility function        | `lib/utils.ts` or dedicated util file    |
+
+## Checklist
+
+- [ ] Component is < 150 lines after extraction
+- [ ] Extracted hook/service is independently testable
+- [ ] No prop drilling — use hooks or context
+- [ ] Server Components used where possible
+- [ ] `'use client'` only on interactive components
+- [ ] TypeScript types exported for reuse
+- [ ] Imports updated everywhere

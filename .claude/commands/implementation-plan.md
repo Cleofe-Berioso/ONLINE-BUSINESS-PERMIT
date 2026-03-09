@@ -1,93 +1,92 @@
-# Implementation Plan Management
+# Implementation Plan — OBPS Feature Implementation Guide
 
-## Overview
+## Purpose
 
-This skill manages the HoardNest implementation roadmap, sprint planning, and feature prioritization. The full implementation plan is documented in `Docs/IMPLEMENTATION_PLAN.md`.
-
-## Plan Structure
-
-The implementation plan covers:
-
-- **Current State Assessment** — What's working, what's partial, what's missing
-- **Gap Analysis** — Backend API endpoints needed (81 total across 6 categories)
-- **Priority Matrix** — P0 (Critical) through P3 (Nice-to-have)
-- **Sprint Roadmap** — 5 sprints over 10 weeks
-- **Feature Specifications** — Detailed specs for each major feature
-- **Technical Debt** — Items to address during implementation
-
-## Key Reference Documents
-
-| Document              | Location                      | Purpose                         |
-| --------------------- | ----------------------------- | ------------------------------- |
-| Implementation Plan   | `Docs/IMPLEMENTATION_PLAN.md` | Master plan with all details    |
-| Architecture Overview | `Docs/Architecture/`          | System architecture docs        |
-| API Documentation     | `Docs/API/`                   | API endpoint documentation      |
-| Migration Guide       | `Docs/Migration/`             | Firebase → PostgreSQL migration |
-| Testing Strategy      | `Docs/Testing/`               | Testing approach and coverage   |
-
-## Commands
-
-### Show current sprint status
-
-```
-/implementation-plan status
-```
-
-### Show priority items
-
-```
-/implementation-plan priorities
-```
-
-### Show gap analysis summary
-
-```
-/implementation-plan gaps
-```
-
-### Show specific sprint details
-
-```
-/implementation-plan sprint <number>
-```
-
-## Priority Framework
-
-| Priority | Label        | Criteria                        | Timeline               |
-| -------- | ------------ | ------------------------------- | ---------------------- |
-| P0       | Critical     | Security, data integrity, auth  | Sprint 1 (Weeks 1-2)   |
-| P1       | High         | Core marketplace flow, orders   | Sprint 2-3 (Weeks 3-6) |
-| P2       | Medium       | Analytics, notifications, rider | Sprint 4 (Weeks 7-8)   |
-| P3       | Nice-to-have | Advanced analytics, reporting   | Sprint 5 (Weeks 9-10)  |
-
-## API Endpoint Categories (81 Total)
-
-| Category                  | Count | Priority |
-| ------------------------- | ----- | -------- |
-| Admin Management          | 21    | P0-P1    |
-| Analytics & Reporting     | 7     | P2       |
-| Rider Management          | 12    | P1-P2    |
-| Notification System       | 8     | P2       |
-| Item & Listing Management | 13    | P1       |
-| Test Data & Development   | 7     | P3       |
-| Financial Management      | 13    | P1-P2    |
-
-## Sprint Overview
-
-| Sprint | Focus                      | Weeks | Key Deliverables                                |
-| ------ | -------------------------- | ----- | ----------------------------------------------- |
-| 1      | Foundation & Security      | 1-2   | Auth hardening, admin CRUD, city validation     |
-| 2      | Core Marketplace           | 3-4   | Item management, order flow, payment processing |
-| 3      | Delivery & Riders          | 5-6   | Rider management, delivery tracking, earnings   |
-| 4      | Notifications & Analytics  | 7-8   | WebSocket notifications, real-time analytics    |
-| 5      | Polish & Advanced Features | 9-10  | Financial forecasting, reporting, optimization  |
+Create structured implementation plans for new features or modules in the Online Business Permit System, breaking down work into phases with clear deliverables.
 
 ## Usage
 
-When implementing features from the plan:
+```
+/implementation-plan <feature-or-module-description>
+```
 
-1. Check the current sprint in `Docs/IMPLEMENTATION_PLAN.md`
-2. Pick the highest priority unimplemented item
-3. Follow the feature specification in the plan
-4. Update the plan status after implementation
-5. Run tests to verify the implementation
+## Planning Template
+
+### 1. Requirements Analysis
+
+- What user story or requirement does this address?
+- Which user role(s) are involved?
+- Which existing modules are affected?
+- What data models need changes?
+
+### 2. Technical Design
+
+- New/modified files (pages, API routes, components, lib)
+- Prisma schema changes (models, enums, relations)
+- State management needs (Zustand, React Query)
+- External integrations (payments, email, SMS, storage)
+
+### 3. Implementation Phases
+
+```
+Phase 1: Database & Schema
+  - Prisma schema changes
+  - Migration generation & testing
+  - Seed data updates
+
+Phase 2: Backend (API Routes)
+  - Route handlers with Zod validation
+  - Business logic in lib modules
+  - Auth/RBAC enforcement
+
+Phase 3: Frontend (UI)
+  - Server Component pages
+  - Client Components for interactivity
+  - Form handling (React Hook Form + Zod)
+
+Phase 4: Integration
+  - Wire frontend to API routes
+  - Real-time updates (SSE)
+  - Notifications (email, SMS, in-app)
+
+Phase 5: Testing
+  - Unit tests (Vitest)
+  - E2E tests (Playwright)
+  - Manual QA with all roles
+```
+
+### 4. Acceptance Criteria
+
+- List specific conditions that must be true for the feature to be complete
+- Include role-based scenarios
+- Include error/edge cases
+
+## Reference: Existing Module Structure
+
+| Module                    | Status      | Files                                           |
+| ------------------------- | ----------- | ----------------------------------------------- |
+| Auth (login/register/OTP) | Complete    | `(auth)/`, `api/auth/`                          |
+| Application CRUD          | Complete    | `dashboard/applications/`, `api/applications/`  |
+| Document Management       | Complete    | `dashboard/verify-documents/`, `api/documents/` |
+| Review Workflow           | Complete    | `dashboard/review/`, `api/applications/[id]/`   |
+| Claim Scheduling          | In Progress | `dashboard/schedule/`, `api/schedules/`         |
+| Permit Issuance           | In Progress | `dashboard/issuance/`, `api/issuance/`          |
+| Payment Processing        | In Progress | `api/payments/`                                 |
+| Admin Panel               | Partial     | `dashboard/admin/`, `api/admin/`                |
+| Analytics/Reports         | Partial     | `api/analytics/`                                |
+| Real-time (SSE)           | Complete    | `api/events`, `hooks/use-sse.ts`                |
+| Notifications             | In Progress | `api/notifications/`                            |
+
+## Cross-cutting Concerns
+
+Every new feature must address:
+
+- [ ] Auth check (session + role)
+- [ ] Input validation (Zod)
+- [ ] Error handling (try/catch, user-friendly messages)
+- [ ] Loading states (Skeleton, Suspense)
+- [ ] Mobile responsiveness
+- [ ] i18n (useTranslations)
+- [ ] Accessibility (labels, keyboard nav)
+- [ ] Audit logging (AuditLog model)
+- [ ] Test coverage (unit + E2E)

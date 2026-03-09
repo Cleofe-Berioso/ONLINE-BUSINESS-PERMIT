@@ -1,240 +1,126 @@
----
-name: test-gap-filler
-description: Test gap analysis and generation specialist for SI360 POS. Use for identifying untested critical paths and generating targeted test suites.
----
+# Test Gap Filler — OBPS Missing Test Coverage Detector
 
-# Test Gap Filler Skill
+## Purpose
 
-You are a test coverage specialist for the SI360 POS system. When invoked, analyze untested areas, prioritize by risk, and generate comprehensive test suites using xUnit, Moq, and FluentAssertions.
+Identify untested code paths in the Online Business Permit System and generate missing tests for components, API routes, library functions, and workflows.
 
-## Context
+## Usage
 
-| Aspect | Details |
-|--------|---------|
-| **Framework** | xUnit 2.9.3 |
-| **Mocking** | Moq 4.20.69 |
-| **Assertions** | FluentAssertions 6.12.0 |
-| **Current Tests** | 675 tests across 44 files |
-| **Architecture** | Clean Architecture (Domain -> Infrastructure -> UI) |
-| **Build Note** | `dotnet test` fails with MSB4803 (COM reference) -- build in Visual Studio |
-
----
-
-## Current Coverage Map
-
-### Well-Tested (skip these)
-
-| Area | Files | Tests | Status |
-|------|-------|-------|--------|
-| AuthService | 1 | 12 | Covered |
-| OrderingViewModel | 1 | 45+ | Covered |
-| PayCheckViewModel | 1 | 30+ | Covered |
-| PriceHelper | 1 | 8 | Covered |
-| PAN Masking | 1 | 6 | Covered |
-| BruteForce Protection | 1 | 5 | Covered |
-| Session Timeout | 1 | 5 | Covered |
-| Payment Dialog VMs | 4 | 115 | Covered |
-
-### Critical Gaps (prioritize these)
-
-| Area | Risk | Why Untested | Priority |
-|------|------|-------------|----------|
-| `UserSecurityService` | CRITICAL | Contains mock user bypass, security level logic | P0 |
-| `ItemModifierService` | HIGH | 13 dependencies, complex price/tax/discount calculations | P1 |
-| `ClosedCheckDialogViewModel` | MEDIUM | Recently extracted from code-behind | P2 |
-| Dialog code-behind logic | LOW | Not testable until extracted to VMs | P3 (blocked) |
-
----
-
-## Test Generation Patterns
-
-### Service Test Pattern
-
-```csharp
-public class {Service}Tests
-{
-    // Mocks for all dependencies
-    private readonly Mock<IRepository> _mockRepo;
-    private readonly Mock<IErrorHandler> _mockErrorHandler;
-    private readonly {Service} _sut; // System Under Test
-
-    public {Service}Tests()
-    {
-        _mockRepo = new Mock<IRepository>();
-        _mockErrorHandler = new Mock<IErrorHandler>();
-        _sut = new {Service}(_mockRepo.Object, _mockErrorHandler.Object);
-    }
-
-    [Fact]
-    public async Task MethodName_GivenCondition_ExpectedResult()
-    {
-        // Arrange
-        _mockRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
-            .ReturnsAsync(new Entity { Id = Guid.NewGuid() });
-
-        // Act
-        var result = await _sut.MethodAsync(testInput);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Property.Should().Be(expectedValue);
-    }
-
-    [Fact]
-    public async Task MethodName_WhenException_LogsError()
-    {
-        // Arrange
-        _mockRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
-            .ThrowsAsync(new SqlException());
-
-        // Act
-        var result = await _sut.MethodAsync(testInput);
-
-        // Assert
-        _mockErrorHandler.Verify(
-            e => e.LogErrorAsync(It.IsAny<Exception>(), It.IsAny<string>(), It.IsAny<string>()),
-            Times.Once);
-    }
-}
+```
+/test-gap-filler [area-to-check]
 ```
 
-### ViewModel Test Pattern
+## Current Test Coverage Map
 
-```csharp
-public class {ViewModel}Tests
-{
-    private readonly Mock<IService> _mockService;
-    private readonly {ViewModel} _sut;
+### ✅ Has Tests
 
-    public {ViewModel}Tests()
-    {
-        _mockService = new Mock<IService>();
-        _sut = new {ViewModel}(_mockService.Object);
-    }
+| File                       | Test File                              | Coverage            |
+| -------------------------- | -------------------------------------- | ------------------- |
+| `components/ui/button.tsx` | `__tests__/components/button.test.tsx` | Rendering, variants |
+| `components/ui/card.tsx`   | `__tests__/components/card.test.tsx`   | Layout              |
+| `components/ui/input.tsx`  | `__tests__/components/input.test.tsx`  | Rendering, error    |
+| `components/ui/alert.tsx`  | `__tests__/components/alert.test.tsx`  | Variants            |
+| `lib/utils.ts`             | `__tests__/lib/utils.test.ts`          | `cn()` helper       |
+| `lib/validations.ts`       | `__tests__/lib/validations.test.ts`    | Zod schemas         |
+| Navigation/pages           | `e2e/app.spec.ts`                      | Page loads          |
+| Accessibility              | `e2e/accessibility.spec.ts`            | axe-core            |
 
-    [Fact]
-    public async Task LoadCommand_PopulatesCollection()
-    {
-        // Arrange
-        var items = new List<Item> { new() { Id = 1 }, new() { Id = 2 } };
-        _mockService.Setup(s => s.GetAllAsync()).ReturnsAsync(items);
+### 🔴 Missing Tests (Priority)
 
-        // Act
-        await _sut.LoadDataCommand.ExecuteAsync(null);
+| File                 | Priority | What to Test                               |
+| -------------------- | -------- | ------------------------------------------ |
+| `lib/auth.ts`        | HIGH     | authorize callback, session/JWT callbacks  |
+| `lib/permissions.ts` | HIGH     | CASL ability for each role × action        |
+| `lib/payments.ts`    | HIGH     | Checkout creation, webhook verification    |
+| `lib/storage.ts`     | MEDIUM   | Upload, download, presigned URLs, fallback |
+| `lib/email.ts`       | MEDIUM   | Email template rendering, send function    |
+| `lib/sms.ts`         | MEDIUM   | SMS sending, provider fallback             |
+| `lib/sanitize.ts`    | MEDIUM   | XSS prevention, HTML stripping             |
+| `lib/rate-limit.ts`  | MEDIUM   | Rate limiter logic                         |
+| `lib/two-factor.ts`  | MEDIUM   | TOTP generation, verification              |
+| `lib/pdf.ts`         | LOW      | PDF generation, QR code                    |
+| `lib/queue.ts`       | LOW      | Job scheduling, processing                 |
+| `lib/cache.ts`       | LOW      | Redis cache, fallback                      |
+| `middleware.ts`      | MEDIUM   | Route protection, rate limiting            |
+| All API routes       | HIGH     | Request/response contracts                 |
+| Dashboard components | MEDIUM   | Role-specific rendering                    |
 
-        // Assert
-        _sut.Items.Should().HaveCount(2);
-        _sut.IsBusy.Should().BeFalse();
-    }
+## Gap Detection Process
 
-    [Fact]
-    public void PropertyChanged_NotifiesDependentProperties()
-    {
-        // Arrange
-        var propertyNames = new List<string>();
-        _sut.PropertyChanged += (_, e) => propertyNames.Add(e.PropertyName!);
+1. List all source files: `find src -name '*.ts' -o -name '*.tsx' | grep -v __tests__`
+2. List all test files: `find src/__tests__ e2e -name '*.test.*' -o -name '*.spec.*'`
+3. Match source → test by naming convention
+4. Identify files with no corresponding test
+5. Prioritize by criticality (auth > payments > CRUD > UI)
 
-        // Act
-        _sut.SelectedItem = new Item();
+## Test Templates
 
-        // Assert
-        propertyNames.Should().Contain("SelectedItem");
-    }
-}
+### Library Function Test
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Mock external dependencies
+vi.mock("ioredis", () => ({ default: vi.fn() }));
+
+import { cacheGet, cacheSet } from "@/lib/cache";
+
+describe("cache", () => {
+  it("returns cached value when available", async () => {
+    await cacheSet("key", "value", 60);
+    const result = await cacheGet("key");
+    expect(result).toBe("value");
+  });
+
+  it("returns null for missing key", async () => {
+    const result = await cacheGet("nonexistent");
+    expect(result).toBeNull();
+  });
+});
 ```
 
----
+### API Route Test
 
-## Priority Test Suites to Generate
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { NextRequest } from "next/server";
 
-### P0: UserSecurityServiceTests
+vi.mock("@/lib/auth", () => ({
+  auth: vi.fn(() => ({ user: { id: "1", role: "APPLICANT" } })),
+}));
+vi.mock("@/lib/prisma", () => ({
+  prisma: { application: { findMany: vi.fn(() => []) } },
+}));
 
-**File:** `SI360.Tests/Services/UserSecurityServiceTests.cs`
+import { GET } from "@/app/api/applications/route";
 
-| Test | Category | Verifies |
-|------|----------|----------|
-| `GetCurrentUser_WhenNull_ThrowsException` | Security | CF-2 fix (no mock bypass) |
-| `GetCurrentUser_WhenSet_ReturnsUser` | Happy path | Normal auth flow |
-| `GetSecurityLevel_ManagerClass_Returns10` | Authorization | Manager detection |
-| `GetSecurityLevel_SupervisorJobCode_Returns8` | Authorization | Supervisor detection |
-| `GetSecurityLevel_DefaultEmployee_Returns5` | Authorization | Default level |
-| `HasSufficientLevel_HigherThanRequired_ReturnsTrue` | Authorization | Level comparison |
-| `HasSufficientLevel_LowerThanRequired_ReturnsFalse` | Authorization | Access denial |
-| `AuthorizeTableAccess_EmptyTable_Authorized` | Table access | Unoccupied table |
-| `AuthorizeTableAccess_OwnCheck_Authorized` | Table access | Own check access |
-| `AuthorizeTableAccess_OtherCheck_RequiresLevel` | Table access | Security enforcement |
-| `AuthorizeTableAccess_OtherCheck_InsufficientLevel_Denied` | Table access | Access denial |
-| `GetMinimumSecurityLevel_Returns10` | Configuration | Default threshold |
+describe("GET /api/applications", () => {
+  it("returns 200 with applications", async () => {
+    const request = new NextRequest("http://localhost/api/applications");
+    const response = await GET(request);
+    expect(response.status).toBe(200);
+  });
+});
+```
 
----
+## Commands
 
-### P1: ItemModifierServiceTests
+```bash
+# Run tests with coverage
+npm test -- --run --coverage
 
-**File:** `SI360.Tests/Services/ItemModifierServiceTests.cs`
+# Run specific test file
+npm test -- --run src/__tests__/lib/validations.test.ts
 
-**Test Categories:**
+# Watch mode
+npm test -- --watch
+```
 
-| Category | Tests | Verifies |
-|----------|-------|----------|
-| Modifier Retrieval | 8-10 | GetModifiers, GetByCategory, GetActive |
-| Price Calculation | 10-15 | Base price, tax, discount, rounding |
-| Allergen Validation | 5-8 | Allergen checks, warnings, blocks |
-| Quantity Limits | 4-6 | Min/max modifiers, required selections |
-| Error Handling | 5-8 | Exception logging, graceful degradation |
-| Edge Cases | 5-8 | Null inputs, empty collections, zero prices |
+## Checklist
 
----
-
-### P2: ClosedCheckDialogViewModelTests
-
-**File:** `SI360.Tests/ViewModels/ClosedCheckDialogViewModelTests.cs`
-
-| Test | Category | Verifies |
-|------|----------|----------|
-| `LoadClosedChecks_PopulatesCollection` | Loading | Data retrieval |
-| `LoadClosedChecks_ComputesStats` | Statistics | CheckCount, TotalRevenue, AverageCheck |
-| `ApplyFilter_FiltersCollection` | Filtering | Text-based filtering |
-| `ApplyFilter_EmptyString_ShowsAll` | Filtering | Filter reset |
-| `SelectCheck_UpdatesDetails` | Selection | Detail panel population |
-| `SelectCheck_Null_HidesDetails` | Selection | Detail panel hiding |
-| `LoadClosedChecks_Error_LogsError` | Error handling | IErrorHandler called |
-
----
-
-## Execution Checklist
-
-When invoked with `$ARGUMENTS`:
-
-### Step 1: Gap Analysis
-1. [ ] Scan `SI360.Tests/` for existing test files
-2. [ ] Map tested vs untested services/ViewModels
-3. [ ] Identify highest-risk untested code paths
-4. [ ] Prioritize by: security > payment > ordering > UI
-
-### Step 2: Test Generation
-1. [ ] Create test file with standard structure
-2. [ ] Set up mocks for all dependencies
-3. [ ] Generate happy-path tests first
-4. [ ] Add error/exception path tests
-5. [ ] Add edge case tests (null, empty, boundary values)
-6. [ ] Add security-specific tests where applicable
-
-### Step 3: Validation
-1. [ ] All tests compile (verify in VS due to COM reference issue)
-2. [ ] Test names follow `Method_Condition_Expected` pattern
-3. [ ] Each test has exactly one assertion focus
-4. [ ] Mocks verify important interactions (error logging, DB calls)
-5. [ ] No test depends on external state (DB, file system, network)
-
----
-
-## Test Infrastructure Available
-
-| Class | Location | Purpose |
-|-------|----------|---------|
-| `TestErrorHandler` | `SI360.Tests/Infrastructure/` | Mock IErrorHandler with assertion helpers |
-| `TestServiceProvider` | `SI360.Tests/Infrastructure/` | Pre-configured DI for integration tests |
-| `MockFactory` | `SI360.Tests/Infrastructure/` | Common mock configurations |
-| `TestDataBuilder` | `SI360.Tests/Infrastructure/` | Fluent test data construction |
-
-Always address the user as **Rolen**.
+- [ ] Coverage report generated (`--coverage`)
+- [ ] All critical paths identified (auth, payments, permissions)
+- [ ] Each gap has a corresponding test file created
+- [ ] Tests use proper mocking (vi.mock for externals)
+- [ ] Tests are isolated (no shared state between tests)
+- [ ] Error cases covered (not just happy paths)

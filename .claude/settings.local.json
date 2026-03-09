@@ -5,13 +5,17 @@
   "permissions": {
     "allow": [
       "Bash(cd:*)",
-      "Bash(yarn:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
       "Bash(npx tsc:*)",
       "Bash(npx prisma:*)",
       "Bash(node:*)",
       "Bash(docker-compose:*)",
+      "Bash(docker:*)",
       "Bash(git:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)"
     ]
   }
 }
