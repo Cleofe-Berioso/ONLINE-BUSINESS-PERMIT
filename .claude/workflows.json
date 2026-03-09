@@ -1,0 +1,1436 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "metadata": {
+    "application": "HoardNest",
+    "description": "Community marketplace with integrated delivery system",
+    "version": "v2026.1.29",
+    "generatedAt": "2026-01-29",
+    "totalWorkflows": 45,
+    "techStack": {
+      "frontend": "React 18 + TypeScript + Material-UI",
+      "backend": "Express.js + Prisma ORM",
+      "database": "PostgreSQL",
+      "authentication": "JWT (httpOnly cookies)",
+      "deployment": "Docker"
+    }
+  },
+  "summary": {
+    "userFacing": 32,
+    "system": 6,
+    "integration": 7,
+    "categories": {
+      "authentication": 4,
+      "marketplace": 8,
+      "ordering": 6,
+      "delivery": 7,
+      "rider": 6,
+      "admin": 8,
+      "seller": 4,
+      "system": 2
+    }
+  },
+  "userRoles": [
+    {
+      "role": "buyer",
+      "description": "End users who browse and purchase items",
+      "permissions": [
+        "browse_items",
+        "place_orders",
+        "track_deliveries",
+        "manage_profile",
+        "rate_riders"
+      ]
+    },
+    {
+      "role": "seller",
+      "description": "Users who list items for sale",
+      "permissions": [
+        "list_items",
+        "manage_inventory",
+        "view_sales",
+        "track_earnings",
+        "manage_orders"
+      ]
+    },
+    {
+      "role": "rider",
+      "description": "Delivery personnel who fulfill orders",
+      "permissions": [
+        "view_assignments",
+        "update_delivery_status",
+        "track_earnings",
+        "manage_availability"
+      ]
+    },
+    {
+      "role": "admin",
+      "description": "Platform administrators",
+      "permissions": [
+        "manage_users",
+        "manage_riders",
+        "view_analytics",
+        "system_config",
+        "financial_management"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "WF-AUTH-001",
+      "name": "User Registration",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User clicks Sign Up from login page or navbar"
+      },
+      "components": [
+        {
+          "file": "src/pages/SignupPage.tsx",
+          "type": "page",
+          "description": "Registration form with email, password, profile info"
+        },
+        {
+          "file": "src/context/AuthContext.tsx",
+          "type": "context",
+          "description": "Auth state management"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/auth/register",
+          "description": "Register new user"
+        }
+      ],
+      "dataModels": ["User", "UserProfile"],
+      "dataFlow": {
+        "inputs": ["email", "password", "fullName", "phone"],
+        "outputs": ["userId", "authToken", "userProfile"]
+      },
+      "security": {
+        "authRequired": false,
+        "notes": "Initial registration entry point"
+      }
+    },
+    {
+      "id": "WF-AUTH-002",
+      "name": "User Login",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User submits credentials on login page"
+      },
+      "components": [
+        {
+          "file": "src/pages/LoginPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/context/AuthContext.tsx",
+          "type": "context"
+        },
+        {
+          "file": "src/api/client.ts",
+          "type": "service",
+          "description": "API client with token management"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/auth/login",
+          "description": "Authenticate user"
+        },
+        {
+          "method": "GET",
+          "path": "/api/user-profile",
+          "description": "Get user profile after login"
+        }
+      ],
+      "dataModels": ["User", "AuthToken"],
+      "dataFlow": {
+        "inputs": ["email", "password"],
+        "outputs": ["authToken", "userProfile", "userRole"]
+      },
+      "security": {
+        "authRequired": false,
+        "notes": "Returns JWT token stored in localStorage"
+      }
+    },
+    {
+      "id": "WF-AUTH-003",
+      "name": "Admin Login",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin accesses /admin/login"
+      },
+      "components": [
+        {
+          "file": "src/pages/admin/AdminLoginPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/PrivateAdminRoute.tsx",
+          "type": "guard"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/auth/admin-login",
+          "description": "Admin authentication with role verification"
+        }
+      ],
+      "dataModels": ["Admin", "AuthToken"],
+      "security": {
+        "authRequired": false,
+        "notes": "Requires admin role verification"
+      }
+    },
+    {
+      "id": "WF-AUTH-004",
+      "name": "Profile Management",
+      "category": "authentication",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User navigates to Dashboard > Personal Information"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/PersonalInformation.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/api/userProfile.ts",
+          "type": "api-client"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/user-profile",
+          "description": "Get current user profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/user-profile/:id",
+          "description": "Update user profile"
+        }
+      ],
+      "dataModels": ["UserProfile"],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-MARKET-001",
+      "name": "Browse Marketplace",
+      "category": "marketplace",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User navigates to /marketplace"
+      },
+      "components": [
+        {
+          "file": "src/pages/MarketplacePage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/SearchAndCategories.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/ProductItem.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/context/ShopContext.tsx",
+          "type": "context"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/items",
+          "description": "Get items with filters"
+        },
+        {
+          "method": "GET",
+          "path": "/api/items/search",
+          "description": "Search items by query"
+        }
+      ],
+      "dataModels": ["Item", "Category"],
+      "dataFlow": {
+        "inputs": ["searchQuery", "categoryFilter", "priceRange", "pagination"],
+        "outputs": ["itemsList", "totalCount"]
+      },
+      "security": {
+        "authRequired": false,
+        "notes": "Public browsing, auth required for purchase"
+      }
+    },
+    {
+      "id": "WF-MARKET-002",
+      "name": "View Item Details",
+      "category": "marketplace",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User clicks on product card"
+      },
+      "components": [
+        {
+          "file": "src/components/ProductQuickViewModal.tsx",
+          "type": "modal"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/items/:id",
+          "description": "Get item details"
+        }
+      ],
+      "dataModels": ["Item", "Seller"],
+      "security": {
+        "authRequired": false
+      }
+    },
+    {
+      "id": "WF-MARKET-003",
+      "name": "Add to Nest (Cart)",
+      "category": "marketplace",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User clicks 'Add to Nest' button"
+      },
+      "components": [
+        {
+          "file": "src/components/NestDrawer.tsx",
+          "type": "drawer"
+        },
+        {
+          "file": "src/context/CartContext.tsx",
+          "type": "context"
+        },
+        {
+          "file": "src/components/NestIcon.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [],
+      "dataModels": ["CartItem"],
+      "dataFlow": {
+        "inputs": ["itemId", "quantity"],
+        "outputs": ["cartItems", "cartTotal"]
+      },
+      "security": {
+        "authRequired": true,
+        "notes": "Cart stored in context, not persisted to backend"
+      }
+    },
+    {
+      "id": "WF-MARKET-004",
+      "name": "List New Item",
+      "category": "marketplace",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Seller clicks 'Sell Item' or 'Upload New Item'"
+      },
+      "components": [
+        {
+          "file": "src/components/UploadSellModal.tsx",
+          "type": "modal"
+        },
+        {
+          "file": "src/components/RevenueBreakdown.tsx",
+          "type": "component",
+          "description": "Shows fee calculation"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/items",
+          "description": "Create new item listing"
+        }
+      ],
+      "dataModels": ["Item", "FeeStructure"],
+      "dataFlow": {
+        "inputs": [
+          "itemName",
+          "description",
+          "price",
+          "category",
+          "images",
+          "condition",
+          "warranty"
+        ],
+        "outputs": ["itemId", "listingStatus"]
+      },
+      "security": {
+        "authRequired": true,
+        "notes": "Seller role required"
+      }
+    },
+    {
+      "id": "WF-MARKET-005",
+      "name": "Edit Item Listing",
+      "category": "marketplace",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Seller clicks edit on their item"
+      },
+      "components": [
+        {
+          "file": "src/components/EditItemModal.tsx",
+          "type": "modal"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "PUT",
+          "path": "/api/items/:id",
+          "description": "Update item"
+        }
+      ],
+      "dataModels": ["Item"],
+      "security": {
+        "authRequired": true,
+        "notes": "Owner verification required"
+      }
+    },
+    {
+      "id": "WF-ORDER-001",
+      "name": "Checkout Flow",
+      "category": "ordering",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User clicks Checkout from cart or Buy Now"
+      },
+      "components": [
+        {
+          "file": "src/components/buyer/CheckoutFlow.tsx",
+          "type": "page",
+          "description": "Multi-step checkout wizard"
+        },
+        {
+          "file": "src/components/CheckoutModal.tsx",
+          "type": "modal",
+          "description": "Quick checkout modal"
+        },
+        {
+          "file": "src/services/feeService.ts",
+          "type": "service",
+          "description": "Fee calculations"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/orders",
+          "description": "Create new order"
+        },
+        {
+          "method": "GET",
+          "path": "/api/delivery-addresses",
+          "description": "Get user's saved addresses"
+        }
+      ],
+      "dataModels": ["Order", "DeliveryAddress", "PaymentMethod"],
+      "dataFlow": {
+        "inputs": [
+          "cartItems",
+          "deliveryAddress",
+          "paymentMethod",
+          "deliveryInstructions"
+        ],
+        "outputs": ["orderId", "orderTotal", "estimatedDelivery"]
+      },
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-ORDER-002",
+      "name": "View My Orders",
+      "category": "ordering",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User navigates to Dashboard > My Orders"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/MyOrders.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/orders",
+          "description": "Get user's orders with filters"
+        }
+      ],
+      "dataModels": ["Order"],
+      "dataFlow": {
+        "inputs": ["userId", "statusFilter", "dateRange"],
+        "outputs": ["ordersList", "orderDetails"]
+      },
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-ORDER-003",
+      "name": "Track Order Status",
+      "category": "ordering",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User views order details"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/MyOrders.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/BuyerOrderQAStatus.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/orders/:id",
+          "description": "Get order details with tracking"
+        }
+      ],
+      "dataModels": ["Order", "Delivery", "Rider"],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-ORDER-004",
+      "name": "Order QA Review",
+      "category": "ordering",
+      "type": "system",
+      "trigger": {
+        "type": "event",
+        "description": "New order created triggers QA workflow"
+      },
+      "components": [
+        {
+          "file": "src/pages/QARiderPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/rider/QAReviewModal.tsx",
+          "type": "modal"
+        },
+        {
+          "file": "src/utils/qaWorkflowUtils.ts",
+          "type": "utility"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/qa/pending",
+          "description": "Get pending QA reviews"
+        },
+        {
+          "method": "POST",
+          "path": "/api/qa/:orderId/approve",
+          "description": "Approve order"
+        },
+        {
+          "method": "POST",
+          "path": "/api/qa/:orderId/reject",
+          "description": "Reject with reason"
+        }
+      ],
+      "dataModels": ["Order", "QANotification"],
+      "security": {
+        "authRequired": true,
+        "notes": "QA rider role required"
+      }
+    },
+    {
+      "id": "WF-DELIVERY-001",
+      "name": "Rider Assignment",
+      "category": "delivery",
+      "type": "system",
+      "trigger": {
+        "type": "event",
+        "description": "Order approved, ready for delivery"
+      },
+      "components": [
+        {
+          "file": "src/utils/riderOrderUtils.ts",
+          "type": "utility"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/orders/:id/assign-rider",
+          "description": "Assign rider to order"
+        },
+        {
+          "method": "GET",
+          "path": "/api/riders/available",
+          "description": "Get available riders in area"
+        }
+      ],
+      "dataModels": ["Order", "Rider", "Delivery"],
+      "security": {
+        "authRequired": true,
+        "notes": "System or admin initiated"
+      }
+    },
+    {
+      "id": "WF-DELIVERY-002",
+      "name": "View Assigned Deliveries",
+      "category": "delivery",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Rider views their delivery queue"
+      },
+      "components": [
+        {
+          "file": "src/components/rider/DeliveryList.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/rider/DeliveryCard.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/deliveries/rider/:riderId",
+          "description": "Get rider's assigned deliveries"
+        },
+        {
+          "method": "GET",
+          "path": "/api/orders/rider/:riderId",
+          "description": "Get rider's orders"
+        }
+      ],
+      "dataModels": ["Delivery", "Order"],
+      "security": {
+        "authRequired": true,
+        "notes": "Rider role required"
+      }
+    },
+    {
+      "id": "WF-DELIVERY-003",
+      "name": "Update Delivery Status",
+      "category": "delivery",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Rider updates delivery progress"
+      },
+      "components": [
+        {
+          "file": "src/components/rider/DeliveryModal.tsx",
+          "type": "modal"
+        },
+        {
+          "file": "src/pages/UpdateDeliveryPage.tsx",
+          "type": "page"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "PUT",
+          "path": "/api/orders/:id/status",
+          "description": "Update order status"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/deliveries/:id/status",
+          "description": "Update delivery status"
+        }
+      ],
+      "dataModels": ["Order", "Delivery"],
+      "dataFlow": {
+        "inputs": ["orderId", "newStatus", "notes", "proofPhoto"],
+        "outputs": ["updatedOrder", "notification"]
+      },
+      "statusTransitions": [
+        "pending → confirmed → assigned_rider → pickup_confirmed → in_transit → delivered"
+      ],
+      "security": {
+        "authRequired": true,
+        "notes": "Rider role required"
+      }
+    },
+    {
+      "id": "WF-DELIVERY-004",
+      "name": "Delivery Address Management",
+      "category": "delivery",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User manages delivery addresses"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/DeliveryAddress.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/AddressModal.tsx",
+          "type": "modal"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/delivery-addresses",
+          "description": "Get user's addresses"
+        },
+        {
+          "method": "POST",
+          "path": "/api/delivery-addresses",
+          "description": "Add new address"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/delivery-addresses/:id",
+          "description": "Update address"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/delivery-addresses/:id",
+          "description": "Delete address"
+        }
+      ],
+      "dataModels": ["DeliveryAddress"],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-RIDER-001",
+      "name": "Rider Registration",
+      "category": "rider",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User applies to become a rider"
+      },
+      "components": [
+        {
+          "file": "src/pages/RiderRegistrationPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/RiderRegistrationAccess.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/rider-applications",
+          "description": "Submit rider application"
+        }
+      ],
+      "dataModels": ["RiderApplication"],
+      "dataFlow": {
+        "inputs": ["personalInfo", "vehicleInfo", "documents", "serviceAreas"],
+        "outputs": ["applicationId", "applicationStatus"]
+      },
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-RIDER-002",
+      "name": "Rider Dashboard",
+      "category": "rider",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Rider accesses /rider"
+      },
+      "components": [
+        {
+          "file": "src/pages/RiderDashboardPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/rider/RiderNavigation.tsx",
+          "type": "navigation"
+        },
+        {
+          "file": "src/components/rider/QuickActions.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/rider/PerformanceCard.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/riders/:id",
+          "description": "Get rider profile"
+        },
+        {
+          "method": "GET",
+          "path": "/api/riders/:id/metrics",
+          "description": "Get performance metrics"
+        }
+      ],
+      "dataModels": ["Rider", "RiderMetrics"],
+      "security": {
+        "authRequired": true,
+        "notes": "Rider role required"
+      }
+    },
+    {
+      "id": "WF-RIDER-003",
+      "name": "Rider Earnings Tracking",
+      "category": "rider",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Rider views earnings"
+      },
+      "components": [
+        {
+          "file": "src/components/rider/EarningsTracker.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/rider/AdvancedAnalytics.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/financial/earnings/:userId",
+          "description": "Get rider earnings"
+        },
+        {
+          "method": "GET",
+          "path": "/api/orders/rider/:riderId",
+          "description": "Get completed deliveries"
+        }
+      ],
+      "dataModels": ["Earnings", "Order"],
+      "security": {
+        "authRequired": true,
+        "notes": "Rider role required"
+      }
+    },
+    {
+      "id": "WF-RIDER-004",
+      "name": "Rider Profile Management",
+      "category": "rider",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Rider edits their profile"
+      },
+      "components": [
+        {
+          "file": "src/components/rider/EnhancedProfile.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "PUT",
+          "path": "/api/riders/:id",
+          "description": "Update rider profile"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/riders/:id/availability",
+          "description": "Update availability"
+        }
+      ],
+      "dataModels": ["Rider", "VehicleInfo", "WorkingHours"],
+      "security": {
+        "authRequired": true,
+        "notes": "Rider role required"
+      }
+    },
+    {
+      "id": "WF-RIDER-005",
+      "name": "Rider Notifications",
+      "category": "rider",
+      "type": "user-facing",
+      "trigger": {
+        "type": "event",
+        "description": "New delivery assigned or status change"
+      },
+      "components": [
+        {
+          "file": "src/components/rider/NotificationCenter.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/QANotificationCenter.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/notifications",
+          "description": "Get notifications"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/notifications/:id/read",
+          "description": "Mark as read"
+        }
+      ],
+      "dataModels": ["Notification", "RiderNotification"],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-SELLER-001",
+      "name": "Seller Dashboard",
+      "category": "seller",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Seller accesses /seller"
+      },
+      "components": [
+        {
+          "file": "src/pages/seller/SellerDashboard.tsx",
+          "type": "page"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/items?userId={sellerId}",
+          "description": "Get seller's items"
+        },
+        {
+          "method": "GET",
+          "path": "/api/orders?sellerId={sellerId}",
+          "description": "Get seller's orders"
+        }
+      ],
+      "dataModels": ["Item", "Order"],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-SELLER-002",
+      "name": "Seller Earnings",
+      "category": "seller",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Seller views earnings in dashboard"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/Earnings.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/financial/earnings/:userId",
+          "description": "Get seller earnings"
+        },
+        {
+          "method": "GET",
+          "path": "/api/financial/summary/:userId",
+          "description": "Get financial summary"
+        }
+      ],
+      "dataModels": ["Earnings", "FeeStructure"],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-ADMIN-001",
+      "name": "Admin Dashboard Overview",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin accesses /admin"
+      },
+      "components": [
+        {
+          "file": "src/pages/admin/AdminDashboardPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/admin/AdminOverview.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/AdminNavigation.tsx",
+          "type": "navigation"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/stats",
+          "description": "Get platform statistics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/overview",
+          "description": "Get analytics overview"
+        }
+      ],
+      "dataModels": ["AdminStats", "Analytics"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-002",
+      "name": "User Management",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin manages users"
+      },
+      "components": [
+        {
+          "file": "src/components/admin/UserManagement.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/users",
+          "description": "Get all users"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/admin/users/:id",
+          "description": "Update user"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/admin/users/:id",
+          "description": "Delete user"
+        }
+      ],
+      "dataModels": ["User"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-003",
+      "name": "Rider Application Review",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin reviews rider applications"
+      },
+      "components": [
+        {
+          "file": "src/components/admin/RiderApplicationManagement.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/AdminRiderManagement.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/rider-applications",
+          "description": "Get all applications"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/rider-applications/:id/approve",
+          "description": "Approve application"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/rider-applications/:id/reject",
+          "description": "Reject application"
+        }
+      ],
+      "dataModels": ["RiderApplication"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-004",
+      "name": "Listing Management",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin manages marketplace listings"
+      },
+      "components": [
+        {
+          "file": "src/components/admin/ListingManagement.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/items",
+          "description": "Get all items"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/admin/items/:id/status",
+          "description": "Update item status"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/admin/items/:id",
+          "description": "Remove listing"
+        }
+      ],
+      "dataModels": ["Item"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-005",
+      "name": "Financial Management",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin accesses /admin/finance"
+      },
+      "components": [
+        {
+          "file": "src/pages/admin/FinancialManagementPage.tsx",
+          "type": "page"
+        },
+        {
+          "file": "src/components/admin/FinancialForecastingDashboard.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/FinancialNotificationCenter.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/financial/overview",
+          "description": "Get financial overview"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/financial/transactions",
+          "description": "Get transactions"
+        }
+      ],
+      "dataModels": ["Transaction", "FinancialReport"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-006",
+      "name": "Analytics Dashboard",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin views analytics"
+      },
+      "components": [
+        {
+          "file": "src/components/admin/AdvancedAnalyticsDashboard.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/RealTimeAnalyticsDashboard.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/ComparativeAnalyticsDashboard.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/DataVisualizationSuite.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/components/admin/BusinessIntelligenceCenter.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/analytics/realtime",
+          "description": "Get realtime metrics"
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/historical",
+          "description": "Get historical data"
+        }
+      ],
+      "dataModels": ["Analytics", "Metrics"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-007",
+      "name": "System Configuration",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin configures system settings"
+      },
+      "components": [
+        {
+          "file": "src/components/admin/SystemConfigurationDashboard.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/system-config",
+          "description": "Get system config"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/system-config",
+          "description": "Update system config"
+        }
+      ],
+      "dataModels": ["SystemConfig", "FeeStructure"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-ADMIN-008",
+      "name": "Deletion Management",
+      "category": "admin",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "Admin manages data deletion"
+      },
+      "components": [
+        {
+          "file": "src/components/admin/DeletionManagementDashboard.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/services/schedulingService.ts",
+          "type": "service"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/deletion-queue",
+          "description": "Get deletion queue"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/deletion/execute",
+          "description": "Execute deletion"
+        }
+      ],
+      "dataModels": ["DeletionReport"],
+      "security": {
+        "authRequired": true,
+        "notes": "Admin role required"
+      }
+    },
+    {
+      "id": "WF-NOTIFY-001",
+      "name": "User Notifications",
+      "category": "system",
+      "type": "user-facing",
+      "trigger": {
+        "type": "event",
+        "description": "Various system events trigger notifications"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/Notifications.tsx",
+          "type": "component"
+        },
+        {
+          "file": "src/dashboard/Header.tsx",
+          "type": "component",
+          "description": "Notification badge"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/notifications",
+          "description": "Get user notifications"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/notifications/:id/read",
+          "description": "Mark notification as read"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/notifications/:id",
+          "description": "Delete notification"
+        }
+      ],
+      "dataModels": ["Notification"],
+      "notificationTypes": [
+        "order_placed",
+        "order_confirmed",
+        "delivery_assigned",
+        "delivery_completed",
+        "payment_received",
+        "qa_approved",
+        "qa_rejected"
+      ],
+      "security": {
+        "authRequired": true
+      }
+    },
+    {
+      "id": "WF-PAY-001",
+      "name": "Payment Methods Management",
+      "category": "system",
+      "type": "user-facing",
+      "trigger": {
+        "type": "user-action",
+        "description": "User manages payment methods"
+      },
+      "components": [
+        {
+          "file": "src/dashboard/PaymentMethods.tsx",
+          "type": "component"
+        }
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/payment-methods",
+          "description": "Get user's payment methods"
+        },
+        {
+          "method": "POST",
+          "path": "/api/payment-methods",
+          "description": "Add payment method"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/payment-methods/:id/default",
+          "description": "Set default"
+        }
+      ],
+      "dataModels": ["PaymentMethod"],
+      "security": {
+        "authRequired": true
+      }
+    }
+  ],
+  "integrations": [
+    {
+      "id": "INT-001",
+      "name": "JWT Authentication",
+      "description": "User authentication via JWT httpOnly cookies",
+      "type": "authentication",
+      "config": {
+        "provider": "JWT",
+        "methods": ["email/password"]
+      }
+    },
+    {
+      "id": "INT-002",
+      "name": "Cloudinary",
+      "description": "Image upload and hosting",
+      "type": "media",
+      "usedIn": ["UploadSellModal", "EditItemModal", "RiderRegistration"]
+    },
+    {
+      "id": "INT-003",
+      "name": "PostgreSQL Database",
+      "description": "Primary data store via Prisma ORM",
+      "type": "database",
+      "models": ["User", "Item", "Order", "Rider", "Delivery", "Notification"]
+    }
+  ],
+  "apiBasePath": "/api",
+  "backendRoutes": {
+    "auth": "/api/auth/*",
+    "users": "/api/users/*",
+    "userProfile": "/api/user-profile/*",
+    "items": "/api/items/*",
+    "orders": "/api/orders/*",
+    "deliveries": "/api/deliveries/*",
+    "riders": "/api/riders/*",
+    "riderApplications": "/api/rider-applications/*",
+    "notifications": "/api/notifications/*",
+    "deliveryAddresses": "/api/delivery-addresses/*",
+    "paymentMethods": "/api/payment-methods/*",
+    "financial": "/api/financial/*",
+    "admin": "/api/admin/*",
+    "analytics": "/api/analytics/*",
+    "systemConfig": "/api/system-config/*",
+    "qa": "/api/qa/*"
+  }
+}
