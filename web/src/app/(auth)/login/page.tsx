@@ -33,6 +33,13 @@ function LoginForm() {
         return;
       }
 
+      if (data.requires2FA) {
+        router.push(
+          `/verify-otp?userId=${encodeURIComponent(data.userId)}&type=LOGIN_OTP&email=${encodeURIComponent(email)}`
+        );
+        return;
+      }
+
       router.push("/dashboard");
       router.refresh();
     } catch {

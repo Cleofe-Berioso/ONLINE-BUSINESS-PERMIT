@@ -47,7 +47,9 @@ export async function POST(request: Request) {
         { error: "Your account has been suspended. Contact support." },
         { status: 403 }
       );
-    }    if (user.status === "INACTIVE") {
+    }
+
+    if (user.status === "INACTIVE") {
       return NextResponse.json(
         { error: "Your account is inactive. Contact support." },
         { status: 403 }
@@ -65,7 +67,9 @@ export async function POST(request: Request) {
         },
         { status: 423 }
       );
-    }    // Verify password
+    }
+
+    // Verify password
     const isPasswordValid = await compare(password, user.password);
     if (!isPasswordValid) {
       // Increment failed attempts; lock after 5 failures for 15 minutes
@@ -117,7 +121,9 @@ export async function POST(request: Request) {
         },
         { status: 200 }
       );
-    }    // Update lastLoginAt and reset lockout counters
+    }
+
+    // Update lastLoginAt and reset lockout counters
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -146,7 +152,8 @@ export async function POST(request: Request) {
         },
       },
       { status: 200 }
-    );  } catch (error) {
+    );
+  } catch (error) {
     captureException(error, { route: 'POST /api/auth/login' });
     console.error("Login error:", error);
     return NextResponse.json(
