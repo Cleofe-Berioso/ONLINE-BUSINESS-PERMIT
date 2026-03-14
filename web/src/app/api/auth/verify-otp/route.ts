@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { otpVerificationSchema } from "@/lib/validations";
+import { signIn } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -86,6 +87,20 @@ export async function POST(request: Request) {
           entityId: userId,
         },
       });
+
+      // Establish a NextAuth session using the verified OTP record as a token
+      try {
+        await signIn("2fa", {
+          userId,
+          otpId: otpRecord.id,
+          redirect: false,
+        });
+      } catch {
+        return NextResponse.json(
+          { error: "OTP verified but session creation failed. Please try logging in again." },
+          { status: 500 }
+        );
+      }
 
       return NextResponse.json({
         message: "OTP verified. Login successful.",

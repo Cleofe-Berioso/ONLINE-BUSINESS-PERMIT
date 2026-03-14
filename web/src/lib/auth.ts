@@ -93,5 +93,49 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
       },
     }),
+    Credentials({
+      id: "2fa",
+      name: "2fa",
+      credentials: {
+        userId: { type: "text" },
+        otpId: { type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.userId || !credentials?.otpId) return null;
+
+        // Verify the OTP record: must be a used LOGIN_OTP belonging to this user,
+        // created within the last 10 minutes (prevents replay attacks outside the
+        // original OTP validity window).
+        const otp = await prisma.otpToken.findUnique({
+          where: { id: credentials.otpId as string },
+        });
+
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        if (
+          !otp ||
+          otp.userId !== credentials.userId ||
+          otp.type !== "LOGIN_OTP" ||
+          !otp.used ||
+          otp.createdAt < tenMinutesAgo
+        ) {
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { id: credentials.userId as string },
+        });
+
+        if (!user || user.status !== "ACTIVE") return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          image: user.avatar,
+        };
+      },
+    }),
   ],
 });

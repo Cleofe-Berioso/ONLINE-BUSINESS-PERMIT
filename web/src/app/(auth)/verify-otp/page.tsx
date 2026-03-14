@@ -60,7 +60,9 @@ function VerifyOtpForm() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Verification failed. Please try again."); return; }
       setSuccess(data.message || "Verified successfully!");
-      if (data.verified) {
+      if (data.loginApproved) {
+        setTimeout(() => router.push("/dashboard"), 1500);
+      } else if (data.verified) {
         setTimeout(() => router.push("/login?verified=1"), 2000);
       }
     } catch {
