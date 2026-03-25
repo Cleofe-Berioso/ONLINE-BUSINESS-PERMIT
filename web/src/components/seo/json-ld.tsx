@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
 /**
  * JSON-LD Structured Data Components
  * GovernmentService, FAQPage, BreadcrumbList schemas
@@ -5,13 +9,24 @@
 
 export interface JsonLdProps {
   data: Record<string, unknown>;
+  id?: string;
 }
 
-export function JsonLd({ data }: JsonLdProps) {
+export function JsonLd({ data, id }: JsonLdProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <script
+      id={id}
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      suppressHydrationWarning
     />
   );
 }
@@ -21,10 +36,13 @@ export function JsonLd({ data }: JsonLdProps) {
 // ============================================================================
 
 export function GovernmentServiceSchema() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   return (
     <JsonLd
+      id="schema-government-service"
       data={{
         '@context': 'https://schema.org',
         '@type': 'GovernmentService',
@@ -73,6 +91,7 @@ export function FAQPageSchema({
 }) {
   return (
     <JsonLd
+      id="schema-faq-page"
       data={{
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
@@ -98,10 +117,13 @@ export function BreadcrumbSchema({
 }: {
   items: { name: string; url: string }[];
 }) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   return (
     <JsonLd
+      id="schema-breadcrumb"
       data={{
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -121,10 +143,13 @@ export function BreadcrumbSchema({
 // ============================================================================
 
 export function OrganizationSchema() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   return (
     <JsonLd
+      id="schema-organization"
       data={{
         '@context': 'https://schema.org',
         '@type': 'GovernmentOrganization',
@@ -155,10 +180,13 @@ export function OrganizationSchema() {
 // ============================================================================
 
 export function WebApplicationSchema() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = typeof window !== 'undefined' 
+    ? window.location.origin 
+    : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   return (
     <JsonLd
+      id="schema-web-application"
       data={{
         '@context': 'https://schema.org',
         '@type': 'WebApplication',

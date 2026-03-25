@@ -1,11 +1,36 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  serverExternalPackages: ["puppeteer", "@sentry/nextjs", "bullmq"],  experimental: {
-    instrumentationHook: true,
+  serverExternalPackages: [
+    "puppeteer", 
+    "@sentry/nextjs", 
+    "bullmq", 
+    "nodemailer", 
+    "pg", 
+    "@prisma/adapter-pg", 
+    "pg-connection-string",
+    "pgpass",
+    "split2"
+  ],
+  experimental: {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+  },
+  // Handle Node.js built-in modules for instrumentation
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Don't bundle these packages - use Node.js require at runtime
+      config.externals = config.externals || [];
+      config.externals.push({
+        'pg': 'commonjs pg',
+        'pg-connection-string': 'commonjs pg-connection-string',
+        'pgpass': 'commonjs pgpass',
+        'nodemailer': 'commonjs nodemailer',
+        '@prisma/adapter-pg': 'commonjs @prisma/adapter-pg',
+      });
+    }
+    return config;
   },
   images: {
     remotePatterns: [
