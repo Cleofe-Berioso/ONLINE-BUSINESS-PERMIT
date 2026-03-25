@@ -3,46 +3,6 @@
 
 ---
 
-## 🤖 AI PROMPT (Use this when asking AI about this system)
-
-```
-You are a systems analyst helping design the database and system architecture for the 
-eBOSS (Electronic Business One-Stop Shop) of the Municipality of E.B. Magalona, 
-Negros Occidental, Philippines.
-
-The system is based on the eGov App platform and handles three types of transactions:
-1. NEW Business Permit Application
-2. RENEWAL of Business Permit
-3. CLOSURE of Business (Closure Certificate)
-
-The system involves the following offices/actors:
-- Business Owner (applicant)
-- BPLO (Business Permits and Licensing Office) — main office
-- MTO (Municipal Treasury Office) — handles payment and assessment
-- Mayor's Office / LCE — signs and approves permit
-- Clearance Offices: Zoning (MPDO), Sanitary (MHO), Environment, Engineering, 
-  BFP (Bureau of Fire Protection), RPT, Water Bill, Assessor's Office, 
-  Market Clearance (EBO/Barangay), Agriculture Office
-- SMS Provider — sends notifications
-- Payment Gateway — GCash, Maya, Landbank, Bank Transfer
-
-Key rules:
-- NEW permit requires 10 clearances; RENEWAL requires 9 (no Zoning)
-- Mayor's Permit Fee is based on Business Type (Micro/Cottage/Small/Medium/Large) 
-  AND Asset Size OR Number of Workers (whichever yields the higher fee)
-- Payment can be done online (GCash/Maya/Landbank) or manually at MTO
-- Closure requires computation of business tax up to date of closure + PHP 100 certification fee
-- The system generates an eSOA (Electronic Statement of Account) before payment
-- After payment, permit is processed, signed by Mayor, and released to client
-- If applied fully online (no appearance), permit is released without office visit
-
-When answering questions about this system, refer to the data stores, fields, 
-and business rules documented below. Always consider all three transaction types 
-(New, Renewal, Closure) when designing tables, forms, or processes.
-```
-
----
-
 ## 📋 Overview
 
 **System Name:** eBOSS — Electronic Business One-Stop Shop  
@@ -76,6 +36,122 @@ Online Registration → Evaluation of Documents → Assessment
        (Submission & Checking)    (Endorsed to Clearance Offices)
                                                     ↓
 Releasing of Permit ← Mayor's Signature ← Fire FSIC ← MTO Payment
+```
+
+---
+
+## 🗺️ DFD Level 0 — Context Diagram Analysis
+
+### External Entities
+
+| External Entity | Role in System | Status in Level 0 |
+|---|---|---|
+| **Applicant** | Submits application, receives permit & notifications | ✅ Present |
+| **BPLO Office (Admin)** | Evaluates, approves, issues permit | ✅ Present |
+| **Endorsed Office** | Reviews documents, gives clearance per office | ✅ Present |
+| **SMS Provider** | Sends SMS notifications to applicant | ✅ Present |
+| **Payment Gateway** | Processes online payments (GCash, Maya, Landbank) | ✅ Present |
+| **Business Location Directory** | Stores business addresses by barangay | ✅ Present |
+| **Mayor's Office / LCE** | Signs and approves the business permit | ⚠️ Missing — should be added |
+| **MTO (Municipal Treasury Office)** | Issues OR, handles manual payment & tax assessment | ⚠️ Missing — should be added |
+
+---
+
+### Data Flows — Level 0
+
+#### Applicant → System
+| Data Flow | Description |
+|---|---|
+| Application details | Business and owner information |
+| Business information | Type, nature, address, capitalization |
+| Uploaded documents | DTI/SEC, FSIC, Lease, etc. |
+| Payment request | Request to process payment |
+
+#### System → Applicant
+| Data Flow | Description |
+|---|---|
+| Application status | Current status of application |
+| Assessment result | Computed fees and charges |
+| Payment instruction | How and where to pay |
+| Permit release / claim schedule | When and where to claim permit |
+| SMS notification | Automated alerts via SMS Provider |
+| eSOA | Electronic Statement of Account *(recommended addition)* |
+
+#### BPLO (Admin) → System
+| Data Flow | Description |
+|---|---|
+| Permit issuance decision | Final go/no-go on permit release |
+| Assessment computation | Fee computation input |
+| Verification results | Results of document checking |
+| Approval / rejection | Final decision on application |
+
+#### System → BPLO (Admin)
+| Data Flow | Description |
+|---|---|
+| Applicant details | Profile and contact info |
+| Clearance status | Status of all 9–10 clearances |
+| Application records | Full application data |
+| Payment status | Paid / Pending / Failed |
+| Reports | Summary reports for BPLO |
+
+#### Endorsed Office → System
+| Data Flow | Description |
+|---|---|
+| Clearance approval | Cleared / Not Cleared status |
+| Inspection results | Results of physical or document inspection |
+| Remarks | Notes from each clearance office |
+
+#### System → Endorsed Office
+| Data Flow | Description |
+|---|---|
+| Application for review | Forwarded application for evaluation |
+| Business details | Business info needed for clearance |
+| Documents for clearance | Uploaded documents to review |
+
+#### SMS Provider ↔ System
+| Data Flow | Direction | Description |
+|---|---|---|
+| Notification message | System → SMS Provider | Text message content to send |
+| Applicant contact details | System → SMS Provider | Mobile number of recipient |
+| Delivery status | SMS Provider → System | Sent / Failed status |
+
+#### Payment Gateway ↔ System
+| Data Flow | Direction | Description |
+|---|---|---|
+| Amount to pay | System → Gateway | Computed total fees |
+| Payment request | System → Gateway | Trigger payment transaction |
+| Transaction status | Gateway → System | Processing status |
+| Payment confirmation | Gateway → System | Confirmed successful payment |
+
+#### Business Location Directory ↔ System
+| Data Flow | Direction | Description |
+|---|---|---|
+| Business address | System → Directory | Business address to store |
+| Barangay assignment | System → Directory | Assign business to barangay |
+| Location listing | Directory → System | List of businesses per barangay |
+
+---
+
+### ⚠️ Level 0 Gaps & Recommendations
+
+| Issue | Recommendation |
+|---|---|
+| **Mayor's Office is missing** | Add as external entity — sends permit approval; receives closure certificate data |
+| **MTO is missing** | Add as external entity — receives payment, issues OR, sends payment confirmation |
+| **"Endorsed Office" is vague** | Consider renaming to **"Clearance Offices"** for clarity |
+| **eSOA not shown as data flow** | Add eSOA as a data flow from System → Applicant |
+| **Closure-specific flows not visible** | Closure certificate data flow to Mayor's Office should be visible in Level 0 |
+
+---
+
+### ✅ Suggested Corrected External Entities for Level 0
+
+```
+Current (6):      Applicant, BPLO Office, Endorsed Office,
+                  SMS Provider, Payment Gateway, Mapping Services
+
+Recommended (8):  + Mayor's Office / LCE
+                  + MTO (Municipal Treasury Office)
 ```
 
 ---
@@ -314,21 +390,22 @@ Releasing of Permit ← Mayor's Signature ← Fire FSIC ← MTO Payment
 
 ---
 
-## 🗄️ Data Store: D7 — Business Location Records
+## 🗄️ Data Store: D7 — Business Location Directory
 
-> Stores mapped GPS coordinates of registered businesses.
+> Stores business addresses organized by barangay for easy lookup and reporting.
 
 | Field | Description |
 |---|---|
 | location_id | Unique location ID |
 | business_id | Linked to D5 |
-| business_name | For map display |
-| latitude | GPS coordinate |
-| longitude | GPS coordinate |
+| business_name | For directory display |
 | full_address | Complete business address |
-| barangay | Barangay location |
-| business_category | For map filtering |
-| date_mapped | Timestamp |
+| street_name | Street or sitio name |
+| barangay | Barangay location (dropdown selection) |
+| landmark | Nearby landmark for reference |
+| business_category | For directory filtering |
+| zone_classification | Commercial / Residential / Industrial |
+| date_registered | Timestamp |
 
 ---
 
@@ -347,7 +424,7 @@ Releasing of Permit ← Mayor's Signature ← Fire FSIC ← MTO Payment
 | 9.0 Permit Issuance | D5 |
 | 10.0 Claim Notification | D6 |
 | 11.0 Releasing of Permit | D5 |
-| 12.0 Business Mapping | D7 |
+| 12.0 Business Directory | D7 |
 | 13.0 Renewal Notification | D6 |
 | 14.0 Payment Frequency Notification | D4, D6 |
 
