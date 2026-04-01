@@ -1,19 +1,24 @@
 /**
  * Email Notification Module
  * Nodemailer with Resend/SES fallback, templated HTML emails
+ * 
+ * NOTE: nodemailer is dynamically imported to avoid Edge Runtime issues.
+ * This module should only be used in Node.js runtime (API routes, instrumentation).
  */
 
-import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 
 // ============================================================================
 // Transport Configuration
 // ============================================================================
 
-function getTransporter() {
+async function getTransporter(): Promise<Transporter> {
+  const nodemailer = await import('nodemailer');
+  
   const provider = process.env.EMAIL_PROVIDER || 'smtp';
 
   if (provider === 'resend') {
-    return nodemailer.createTransport({
+    return nodemailer.default.createTransport({
       host: 'smtp.resend.com',
       port: 465,
       secure: true,
@@ -25,7 +30,7 @@ function getTransporter() {
   }
 
   if (provider === 'ses') {
-    return nodemailer.createTransport({
+    return nodemailer.default.createTransport({
       host: process.env.SES_SMTP_HOST || 'email-smtp.ap-southeast-1.amazonaws.com',
       port: 465,
       secure: true,
@@ -37,7 +42,7 @@ function getTransporter() {
   }
 
   // Default SMTP (also works for development with services like Mailtrap)
-  return nodemailer.createTransport({
+  return nodemailer.default.createTransport({
     host: process.env.SMTP_HOST || 'localhost',
     port: parseInt(process.env.SMTP_PORT || '1025'),
     secure: process.env.SMTP_SECURE === 'true',
@@ -124,7 +129,7 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       return { success: true, messageId: `DEV-${Date.now()}` };
     }
 
-    const transporter = getTransporter();
+    const transporter = await getTransporter();
     const info = await transporter.sendMail({
       from: `"${APP_NAME}" <${FROM_EMAIL}>`,
       to: options.to,

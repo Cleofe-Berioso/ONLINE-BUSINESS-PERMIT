@@ -3,7 +3,7 @@
  * Run every 5 minutes to release stale TEMPORARY reservations.
  *
  * Invoke via:
- *   - Vercel Cron:  cron schedule "*/5 * * * *" → GET /api/cron/expire-holds
+ *   - Vercel Cron: every 5 minutes via GET /api/cron/expire-holds
  *   - node-cron in instrumentation.ts
  *   - Manual: curl -H "x-cron-secret: $CRON_SECRET" /api/cron/expire-holds
  */
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
     // Cancel each expired reservation and decrement slot count in a transaction
     const results = await prisma.$transaction(
-      expired.map((r) =>
+      expired.map((r: { id: string; timeSlotId: string }) =>
         prisma.slotReservation.update({
           where: { id: r.id },
           data: { status: "CANCELLED" },
@@ -56,9 +56,13 @@ export async function GET(request: Request) {
     );
 
     // Decrement currentCount for affected time slots
-    const slotIds = [...new Set(expired.map((r) => r.timeSlotId))];
+    const slotIdSet = new Set<string>();
+    for (const r of expired) {
+      slotIdSet.add(r.timeSlotId);
+    }
+    const slotIds = Array.from(slotIdSet);
     await Promise.all(
-      slotIds.map((slotId) =>
+      slotIds.map((slotId: string) =>
         prisma.timeSlot.update({
           where: { id: slotId },
           data: { currentCount: { decrement: 1 } },

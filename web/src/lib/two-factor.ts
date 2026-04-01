@@ -3,16 +3,14 @@
  * otplib integration with Google Authenticator support
  */
 
-import { generateSecret, generateURI, verifySync } from 'otplib';
+import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 
 const APP_NAME = process.env.TOTP_ISSUER || process.env.NEXT_PUBLIC_APP_NAME || 'BusinessPermit';
 
 // TOTP default options
-const TOTP_OPTIONS = {
-  period: 30,       // 30-second window
-  digits: 6,        // 6-digit codes
-  algorithm: 'sha1' as const, // Standard for Google Authenticator
+authenticator.options = {
+  window: 1, // Allow 1 window before/after for clock drift
 };
 
 // ============================================================================
@@ -20,7 +18,7 @@ const TOTP_OPTIONS = {
 // ============================================================================
 
 export function generateTotpSecret(): string {
-  return generateSecret();
+  return authenticator.generateSecret();
 }
 
 // ============================================================================
@@ -28,12 +26,7 @@ export function generateTotpSecret(): string {
 // ============================================================================
 
 export function getTotpUri(email: string, secret: string): string {
-  return generateURI({
-    issuer: APP_NAME,
-    label: email,
-    secret,
-    ...TOTP_OPTIONS,
-  });
+  return authenticator.keyuri(email, APP_NAME, secret);
 }
 
 export async function generateTotpQRCode(email: string, secret: string): Promise<string> {
@@ -52,12 +45,7 @@ export async function generateTotpQRCode(email: string, secret: string): Promise
 
 export function verifyTotp(token: string, secret: string): boolean {
   try {
-    const result = verifySync({ token, secret, ...TOTP_OPTIONS });
-    // verifySync returns { valid, delta, epoch, timeStep } or false
-    if (typeof result === 'object' && result !== null && 'valid' in result) {
-      return (result as { valid: boolean }).valid;
-    }
-    return result === true;
+    return authenticator.verify({ token, secret });
   } catch {
     return false;
   }
