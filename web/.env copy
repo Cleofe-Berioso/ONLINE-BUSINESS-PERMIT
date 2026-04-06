@@ -4,9 +4,11 @@
 # ============================================================================
 
 # ── Database ────────────────────────────────────────────────────────────────
-DATABASE_URL="postgresql://postgres:Cleo2004@localhost:5432/business_permit?schema=public"
+# Supabase PostgreSQL (Connection Pooling) - for app runtime queries
+DATABASE_URL="postgresql://postgres.xxqqxicusvhmtubjchft:CHMSUIS2026@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres?pgbouncer=true&connection_limit=1"
 
-DATABASE_URL_SUPABASE="postgresql://postgres.xxqqxicusvhmtubjchft:CHMSUSIS2026@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"
+# Supabase PostgreSQL (Direct Connection) - for Prisma migrations and introspection
+DIRECT_URL="postgresql://postgres.xxqqxicusvhmtubjchft:CHMSUIS2026@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_83uvQ5qNQqomrVDKJ9bBLQ_VHbXjpM6"
 SUPABASE_SECRET_KEY="sb_secret_Uzfjs6xw9olnKfWrQH9pNw_nC6ZDeIy"
 
@@ -20,7 +22,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_APP_NAME="Online Business Permit System"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 NODE_ENV="development"
-
+    
 # ── LGU Information ────────────────────────────────────────────────────────
 LGU_NAME="City of Sample"
 LGU_PROVINCE="Sample Province"

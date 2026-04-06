@@ -1,15 +1,11 @@
-// Online Business Permit System — Prisma Schema
-// Database: PostgreSQL 16
-// ORM: Prisma 5.x
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================================
@@ -31,36 +27,36 @@ enum AccountStatus {
 }
 
 model User {
-  id                    String        @id @default(cuid())
-  email                 String        @unique
-  emailVerified         DateTime?
-  password              String
-  firstName             String
-  lastName              String
-  middleName            String?
-  phone                 String?
-  role                  Role          @default(APPLICANT)
-  status                AccountStatus @default(PENDING_VERIFICATION)
-  avatar                String?
-  twoFactorEnabled      Boolean       @default(false)
-  twoFactorSecret       String?
-  lastLoginAt           DateTime?
-  failedLoginAttempts   Int           @default(0)
-  lockedUntil           DateTime?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id                  String        @id @default(cuid())
+  email               String        @unique
+  emailVerified       DateTime?
+  password            String
+  firstName           String
+  lastName            String
+  middleName          String?
+  phone               String?
+  role                Role          @default(APPLICANT)
+  status              AccountStatus @default(PENDING_VERIFICATION)
+  avatar              String?
+  twoFactorEnabled    Boolean       @default(false)
+  twoFactorSecret     String?
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int           @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   // Relations
-  applications      Application[]
-  documents         Document[]
+  applications      Application[]     @relation("ApplicantApplications")
+  documents         Document[]        @relation("UploadedDocuments")
   activityLogs      ActivityLog[]
   otpTokens         OtpToken[]
   sessions          Session[]
   reviewActions     ReviewAction[]
-  issuanceActions   PermitIssuance[] @relation("issuedBy")
+  issuanceActions   PermitIssuance[]  @relation("IssuedByUser")
   slotReservations  SlotReservation[]
-  claimReferences   ClaimReference[]
-  payments          Payment[]
+  claimReferences   ClaimReference[]  @relation("GeneratedClaimReferences")
+  payments          Payment[]         @relation("UserPayments")
 
   @@index([email])
   @@index([role])
@@ -73,6 +69,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -82,11 +79,12 @@ model Session {
 model OtpToken {
   id        String   @id @default(cuid())
   token     String
-  type      String   // "EMAIL_VERIFICATION" | "PASSWORD_RESET" | "LOGIN_OTP"
+  type      String
   userId    String
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
@@ -95,16 +93,17 @@ model OtpToken {
 }
 
 model ActivityLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  action      String   // e.g., "LOGIN", "CREATE_APPLICATION", "APPROVE_PERMIT"
-  entity      String?  // e.g., "Application", "Document"
-  entityId    String?
-  details     Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([action])
@@ -131,56 +130,56 @@ enum ApplicationStatus {
 }
 
 model Application {
-  id                String            @id @default(cuid())
-  applicationNumber String            @unique
-  type              ApplicationType
-  status            ApplicationStatus @default(DRAFT)
+  id                 String             @id @default(cuid())
+  applicationNumber  String             @unique
+  type               ApplicationType
+  status             ApplicationStatus  @default(DRAFT)
 
   // Applicant info
-  applicantId       String
-  applicant         User              @relation(fields: [applicantId], references: [id])
+  applicantId        String
+  applicant          User               @relation("ApplicantApplications", fields: [applicantId], references: [id], onDelete: Cascade)
 
   // Business info
-  businessName      String
-  businessType      String
-  businessAddress   String
-  businessBarangay  String?
-  businessCity      String?
-  businessProvince  String?
-  businessZipCode   String?
-  businessPhone     String?
-  businessEmail     String?
+  businessName       String
+  businessType       String
+  businessAddress    String
+  businessBarangay   String?
+  businessCity       String?
+  businessProvince   String?
+  businessZipCode    String?
+  businessPhone      String?
+  businessEmail      String?
   dtiSecRegistration String?
-  tinNumber         String?
-  sssNumber         String?
-  businessArea      Float?            // in sqm
-  numberOfEmployees Int?
-  capitalInvestment Decimal?          @db.Decimal(15, 2)
-  grossSales        Decimal?          @db.Decimal(15, 2)
+  tinNumber          String?
+  sssNumber          String?
+  businessArea       Float?
+  numberOfEmployees  Int?
+  capitalInvestment  Decimal?           @db.Decimal(15, 2)
+  grossSales         Decimal?           @db.Decimal(15, 2)
 
-  // Additional data (flexible JSON for custom fields)
-  additionalData    Json?
+  additionalData     Json?
 
   // Renewal reference
-  previousPermitId  String?
-  previousPermit    Permit?           @relation("renewalOf", fields: [previousPermitId], references: [id])
+  previousPermitId   String?
+  previousPermit     Permit?            @relation("RenewalOfPermit", fields: [previousPermitId], references: [id], onDelete: SetNull)
 
   // Timestamps
-  submittedAt       DateTime?
-  reviewedAt        DateTime?
-  approvedAt        DateTime?
-  rejectedAt        DateTime?
-  rejectionReason   String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  submittedAt        DateTime?
+  reviewedAt         DateTime?
+  approvedAt         DateTime?
+  rejectedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
   // Relations
-  documents         Document[]
-  history           ApplicationHistory[]
-  reviewActions     ReviewAction[]
-  claimSchedule     SlotReservation?
-  claimReference    ClaimReference?
-  permit            Permit?           @relation("permitApplication")
-  payments          Payment[]
+  documents          Document[]
+  history            ApplicationHistory[]
+  reviewActions      ReviewAction[]
+  claimSchedule      SlotReservation?
+  claimReference     ClaimReference?
+  permit             Permit?            @relation("PermitApplication")
+  payments           Payment[]
 
   @@index([applicantId])
   @@index([status])
@@ -190,14 +189,15 @@ model Application {
 }
 
 model ApplicationHistory {
-  id              String            @id @default(cuid())
-  applicationId   String
-  previousStatus  ApplicationStatus?
-  newStatus       ApplicationStatus
-  comment         String?
-  changedBy       String?
-  createdAt       DateTime          @default(now())
-  application     Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  id             String             @id @default(cuid())
+  applicationId  String
+  previousStatus ApplicationStatus?
+  newStatus      ApplicationStatus
+  comment        String?
+  changedBy      String?
+  createdAt      DateTime           @default(now())
+
+  application    Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
   @@index([createdAt])
@@ -205,14 +205,15 @@ model ApplicationHistory {
 }
 
 model ReviewAction {
-  id              String            @id @default(cuid())
-  applicationId   String
-  reviewerId      String
-  action          String            // "APPROVE" | "REJECT" | "REQUEST_REVISION" | "COMMENT"
-  comment         String?
-  createdAt       DateTime          @default(now())
-  application     Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  reviewer        User              @relation(fields: [reviewerId], references: [id])
+  id            String      @id @default(cuid())
+  applicationId String
+  reviewerId    String
+  action        String
+  comment       String?
+  createdAt     DateTime    @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewer      User        @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
   @@index([reviewerId])
@@ -237,9 +238,9 @@ model Document {
   fileName        String
   originalName    String
   mimeType        String
-  fileSize        Int            // in bytes
-  filePath        String         // storage path (MinIO/S3 key)
-  documentType    String         // e.g., "DTI_CERTIFICATE", "BARANGAY_CLEARANCE"
+  fileSize        Int
+  filePath        String
+  documentType    String
   status          DocumentStatus @default(UPLOADED)
   version         Int            @default(1)
   verifiedBy      String?
@@ -249,7 +250,7 @@ model Document {
   updatedAt       DateTime       @updatedAt
 
   application     Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  uploader        User           @relation(fields: [uploadedBy], references: [id])
+  uploader        User           @relation("UploadedDocuments", fields: [uploadedBy], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
   @@index([documentType])
@@ -258,22 +259,16 @@ model Document {
 }
 
 // ============================================================================
-// MODULE 4: Application & Renewal Tracking (uses Application + History above)
-// ============================================================================
-
-// (Tracking is powered by Application, ApplicationHistory, and real-time events)
-
-// ============================================================================
 // MODULE 5: Claim Scheduling Management
 // ============================================================================
 
 model ClaimSchedule {
-  id          String          @id @default(cuid())
-  date        DateTime        @db.Date
-  isBlocked   Boolean         @default(false)
+  id          String     @id @default(cuid())
+  date        DateTime   @db.Date
+  isBlocked   Boolean    @default(false)
   blockReason String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   timeSlots   TimeSlot[]
 
@@ -283,18 +278,18 @@ model ClaimSchedule {
 }
 
 model TimeSlot {
-  id              String            @id @default(cuid())
-  scheduleId      String
-  startTime       String            // e.g., "08:00"
-  endTime         String            // e.g., "09:00"
-  maxCapacity     Int
-  currentCount    Int               @default(0)
-  isActive        Boolean           @default(true)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id           String            @id @default(cuid())
+  scheduleId   String
+  startTime    String
+  endTime      String
+  maxCapacity  Int
+  currentCount Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
-  schedule        ClaimSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  reservations    SlotReservation[]
+  schedule     ClaimSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  reservations SlotReservation[]
 
   @@index([scheduleId])
   @@map("time_slots")
@@ -309,21 +304,21 @@ enum ReservationStatus {
 }
 
 model SlotReservation {
-  id              String            @id @default(cuid())
-  timeSlotId      String
-  applicationId   String            @unique
-  userId          String
-  status          ReservationStatus @default(TEMPORARY)
-  claimId         String?           @unique // unique Claim ID generated on confirmation
+  id                 String            @id @default(cuid())
+  timeSlotId         String
+  applicationId      String            @unique
+  userId             String
+  status             ReservationStatus @default(TEMPORARY)
+  claimId            String?           @unique
   temporaryHoldExpiry DateTime?
-  confirmedAt     DateTime?
-  cancelledAt     DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  confirmedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  timeSlot        TimeSlot          @relation(fields: [timeSlotId], references: [id])
-  application     Application       @relation(fields: [applicationId], references: [id])
-  user            User              @relation(fields: [userId], references: [id])
+  timeSlot           TimeSlot          @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  application        Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([timeSlotId])
   @@index([userId])
@@ -359,8 +354,8 @@ model ClaimReference {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
-  application       Application          @relation(fields: [applicationId], references: [id])
-  generator         User                 @relation(fields: [generatedBy], references: [id])
+  application       Application          @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  generator         User                 @relation("GeneratedClaimReferences", fields: [generatedBy], references: [id], onDelete: Cascade)
 
   @@index([referenceNumber])
   @@index([applicationId])
@@ -387,22 +382,22 @@ enum IssuanceStatus {
 }
 
 model Permit {
-  id              String       @id @default(cuid())
-  permitNumber    String       @unique
-  applicationId   String       @unique
+  id              String        @id @default(cuid())
+  permitNumber    String        @unique
+  applicationId   String        @unique
   businessName    String
   businessAddress String
   ownerName       String
   issueDate       DateTime
   expiryDate      DateTime
-  status          PermitStatus @default(ACTIVE)
-  permitData      Json?        // Additional permit details
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  status          PermitStatus  @default(ACTIVE)
+  permitData      Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  application     Application  @relation("permitApplication", fields: [applicationId], references: [id])
+  application     Application   @relation("PermitApplication", fields: [applicationId], references: [id], onDelete: Cascade)
   issuance        PermitIssuance?
-  renewals        Application[] @relation("renewalOf")
+  renewals        Application[] @relation("RenewalOfPermit")
 
   @@index([permitNumber])
   @@index([status])
@@ -411,19 +406,19 @@ model Permit {
 }
 
 model PermitIssuance {
-  id              String         @id @default(cuid())
-  permitId        String         @unique
-  issuedById      String
-  status          IssuanceStatus @default(PREPARED)
-  issuedAt        DateTime?
-  releasedAt      DateTime?
-  completedAt     DateTime?
-  staffNotes      String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id          String         @id @default(cuid())
+  permitId    String         @unique
+  issuedById  String
+  status      IssuanceStatus @default(PREPARED)
+  issuedAt    DateTime?
+  releasedAt  DateTime?
+  completedAt DateTime?
+  staffNotes  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
-  permit          Permit         @relation(fields: [permitId], references: [id])
-  issuedBy        User           @relation("issuedBy", fields: [issuedById], references: [id])
+  permit      Permit         @relation(fields: [permitId], references: [id], onDelete: Cascade)
+  issuedBy    User           @relation("IssuedByUser", fields: [issuedById], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([issuedById])
@@ -431,14 +426,14 @@ model PermitIssuance {
 }
 
 // ============================================================================
-// System Settings
+// SYSTEM SETTINGS
 // ============================================================================
 
 model SystemSetting {
   id        String   @id @default(cuid())
   key       String   @unique
   value     String
-  type      String   @default("string") // "string" | "number" | "boolean" | "json"
+  type      String   @default("string")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -485,8 +480,8 @@ model Payment {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  application     Application   @relation(fields: [applicationId], references: [id])
-  payer           User          @relation(fields: [payerId], references: [id])
+  application     Application   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  payer           User          @relation("UserPayments", fields: [payerId], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
   @@index([payerId])
