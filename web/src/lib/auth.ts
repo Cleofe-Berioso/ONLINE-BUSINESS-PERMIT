@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import prisma from "@/lib/prisma";
 import type { Role } from "@prisma/client";
 import { authConfig } from "@/lib/auth.config";
@@ -95,3 +95,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
 });
+
+// ============================================================================
+// Password Generation & Hashing Utilities
+// ============================================================================
+
+/**
+ * Generate a secure temporary password
+ * 12 characters with uppercase, lowercase, numbers, and special characters
+ */
+export function generateTempPassword(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+/**
+ * Hash a password with bcryptjs
+ */
+export async function hashPassword(password: string): Promise<string> {
+  return hash(password, 10);
+}
+
+/**
+ * Compare a plain password with a hashed password
+ */
+export async function comparePassword(
+  plain: string,
+  hashed: string
+): Promise<boolean> {
+  return compare(plain, hashed);
+}

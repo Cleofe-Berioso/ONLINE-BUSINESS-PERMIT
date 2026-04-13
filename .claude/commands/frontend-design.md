@@ -12,12 +12,12 @@ Create, modify, and debug React UI components and pages for the Online Business 
 
 ## Context
 
-- **Framework**: Next.js 16 App Router with React 19 + TypeScript 5.9
-- **Styling**: Tailwind CSS v4 + CVA (class-variance-authority) + tailwind-merge + clsx
-- **Forms**: React Hook Form 7 + Zod 4 resolver
-- **State**: Zustand 5 (client) + TanStack React Query v5 (server state)
-- **Components**: Custom UI library in `src/components/ui/`
-- **i18n**: next-intl (English + Filipino) — messages in `src/messages/`
+- **Framework**: Next.js 15.1.6 App Router with React 19 + TypeScript 5.5.3
+- **Styling**: Tailwind CSS v4.0.0 + CVA (class-variance-authority v0.7.0) + tailwind-merge + clsx
+- **Forms**: React Hook Form 7.52.0 + Zod 3.23.8 resolver
+- **State**: Zustand 5.0.3 (client) + TanStack React Query v5.51.0 (server state)
+- **Components**: Custom UI library in `src/components/ui/` (14 components)
+- **i18n**: next-intl 3.17.0 (English + Filipino) — messages in `src/messages/`
 
 ## Project Structure
 
@@ -181,10 +181,22 @@ const buttonVariants = cva(
 ## State Management
 
 - **Server state**: TanStack React Query v5 — `useQuery`, `useMutation`, `useQueryClient`
-- **Client state**: Zustand 5 stores in `src/lib/stores.ts`
-- **Forms**: React Hook Form 7 with Zod resolver — never use uncontrolled `useState` for forms
-- **Real-time**: `useSSE()` hook from `src/hooks/use-sse.ts`
+- **Client state**: Zustand 5 stores in `src/lib/stores.ts` (notifications, UI settings)
+- **Forms**: React Hook Form 7.52.0 with Zod resolver — never use uncontrolled `useState` for forms
+- **Real-time**: `useSSE()` hook from `src/hooks/use-sse.ts` for live updates
 - **URL state**: `useSearchParams()` for filters, pagination
+- **i18n**: `useTranslations()` from next-intl (`src/lib/i18n.ts`) for multi-language support
+
+## Supporting Lib Modules
+
+| Module | Purpose | Frontend Use |
+|--------|---------|-------------|
+| `src/lib/validations.ts` | Zod schemas for all forms | React Hook Form resolver |
+| `src/lib/validations/schedules.ts` | Schedule-specific validation | Claim scheduling form |
+| `src/lib/i18n.ts` | next-intl language setup | Multi-language UI rendering |
+| `src/lib/stores.ts` | Zustand storage | Global notifications, UI state |
+| `src/lib/utils.ts` | Utility functions | `cn()` for class binding |
+| `src/lib/sanitize.ts` | Input sanitization | XSS prevention on display |
 
 ## Checklist
 

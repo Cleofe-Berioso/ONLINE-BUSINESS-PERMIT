@@ -78,6 +78,7 @@ async function main() {
       role: "REVIEWER",
       status: "ACTIVE",
       emailVerified: new Date(),
+      twoFactorEnabled: false,
     },
   });
 
@@ -91,6 +92,7 @@ async function main() {
       role: "STAFF",
       status: "ACTIVE",
       emailVerified: new Date(),
+      twoFactorEnabled: false,
     },
   });
 
@@ -130,10 +132,25 @@ async function main() {
       phone: "09221234567",
       role: "APPLICANT",
       status: "PENDING_VERIFICATION",
+      emailVerified: null,
+      twoFactorEnabled: false,
     },
   });
 
-  console.log(`  ✓ Created ${6} users`);
+  const applicant4 = await prisma.user.create({
+    data: {
+      email: "maria@example.com",
+      password,
+      firstName: "Maria",
+      lastName: "Gonzales",
+      phone: "09231234567",
+      role: "APPLICANT",
+      status: "ACTIVE",
+      emailVerified: new Date(),
+    },
+  });
+
+  console.log(`  ✓ Created ${7} users`);
 
   // ── Applications ───────────────────────────────────────────────────
   console.log("📋 Creating applications...");
@@ -177,10 +194,13 @@ async function main() {
       businessCity: "Quezon City",
       businessProvince: "Metro Manila",
       businessZipCode: "1101",
+      businessPhone: "09201111111",
+      businessEmail: "jdc.shop@example.com",
       dtiSecRegistration: "DTI-2026-005678",
-      tinNumber: "123-456-789-000",
+      tinNumber: "123-456-789-111",
       numberOfEmployees: 5,
       capitalInvestment: 500000,
+      grossSales: 750000,
       submittedAt: new Date("2026-02-01"),
     },
   });
@@ -198,10 +218,13 @@ async function main() {
       businessCity: "Quezon City",
       businessProvince: "Metro Manila",
       businessZipCode: "1105",
+      businessPhone: "09211111111",
+      businessEmail: "pedro.repair@example.com",
       dtiSecRegistration: "DTI-2026-009012",
       tinNumber: "987-654-321-000",
       numberOfEmployees: 8,
       capitalInvestment: 1000000,
+      grossSales: 1200000,
       submittedAt: new Date("2026-02-15"),
     },
   });
@@ -214,11 +237,16 @@ async function main() {
       applicantId: applicant2.id,
       businessName: "Garcia Hardware & Construction",
       businessType: "Retail - Hardware",
-      businessAddress: "321 Luna Street",
+      businessAddress: "321 Luna Street, Barangay 12",
+      businessBarangay: "Barangay 12",
       businessCity: "Quezon City",
       businessProvince: "Metro Manila",
+      businessZipCode: "1106",
+      businessPhone: "09211111112",
+      businessEmail: "garcia.hardware@example.com",
       numberOfEmployees: 12,
       capitalInvestment: 2000000,
+      grossSales: 3000000,
     },
   });
 
@@ -243,7 +271,33 @@ async function main() {
     },
   });
 
-  console.log(`  ✓ Created ${5} applications`);
+  const app6 = await prisma.application.create({
+    data: {
+      applicationNumber: "BP-2026-000006",
+      type: "RENEWAL",
+      status: "APPROVED",
+      applicantId: applicant4.id,
+      businessName: "Maria's Beauty Salon",
+      businessType: "Service - Beauty & Wellness",
+      businessAddress: "555 Ortigas Avenue, Barangay 7",
+      businessBarangay: "Barangay 7",
+      businessCity: "Quezon City",
+      businessProvince: "Metro Manila",
+      businessZipCode: "1103",
+      businessPhone: "09231234567",
+      businessEmail: "maria.salon@example.com",
+      dtiSecRegistration: "DTI-2025-003456",
+      tinNumber: "456-789-012-000",
+      numberOfEmployees: 4,
+      capitalInvestment: 300000,
+      grossSales: 800000,
+      submittedAt: new Date("2026-02-05"),
+      reviewedAt: new Date("2026-02-10"),
+      approvedAt: new Date("2026-02-10"),
+    },
+  });
+
+  console.log(`  ✓ Created ${6} applications`);
 
   // ── Application History ────────────────────────────────────────────
   console.log("📜 Creating application history...");
@@ -258,6 +312,9 @@ async function main() {
     { applicationId: app3.id, newStatus: "SUBMITTED", comment: "Application submitted", changedBy: applicant2.id },
     { applicationId: app5.id, newStatus: "SUBMITTED", comment: "Application submitted", changedBy: applicant2.id },
     { applicationId: app5.id, previousStatus: "SUBMITTED", newStatus: "REJECTED", comment: "Incomplete requirements", changedBy: reviewer.id },
+    { applicationId: app6.id, newStatus: "SUBMITTED", comment: "Renewal submitted", changedBy: applicant4.id },
+    { applicationId: app6.id, previousStatus: "SUBMITTED", newStatus: "UNDER_REVIEW", comment: "Renewal under review", changedBy: staff.id },
+    { applicationId: app6.id, previousStatus: "UNDER_REVIEW", newStatus: "APPROVED", comment: "Renewal approved. All documents verified.", changedBy: reviewer.id },
   ];
 
   for (const entry of historyEntries) {
@@ -275,6 +332,9 @@ async function main() {
     { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "dti_cert2.pdf", originalName: "DTI Certificate.pdf", mimeType: "application/pdf", fileSize: 530000, filePath: "uploads/app2/dti_cert2.pdf", documentType: "DTI_CERTIFICATE", status: "PENDING_VERIFICATION" },
     { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "brgy_clearance2.pdf", originalName: "Barangay Clearance.pdf", mimeType: "application/pdf", fileSize: 298000, filePath: "uploads/app2/brgy_clearance2.pdf", documentType: "BARANGAY_CLEARANCE", status: "UPLOADED" },
     { applicationId: app3.id, uploadedBy: applicant2.id, fileName: "dti_cert3.pdf", originalName: "DTI Registration.pdf", mimeType: "application/pdf", fileSize: 450000, filePath: "uploads/app3/dti_cert3.pdf", documentType: "DTI_CERTIFICATE", status: "UPLOADED" },
+    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "dti_renewal.pdf", originalName: "DTI Renewal Certificate.pdf", mimeType: "application/pdf", fileSize: 520000, filePath: "uploads/app6/dti_renewal.pdf", documentType: "DTI_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
+    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "brgy_renewal.pdf", originalName: "Barangay Clearance Renewal.pdf", mimeType: "application/pdf", fileSize: 310000, filePath: "uploads/app6/brgy_renewal.pdf", documentType: "BARANGAY_CLEARANCE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
+    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "fire_renewal.pdf", originalName: "Fire Safety Certificate Renewal.pdf", mimeType: "application/pdf", fileSize: 405000, filePath: "uploads/app6/fire_renewal.pdf", documentType: "FIRE_SAFETY_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
   ];
 
   for (const doc of docs) {
@@ -303,7 +363,16 @@ async function main() {
     },
   });
 
-  console.log("  ✓ Created 2 review actions");
+  await prisma.reviewAction.create({
+    data: {
+      applicationId: app6.id,
+      reviewerId: reviewer.id,
+      action: "APPROVE",
+      comment: "Renewal documents verified and complete. Business maintains compliance.",
+    },
+  });
+
+  console.log("  ✓ Created 3 review actions");
 
   // ── Permit (for approved app) ──────────────────────────────────────
   console.log("🏛️ Creating permits...");
@@ -330,7 +399,29 @@ async function main() {
     },
   });
 
-  console.log("  ✓ Created 1 permit with issuance");
+  const permit2 = await prisma.permit.create({
+    data: {
+      permitNumber: "PERMIT-2026-000002",
+      applicationId: app6.id,
+      businessName: "Maria's Beauty Salon",
+      businessAddress: "555 Ortigas Avenue, Barangay 7, Quezon City",
+      ownerName: "Maria Gonzales",
+      issueDate: new Date("2026-02-11"),
+      expiryDate: new Date("2027-02-11"),
+      status: "ACTIVE",
+    },
+  });
+
+  await prisma.permitIssuance.create({
+    data: {
+      permitId: permit2.id,
+      issuedById: staff.id,
+      status: "ISSUED",
+      issuedAt: new Date("2026-02-11"),
+    },
+  });
+
+  console.log("  ✓ Created 2 permits with issuance records");
 
   // ── Claim Reference ────────────────────────────────────────────────
   console.log("🔖 Creating claim references...");
@@ -351,7 +442,21 @@ async function main() {
     },
   });
 
-  console.log("  ✓ Created 1 claim reference");
+  await prisma.claimReference.create({
+    data: {
+      referenceNumber: "CLM-20260215-DEF456",
+      applicationId: app6.id,
+      generatedBy: applicant4.id,
+      applicantName: "Maria Gonzales",
+      businessName: "Maria's Beauty Salon",
+      applicationStatus: "APPROVED",
+      status: "GENERATED",
+      claimScheduleDate: new Date("2026-02-28"),
+      claimScheduleTime: "10:00 - 11:00",
+    },
+  });
+
+  console.log("  ✓ Created 2 claim references");
 
   // ── Claim Schedules ────────────────────────────────────────────────
   console.log("📅 Creating claim schedules...");
@@ -359,14 +464,21 @@ async function main() {
   const today = new Date();
   const schedules = [];
 
-  for (let i = 1; i <= 5; i++) {
+  // Create open schedules
+  for (let i = 1; i <= 10; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() + i);
     date.setHours(0, 0, 0, 0);
 
+    // Skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) {
+      continue;
+    }
+
     const schedule = await prisma.claimSchedule.create({
       data: {
         date,
+        isBlocked: false,
         timeSlots: {
           create: [
             { startTime: "08:00", endTime: "09:00", maxCapacity: 10 },
@@ -378,11 +490,61 @@ async function main() {
           ],
         },
       },
+      include: { timeSlots: true },
     });
     schedules.push(schedule);
   }
 
-  console.log(`  ✓ Created ${schedules.length} schedules with time slots`);
+  // Create some blocked dates (holidays/maintenance)
+  const blockedDates = [
+    new Date(today.getFullYear(), today.getMonth() + 1, 13), // Valentine's Day alternative
+    new Date(today.getFullYear(), today.getMonth() + 2, 12), // System maintenance
+  ];
+
+  for (const blockedDate of blockedDates) {
+    await prisma.claimSchedule.create({
+      data: {
+        date: blockedDate,
+        isBlocked: true,
+        blockReason: blockedDate.getTime() % 2 === 0 ? "System Maintenance" : "Holiday",
+      },
+    });
+  }
+
+  console.log(`  ✓ Created ${schedules.length} open schedules + ${blockedDates.length} blocked dates`);
+
+  // ── Slot Reservations ──────────────────────────────────────────────
+  console.log("🎫 Creating slot reservations...");
+
+  // Get first schedule with time slots
+  const firstSchedule = schedules[0];
+  if (firstSchedule && firstSchedule.timeSlots.length > 0) {
+    // Reserve some slots
+    const slot1 = firstSchedule.timeSlots[1]; // 09:00-10:00
+    const slot2 = firstSchedule.timeSlots[2]; // 10:00-11:00
+
+    await prisma.slotReservation.create({
+      data: {
+        timeSlotId: slot1.id,
+        applicationId: app1.id,
+        userId: applicant1.id,
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
+      },
+    });
+
+    await prisma.slotReservation.create({
+      data: {
+        timeSlotId: slot2.id,
+        applicationId: app6.id,
+        userId: applicant4.id,
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
+      },
+    });
+  }
+
+  console.log("  ✓ Created slot reservations");
 
   // ── System Settings ────────────────────────────────────────────────
   console.log("⚙️ Creating system settings...");
@@ -414,18 +576,102 @@ async function main() {
     { userId: applicant1.id, action: "REGISTER", entity: "User", entityId: applicant1.id },
     { userId: applicant1.id, action: "LOGIN", entity: "User", entityId: applicant1.id },
     { userId: applicant1.id, action: "CREATE_APPLICATION", entity: "Application", entityId: app1.id },
-    { userId: applicant1.id, action: "UPLOAD_DOCUMENTS", entity: "Application", entityId: app1.id },
+    { userId: applicant1.id, action: "UPLOAD_DOCUMENTS", entity: "Application", entityId: app1.id, details: { count: 3 } },
     { userId: applicant1.id, action: "SUBMIT_APPLICATION", entity: "Application", entityId: app1.id },
+    { userId: staff.id, action: "DOCUMENT_VERIFIED", entity: "Document", entityId: app1.id, details: { documentsVerified: 3 } },
     { userId: reviewer.id, action: "REVIEW_APPROVE", entity: "Application", entityId: app1.id },
-    { userId: staff.id, action: "DOCUMENT_VERIFIED", entity: "Document", entityId: app1.id },
+    { userId: applicant1.id, action: "CLAIM_REFERENCE_GENERATED", entity: "ClaimReference", entityId: app1.id },
+    { userId: applicant1.id, action: "SLOT_RESERVED", entity: "SlotReservation", entityId: app1.id },
+    { userId: staff.id, action: "PERMIT_ISSUED", entity: "Permit", entityId: app1.id },
+    { userId: applicant1.id, action: "PROFILE_UPDATED", entity: "User", entityId: applicant1.id },
     { userId: applicant2.id, action: "REGISTER", entity: "User", entityId: applicant2.id },
     { userId: applicant2.id, action: "CREATE_APPLICATION", entity: "Application", entityId: app3.id },
+    { userId: applicant2.id, action: "SUBMIT_APPLICATION", entity: "Application", entityId: app3.id },
+    { userId: applicant2.id, action: "UPLOAD_DOCUMENTS", entity: "Application", entityId: app3.id, details: { count: 1 } },
+    { userId: applicant4.id, action: "REGISTER", entity: "User", entityId: applicant4.id },
+    { userId: applicant4.id, action: "CREATE_APPLICATION", entity: "Application", entityId: app6.id },
+    { userId: applicant4.id, action: "UPLOAD_DOCUMENTS", entity: "Application", entityId: app6.id, details: { count: 3 } },
+    { userId: applicant4.id, action: "SUBMIT_APPLICATION", entity: "Application", entityId: app6.id },
+    { userId: staff.id, action: "DOCUMENT_VERIFIED", entity: "Document", entityId: app6.id, details: { documentsVerified: 3 } },
+    { userId: reviewer.id, action: "REVIEW_APPROVE", entity: "Application", entityId: app6.id },
+    { userId: applicant4.id, action: "CLAIM_REFERENCE_GENERATED", entity: "ClaimReference", entityId: app6.id },
+    { userId: applicant4.id, action: "SLOT_RESERVED", entity: "SlotReservation", entityId: app6.id },
+    { userId: staff.id, action: "PERMIT_ISSUED", entity: "Permit", entityId: app6.id },
+    { userId: admin.id, action: "ADMIN_UPDATE_USER", entity: "User", entityId: applicant4.id, details: { changes: ["role"] } },
   ];
 
   for (const log of logs) {
     await prisma.activityLog.create({ data: log });
   }
   console.log(`  ✓ Created ${logs.length} activity logs`);
+
+  // ── OTP Tokens ─────────────────────────────────────────────────────
+  console.log("🔐 Creating OTP tokens...");
+
+  const otpEntries = [
+    {
+      email: "test.otp@example.com",
+      token: "123456",
+      type: "EMAIL_VERIFICATION",
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    },
+    {
+      email: "password.reset@example.com",
+      token: "654321",
+      type: "PASSWORD_RESET",
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    },
+  ];
+
+  for (const entry of otpEntries) {
+    await prisma.otpToken.create({ data: entry });
+  }
+  console.log(`  ✓ Created ${otpEntries.length} OTP tokens`);
+
+  // ── Payments ───────────────────────────────────────────────────────
+  console.log("💳 Creating payment records...");
+
+  await prisma.payment.create({
+    data: {
+      paymentId: "PAY-2026-000001",
+      applicationId: app1.id,
+      userId: applicant1.id,
+      amount: 5000,
+      method: "GCASH",
+      status: "COMPLETED",
+      referenceNumber: "REF-GCH-20260120-001",
+      paymentGatewayResponse: { status: "success", transactionId: "GCH001" },
+      paidAt: new Date("2026-01-20"),
+    },
+  });
+
+  await prisma.payment.create({
+    data: {
+      paymentId: "PAY-2026-000002",
+      applicationId: app6.id,
+      userId: applicant4.id,
+      amount: 3500,
+      method: "MAYA",
+      status: "COMPLETED",
+      referenceNumber: "REF-MAY-20260211-001",
+      paymentGatewayResponse: { status: "success", transactionId: "MAY001" },
+      paidAt: new Date("2026-02-11"),
+    },
+  });
+
+  await prisma.payment.create({
+    data: {
+      paymentId: "PAY-2026-000003",
+      applicationId: app2.id,
+      userId: applicant1.id,
+      amount: 5000,
+      method: "BANK_TRANSFER",
+      status: "PENDING",
+      referenceNumber: "REF-BNK-20260215-001",
+    },
+  });
+
+  console.log("  ✓ Created 3 payment records");
 
   console.log("\n✅ Database seeded successfully!");
   console.log("\n📌 Test Credentials:");
@@ -434,7 +680,17 @@ async function main() {
   console.log("  Staff:      staff@lgu.gov.ph       / Password123!");
   console.log("  Applicant:  juan@example.com       / Password123!");
   console.log("  Applicant:  pedro@example.com      / Password123!");
+  console.log("  Applicant:  maria@example.com      / Password123!");
   console.log("  Pending:    ana@example.com         / Password123!");
+  console.log("\n📊 Test Data Summary:");
+  console.log("  • 7 test users (4 roles)");
+  console.log("  • 6 applications (various statuses)");
+  console.log("  • 9 documents (verified & pending)");
+  console.log("  • 2 permits (active)");
+  console.log("  • 2 claim references");
+  console.log("  • 10+ claim schedules with time slots");
+  console.log("  • Slot reservations & blocked dates");
+  console.log("  • 26 activity logs");
 }
 
 main()

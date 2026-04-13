@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   AlertCircle,
 } from "lucide-react";
+import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -19,6 +20,96 @@ export default async function DashboardPage() {
   }
 
   const { role, firstName } = session.user;
+
+  // If admin, show admin dashboard
+  if (role === "ADMINISTRATOR") {
+    const [
+      totalApplications,
+      pendingReview,
+      approvedCount,
+      unscheduledClaims,
+      monthlyStats,
+      statusCounts,
+      applicationsForReview,
+    ] = await Promise.all([
+      prisma.application.count(),
+      prisma.application.count({ where: { status: "UNDER_REVIEW" } }),
+      prisma.application.count({ where: { status: "APPROVED" } }),
+      prisma.slotReservation.count({ where: { status: "TEMPORARY" } }),
+      // Get monthly applications for the last 6 months
+      prisma.application.groupBy({
+        by: ["createdAt"],
+        _count: true,
+      }),
+      prisma.application.groupBy({
+        by: ["status"],
+        _count: true,
+      }),
+      // Get applications pending review
+      prisma.application.findMany({
+        where: { status: "UNDER_REVIEW" },
+        take: 10,
+        orderBy: { updatedAt: "desc" },
+        select: {
+          applicationNumber: true,
+          applicantId: true,
+          businessName: true,
+          type: true,
+          createdAt: true,
+          status: true,
+          applicant: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Format monthly data
+    const monthlyData = formatMonthlyData(monthlyStats);
+
+    // Format status breakdown
+    const statusMap: Record<string, number> = {};
+    statusCounts.forEach((s) => {
+      statusMap[s.status] = s._count;
+    });
+
+    const statusBreakdown = [
+      { name: "Approved", value: statusMap["APPROVED"] || 0, color: "#10b981" },
+      { name: "Rejected", value: statusMap["REJECTED"] || 0, color: "#f59e0b" },
+      { name: "Under Review", value: statusMap["UNDER_REVIEW"] || 0, color: "#3b82f6" },
+      { name: "Pending", value: statusMap["SUBMITTED"] || 0, color: "#fbbf24" },
+    ].filter((item) => item.value > 0);
+
+    // Format applications for review
+    const applicationsForReviewData = applicationsForReview.map((app) => ({
+      reference: app.applicationNumber,
+      applicant: `${app.applicant.firstName} ${app.applicant.lastName}`,
+      business: app.businessName,
+      type: app.type === "NEW" ? "New Permit" : "Renewal",
+      date: new Date(app.createdAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      }),
+      status: app.status.replace(/_/g, " "),
+    }));
+
+    return (
+      <AdminDashboard
+        totalApplications={totalApplications}
+        pendingReview={pendingReview}
+        approved={approvedCount}
+        unscheduledClaims={unscheduledClaims}
+        monthlyData={monthlyData}
+        statusBreakdown={statusBreakdown}
+        applicationsForReview={applicationsForReviewData}
+      />
+    );
+  }
+
   // Build filter: APPLICANT sees only their own; staff/admin see all
   const whereClause =
     role === "APPLICANT" ? { applicantId: session.user.id } : {};
@@ -132,28 +223,6 @@ export default async function DashboardPage() {
               />
             </>
           )}
-          {role === "ADMINISTRATOR" && (
-            <>
-              <QuickAction
-                icon={<AlertCircle className="h-5 w-5" />}
-                title="Pending Reviews"
-                description="View all applications awaiting review"
-                href="/dashboard/review"
-              />
-              <QuickAction
-                icon={<CalendarCheck className="h-5 w-5" />}
-                title="Manage Schedules"
-                description="Configure claiming dates and time slots"
-                href="/dashboard/admin/schedules"
-              />
-              <QuickAction
-                icon={<FileText className="h-5 w-5" />}
-                title="Generate Reports"
-                description="View and export system reports"
-                href="/dashboard/admin/reports"
-              />
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -210,4 +279,24 @@ function QuickAction({
       </div>
     </a>
   );
+}
+
+function formatMonthlyData(
+  stats: Array<{ createdAt: Date; _count: number }>
+): Array<{ month: string; count: number }> {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  const monthCounts: Record<string, number> = {};
+
+  stats.forEach((stat) => {
+    const date = new Date(stat.createdAt);
+    const monthIndex = date.getMonth();
+    const month = months[monthIndex];
+
+    monthCounts[month] = (monthCounts[month] || 0) + stat._count;
+  });
+
+  return months.map((month) => ({
+    month,
+    count: monthCounts[month] || 0,
+  }));
 }

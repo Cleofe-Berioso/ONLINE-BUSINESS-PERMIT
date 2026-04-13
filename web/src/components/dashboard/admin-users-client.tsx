@@ -17,6 +17,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 
 type Role = "APPLICANT" | "STAFF" | "REVIEWER" | "ADMINISTRATOR";
@@ -152,6 +153,7 @@ export function AdminUsersClient({ initialUsers, initialTotal }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [tempPw, setTempPw] = useState<{ user: User; password: string } | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [openRoleSubmenu, setOpenRoleSubmenu] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -280,7 +282,10 @@ export function AdminUsersClient({ initialUsers, initialTotal }: Props) {
                 </div>
                 <div className="relative flex-shrink-0">
                   <button
-                    onClick={() => setOpenMenu(openMenu === user.id ? null : user.id)}
+                    onClick={() => {
+                      setOpenMenu(openMenu === user.id ? null : user.id);
+                      setOpenRoleSubmenu(null);
+                    }}
                     className="rounded-lg p-1.5 hover:bg-gray-100"
                     disabled={loadingId === user.id}
                   >
@@ -292,9 +297,36 @@ export function AdminUsersClient({ initialUsers, initialTotal }: Props) {
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
                       <div className="absolute right-0 z-40 mt-1 w-48 rounded-lg border bg-white py-1 shadow-lg">
-                        <button onClick={() => updateUser(user.id, { role: user.role === "STAFF" ? "REVIEWER" : user.role === "REVIEWER" ? "ADMINISTRATOR" : "STAFF" })} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          <Pencil className="h-4 w-4 text-blue-500" /> Change Role
-                        </button>
+                        <div className="relative">
+                          <button onClick={() => setOpenRoleSubmenu(openRoleSubmenu === user.id ? null : user.id)} className="flex w-full items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <div className="flex items-center gap-2">
+                              <Pencil className="h-4 w-4 text-blue-500" /> Change Role
+                            </div>
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          {openRoleSubmenu === user.id && (
+                            <div className="absolute top-full left-0 mt-1 w-40 rounded-lg border bg-white py-1 shadow-lg z-50">
+                              {ROLE_OPTIONS.filter(o => o.value !== "").map(role => (
+                                <button
+                                  key={role.value}
+                                  onClick={() => {
+                                    updateUser(user.id, { role: role.value as Role });
+                                    setOpenRoleSubmenu(null);
+                                  }}
+                                  className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
+                                    user.role === role.value
+                                      ? "bg-blue-50 font-semibold text-blue-700"
+                                      : "text-gray-700 hover:bg-gray-100"
+                                  }`}
+                                >
+                                  <Shield className="h-3 w-3" />
+                                  {role.label}
+                                  {user.role === role.value && <CheckCircle className="ml-auto h-4 w-4" />}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         {user.status === "ACTIVE" ? (
                           <button onClick={() => updateUser(user.id, { status: "SUSPENDED" })} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                             <Ban className="h-4 w-4 text-orange-500" /> Suspend Account
@@ -377,7 +409,10 @@ export function AdminUsersClient({ initialUsers, initialTotal }: Props) {
                   <td className="px-4 py-3">
                     <div className="relative">
                       <button
-                        onClick={() => setOpenMenu(openMenu === user.id ? null : user.id)}
+                        onClick={() => {
+                      setOpenMenu(openMenu === user.id ? null : user.id);
+                      setOpenRoleSubmenu(null);
+                    }}
                         className="rounded-lg p-1.5 hover:bg-gray-100"
                         disabled={loadingId === user.id}
                       >
@@ -389,13 +424,40 @@ export function AdminUsersClient({ initialUsers, initialTotal }: Props) {
                         <>
                           <div className="fixed inset-0 z-30" onClick={() => setOpenMenu(null)} />
                           <div className="absolute right-0 z-40 mt-1 w-48 rounded-lg border bg-white py-1 shadow-lg">
-                            <button
-                              onClick={() => updateUser(user.id, { role: user.role === "STAFF" ? "REVIEWER" : user.role === "REVIEWER" ? "ADMINISTRATOR" : "STAFF" })}
-                              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            >
-                              <Pencil className="h-4 w-4 text-blue-500" />
-                              Change Role
-                            </button>
+                            <div className="relative">
+                              <button
+                                onClick={() => setOpenRoleSubmenu(openRoleSubmenu === user.id ? null : user.id)}
+                                className="flex w-full items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Pencil className="h-4 w-4 text-blue-500" />
+                                  Change Role
+                                </div>
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
+                              {openRoleSubmenu === user.id && (
+                                <div className="absolute top-full left-0 mt-1 w-40 rounded-lg border bg-white py-1 shadow-lg z-50">
+                                  {ROLE_OPTIONS.filter(o => o.value !== "").map(role => (
+                                    <button
+                                      key={role.value}
+                                      onClick={() => {
+                                        updateUser(user.id, { role: role.value as Role });
+                                        setOpenRoleSubmenu(null);
+                                      }}
+                                      className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${
+                                        user.role === role.value
+                                          ? "bg-blue-50 font-semibold text-blue-700"
+                                          : "text-gray-700 hover:bg-gray-100"
+                                      }`}
+                                    >
+                                      <Shield className="h-3 w-3" />
+                                      {role.label}
+                                      {user.role === role.value && <CheckCircle className="ml-auto h-4 w-4" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             {user.status === "ACTIVE" ? (
                               <button
                                 onClick={() => updateUser(user.id, { status: "SUSPENDED" })}

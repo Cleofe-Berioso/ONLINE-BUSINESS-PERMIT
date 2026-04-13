@@ -6,33 +6,33 @@
 
 | Aspect            | Technology                                                                    |
 | ----------------- | ----------------------------------------------------------------------------- |
-| **Framework**     | Next.js 16 (App Router, Server Components, Server Actions)                    |
-| **Frontend**      | React 19 + TypeScript 5.9                                                     |
-| **Styling**       | Tailwind CSS v4 + class-variance-authority (CVA)                              |
-| **UI Components** | Custom UI library (`src/components/ui/`) with Lucide React icons              |
-| **State**         | Zustand 5 (UI store, application store) + React Query (TanStack Query v5)     |
-| **Forms**         | React Hook Form 7 + Zod 4 validation                                          |
-| **ORM**           | Prisma 7 with `@prisma/adapter-pg` (PostgreSQL adapter)                       |
+| **Framework**     | Next.js 15.1.6 (App Router, Server Components, Server Actions)                |
+| **Frontend**      | React 19.0.0 + TypeScript 5.5.3                                               |
+| **Styling**       | Tailwind CSS v4.0.0 + class-variance-authority (CVA) v0.7.0                   |
+| **UI Components** | Custom UI library (`src/components/ui/`, 14 components) with Lucide React     |
+| **State**         | Zustand 5.0.3 (UI store, notifications) + TanStack Query v5.51.0              |
+| **Forms**         | React Hook Form 7.52.0 + Zod 3.23.8 validation                                |
+| **ORM**           | Prisma Client 6.19.2 with `@prisma/adapter-pg` 7.5.0 (PostgreSQL adapter)    |
 | **Database**      | PostgreSQL 16                                                                 |
-| **Auth**          | NextAuth v5 (Auth.js) — Credentials provider, JWT strategy, 30-min sessions   |
-| **Real-Time**     | Server-Sent Events (SSE) via `/api/events`                                    |
-| **File Storage**  | S3/MinIO with local filesystem fallback                                       |
-| **Caching**       | Redis (ioredis) with in-memory fallback                                       |
-| **Job Queue**     | BullMQ (Redis-backed)                                                         |
-| **Email**         | Nodemailer (SMTP/Resend/SES)                                                  |
-| **SMS**           | Semaphore / Globe Labs API                                                    |
-| **Payments**      | PayMongo (GCash, Maya, bank transfer) + OTC/Cash                              |
-| **PDF**           | QR code generation (qrcode lib) + HTML-to-PDF (Puppeteer)                     |
-| **2FA**           | otplib TOTP (Google Authenticator compatible)                                 |
-| **i18n**          | next-intl (English + Filipino)                                                |
-| **RBAC**          | CASL.js (`@casl/ability` + `@casl/prisma`)                                    |
-| **Testing**       | Vitest + Testing Library (unit), Playwright (E2E), k6 (perf), OWASP ZAP (sec) |
-| **Build**         | Next.js standalone output, Docker multi-stage                                 |
-| **SEO**           | next-sitemap, JSON-LD structured data, Open Graph                             |
-| **PWA**           | Service worker, manifest.json, offline fallback                               |
-| **Monitoring**    | Sentry (optional) + Prometheus metrics endpoint                               |
-| **Notifications** | sonner (toast), Lucide icons                                                  |
-| **Theme**         | next-themes (light/dark support)                                              |
+| **Auth**          | NextAuth v5.0.0-beta.24 (Auth.js) — Credentials provider, JWT, 30-min       |
+| **Real-Time**     | Server-Sent Events (SSE) via `/api/events` with auto-reconnect hook          |
+| **File Storage**  | AWS SDK v3 S3 + MinIO with local filesystem fallback                          |
+| **Caching**       | ioredis 5.4.1 with in-memory Map fallback                                    |
+| **Job Queue**     | BullMQ 5.8.0 (Redis-backed job processing)                                    |
+| **Email**         | Nodemailer 7.0.0 (SMTP/Resend/SES)                                            |
+| **SMS**           | Semaphore / Globe Labs API (5 req/min rate limit)                             |
+| **Payments**      | PayMongo (GCash, Maya, bank transfer) + OTC/Cash (5 methods)                   |
+| **PDF**           | qrcode 1.5.3 + Puppeteer 23.0.0 (HTML-to-PDF)                                 |
+| **2FA**           | otplib 12.0.1 TOTP (Google Authenticator compatible)                          |
+| **i18n**          | next-intl 3.17.0 (English + Filipino locales)                                 |
+| **RBAC**          | CASL.js 6.7.1 (`@casl/ability` + `@casl/prisma`)                              |
+| **Testing**       | Vitest 2.0.1 + @testing-library/react 16.0.0 (unit, 6 files), Playwright 1.45.0 (E2E, 3 files) |
+| **Build**         | Next.js standalone output, Docker multi-stage (Node.js 22-alpine)             |
+| **SEO**           | next-sitemap 4.2.3, JSON-LD structured data, Open Graph                       |
+| **PWA**           | Service worker, manifest.json, offline.html fallback                          |
+| **Monitoring**    | Sentry (optional) + Prometheus metrics endpoint (`/api/metrics`)              |
+| **Notifications** | sonner 1.5.0 (toast), Lucide icons 0.445.0                                     |
+| **Theme**         | next-themes 0.4.4 (light/dark mode support)                                   |
 
 ---
 
@@ -106,11 +106,12 @@ ONLINE-BUSINESS-PERMIT/
 ├── .claude/                    # Agentic workflow configuration
 │   ├── AVAILABLE_SKILLS.md     # Skill catalog (22 skills)
 │   ├── command-reference.md    # Quick command reference
+│   ├── CLAUDE-COWORK.md        # Team coordination guide
 │   ├── commands/               # 22 skill definition files (.md)
 │   ├── workflows.json          # Machine-readable workflow definitions
 │   └── settings.local.json     # Claude Code permissions
 │
-└── web/                        # Next.js 16 application
+└── web/                        # Next.js 15.1.6 application
     ├── package.json            # Dependencies & scripts
     ├── next.config.js          # Next.js config (security headers, CSP, standalone)
     ├── tsconfig.json           # TypeScript configuration
@@ -118,105 +119,142 @@ ONLINE-BUSINESS-PERMIT/
     ├── playwright.config.ts    # E2E test config (Playwright + Chromium)
     ├── eslint.config.mjs       # ESLint 9 flat config
     ├── postcss.config.js       # PostCSS + Tailwind CSS v4
+    ├── next-sitemap.config.js  # SEO sitemap generation
     ├── Dockerfile              # Production Docker image (standalone)
     │
     ├── prisma/
-    │   ├── schema.prisma       # Database schema (16 models, 11 enums, ~500 lines)
+    │   ├── schema.prisma       # Database schema (16 models, 11 enums, 490 lines)
     │   └── seed.js             # Test data seeder (6 users, 5 apps, permits, etc.)
     │
-    ├── public/
+    ├── public/                 # Static assets (14 files)
     │   ├── manifest.json       # PWA manifest
     │   ├── sw.js               # Service worker (offline support)
     │   ├── offline.html        # Offline fallback page
     │   ├── robots.txt          # SEO robots file
     │   └── icons/              # PWA icons (72px → 512px)
     │
-    ├── e2e/                    # Playwright E2E tests
-    │   ├── app.spec.ts
-    │   ├── accessibility.spec.ts
-    │   └── visual-regression.spec.ts
+    ├── e2e/                    # Playwright E2E tests (3 files)
+    │   ├── app.spec.ts         # Core app workflows
+    │   ├── accessibility.spec.ts # WCAG 2.1 AA compliance
+    │   └── visual-regression.spec.ts # Visual consistency
     │
     ├── tests/
     │   ├── performance/load-test.js  # k6 load tests
     │   └── security/                 # OWASP ZAP scan scripts
     │
     └── src/
-        ├── middleware.ts        # Auth + rate limiting + RBAC middleware (Edge Runtime)
+        ├── middleware.ts        # Auth + rate limiting + RBAC (Edge Runtime)
         ├── instrumentation.ts   # Server instrumentation hook
         │
-        ├── lib/                 # Core business logic (22 files)
-        │   ├── auth.ts          # NextAuth v5 config (Credentials provider)
+        ├── lib/                 # Core business logic (24 files, 4,328 lines)
+        │   ├── auth.ts          # NextAuth v5 Credentials provider
         │   ├── auth.config.ts   # Edge-safe auth config (no Node.js imports)
-        │   ├── prisma.ts        # PrismaClient singleton (PrismaPg adapter)
-        │   ├── validations.ts   # Zod schemas for all forms
-        │   ├── permissions.ts   # CASL.js RBAC (4 roles × 10 actions × 10 subjects)
-        │   ├── payments.ts      # PayMongo (GCash, Maya), bank transfer, OTC
+        │   ├── prisma.ts        # PrismaClient singleton + PrismaPg adapter
+        │   ├── validations.ts   # Zod schemas (229 lines, 13 types)
+        │   ├── validations/schedules.ts # Schedule-specific schemas
+        │   ├── permissions.ts   # CASL.js RBAC (164 lines, 4 roles)
+        │   ├── payments.ts      # PayMongo integration
         │   ├── sms.ts           # Semaphore + Globe Labs SMS
-        │   ├── email.ts         # Nodemailer (SMTP/Resend/SES)
-        │   ├── storage.ts       # S3/MinIO with local filesystem fallback
-        │   ├── pdf.ts           # Permit PDF generation with QR codes
+        │   ├── email.ts         # Nodemailer (441 lines, 6 HTML templates)
+        │   ├── storage.ts       # S3/MinIO + local filesystem
+        │   ├── pdf.ts           # Puppeteer + QR codes
         │   ├── two-factor.ts    # TOTP 2FA (otplib)
-        │   ├── rate-limit.ts    # Sliding window rate limiter
-        │   ├── queue.ts         # BullMQ job queues
-        │   ├── government-api.ts # DTI/BIR/SEC verification (mock mode in dev)
-        │   ├── sse.ts           # Server-Sent Events broadcaster
-        │   ├── i18n.ts          # Filipino/English i18n
-        │   ├── stores.ts        # Zustand stores (UI state, notifications)
-        │   ├── cache.ts         # Redis + in-memory cache fallback
+        │   ├── rate-limit.ts    # Sliding window rate limiting
+        │   ├── queue.ts         # BullMQ job queues (5 queues)
+        │   ├── government-api.ts # DTI/BIR/SEC mock endpoints
+        │   ├── sse.ts           # Server-Sent Events (7 event types)
+        │   ├── i18n.ts          # next-intl setup (EN + FIL)
+        │   ├── stores.ts        # Zustand stores (2 stores)
+        │   ├── cache.ts         # Redis + in-memory fallback
         │   ├── monitoring.ts    # Sentry + Prometheus metrics
-        │   ├── sanitize.ts      # Data sanitization
+        │   ├── sanitize.ts      # Data sanitization helpers
         │   ├── logger.ts        # Structured logging
-        │   └── utils.ts         # Utility functions (cn, formatDate, etc.)
+        │   ├── schedules.ts     # Schedule domain helpers
+        │   └── utils.ts         # General utilities
         │
-        ├── hooks/
-        │   └── use-sse.ts       # SSE client hook with auto-reconnect
+        ├── hooks/               # Custom React hooks (2 files)
+        │   ├── use-sse.ts       # SSE client with auto-reconnect
+        │   └── use-schedule.ts  # Schedule management
         │
-        ├── messages/            # i18n translations
+        ├── messages/            # i18n translations (2 files)
         │   ├── en.json          # English
         │   └── fil.json         # Filipino
         │
-        ├── components/
-        │   ├── ui/              # 14 reusable UI components
-        │   ├── dashboard/       # Dashboard shell, sidebar, header, notification bell
-        │   ├── privacy/         # Cookie consent (RA 10173 compliance)
-        │   ├── seo/             # JSON-LD structured data schemas
-        │   ├── pwa/             # Service worker registration
-        │   ├── public/          # Public nav, footer
-        │   └── providers/       # QueryProvider, ThemeProvider
+        ├── components/          # React components (41 files total)
+        │   ├── ui/              # Base UI components (14 files)
+        │   │   ├── alert, badge, button, card, input, modal, select, textarea
+        │   │   ├── skeleton, loading, data-table, calendar, etc.
+        │   ├── dashboard/       # Dashboard-specific (20 files)
+        │   │   ├── admin-dashboard, admin-users-client, admin-reports-client
+        │   │   ├── sidebar, header, shell, tracking-client
+        │   │   ├── document-review-client, claim-schedule/*, etc.
+        │   ├── public/          # Public section (2 files)
+        │   │   ├── public-nav, public-footer
+        │   ├── privacy/         # Privacy (1 file)
+        │   │   ├── cookie-consent
+        │   ├── pwa/             # PWA (1 file)
+        │   │   ├── service-worker
+        │   ├── providers/       # Providers (2 files)
+        │   │   ├── query-provider, theme-provider
+        │   ├── seo/             # SEO (1 file)
+        │   │   ├── json-ld
+        │   └── Utilities (3 files)
+        │       ├── empty-state, file-upload, notification-bell
         │
-        ├── app/
-        │   ├── layout.tsx       # Root layout (providers, SEO, PWA, Toaster)
+        ├── app/                 # Next.js App Router (37 page files + layout)
+        │   ├── layout.tsx       # Root layout
         │   ├── page.tsx         # Landing page
         │   │
-        │   ├── (public)/        # 9 public pages (no auth required)
-        │   │   ├── contact/, data-privacy/, faqs/, how-to-apply/
-        │   │   ├── privacy/, requirements/, terms/
-        │   │   ├── track/, verify-permit/
+        │   ├── (public)/        # Public section (9 pages)
+        │   │   ├── contact, data-privacy, faqs, how-to-apply
+        │   │   ├── privacy, requirements, terms
+        │   │   ├── track, verify-permit
         │   │
-        │   ├── (auth)/          # 4 auth pages
-        │   │   ├── login/, register/, forgot-password/, verify-otp/
+        │   ├── (auth)/          # Auth section (4 pages)
+        │   │   ├── login, register, forgot-password, verify-otp
         │   │
-        │   ├── (dashboard)/dashboard/  # Protected dashboard pages
+        │   ├── (dashboard)/dashboard/  # Dashboard (23+ pages, organized by module)
+        │   │   ├── page.tsx            # Main dashboard
         │   │   ├── applications/       # Application CRUD + new
-        │   │   ├── documents/          # Document management
-        │   │   ├── tracking/           # Real-time tracking
-        │   │   ├── review/             # Reviewer queue
-        │   │   ├── verify-documents/   # Staff document verification
+        │   │   ├── admin/              # 7 admin pages (users, schedules, etc.)
+        │   │   ├── review/             # Review queue & detail
+        │   │   ├── verify-documents/   # Document verification
         │   │   ├── schedule/           # Schedule management
         │   │   ├── claims/             # Claim processing
-        │   │   ├── claim-reference/    # Reference numbers
-        │   │   ├── issuance/           # Permit issuance
+        │   │   ├── claim-reference/    # Reference management
+        │   │   ├── issuance/           # Permit issuance & detail
+        │   │   ├── documents/          # Document management
+        │   │   ├── tracking/           # Application tracking
         │   │   ├── profile/            # User profile + 2FA
-        │   │   └── admin/              # Admin: users, settings, schedules, reports, audit-logs
+        │   │   ├── document-review-new/ # New document review
+        │   │   ├── [+15 loading.tsx]   # Loading skeletons
+        │   │   └── [+3 error.tsx]      # Error boundaries
         │   │
-        │   └── api/                    # 18 API route groups
-        │       ├── auth/, applications/, documents/, schedules/
-        │       ├── claims/, permits/, issuance/, payments/
-        │       ├── events/, analytics/, metrics/, health/
-        │       ├── profile/, privacy/, admin/, public/
-        │       ├── files/, cron/
+        │   └── api/             # API routes (46 routes across 18 groups)
+        │       ├── auth/*       # 9 routes (NextAuth, register, OTP, 2FA)
+        │       ├── applications/* # 4 routes (CRUD + review)
+        │       ├── documents/*  # 4 routes (upload, verify, download)
+        │       ├── schedules/*  # 3 routes (list, reserve, reschedule)
+        │       ├── claims/*     # 4 routes (today, verify, [id], release)
+        │       ├── permits/*    # 3 routes (pdf, prefill, [id])
+        │       ├── payments/*   # 2 routes (create, webhook)
+        │       ├── admin/*      # 8 routes (users, schedules, settings, reports)
+        │       ├── issuance/*   # 1 route ([id])
+        │       ├── analytics/   # 1 route
+        │       ├── events/      # 1 route (SSE)
+        │       ├── health/      # 1 route
+        │       ├── metrics/     # 1 route (Prometheus)
+        │       ├── health/      # 1 route
+        │       ├── profile/     # 1 route
+        │       ├── privacy/*    # 1 route (data export)
+        │       ├── public/*     # 2 routes (track, verify-permit)
+        │       ├── files/[...key]/ # 1 route
+        │       └── cron/*       # 2 routes (expire-permits, expire-holds)
         │
-        └── __tests__/               # Unit tests (Vitest)
+        └── __tests__/           # Unit tests (Vitest, 6 files)
+            ├── components/      # Component tests
+            ├── lib/             # Library tests
+            └── setup.ts         # Test setup
 ```
 
 ---
@@ -336,28 +374,74 @@ docker compose up -d postgres redis minio  # Infrastructure only
 
 ---
 
-## API Routes (18 Groups)
+## API Routes (46 Total Routes Across 18 Groups)
 
-| Group           | Path                | Key Endpoints                              |
-| --------------- | ------------------- | ------------------------------------------ |
-| `auth/`         | `/api/auth/`        | Login, register, OTP, 2FA, forgot-password |
-| `applications/` | `/api/applications` | CRUD, verify-registration, review          |
-| `documents/`    | `/api/documents`    | Upload, verify, download                   |
-| `schedules/`    | `/api/schedules`    | CRUD, reserve, reschedule                  |
-| `claims/`       | `/api/claims`       | List, today, verify                        |
-| `permits/`      | `/api/permits`      | Details, PDF generation                    |
-| `issuance/`     | `/api/issuance`     | Record issuance, update status             |
-| `payments/`     | `/api/payments`     | Create payment, webhook                    |
-| `events/`       | `/api/events`       | SSE real-time stream                       |
-| `analytics/`    | `/api/analytics`    | Dashboard analytics (admin)                |
-| `metrics/`      | `/api/metrics`      | Prometheus metrics                         |
-| `health/`       | `/api/health`       | Health check                               |
-| `profile/`      | `/api/profile`      | User profile CRUD                          |
-| `privacy/`      | `/api/privacy`      | Data privacy (RA 10173)                    |
-| `admin/`        | `/api/admin/`       | Users, settings, reports                   |
-| `public/`       | `/api/public/`      | Public track + verify-permit               |
-| `files/`        | `/api/files/`       | Local file serving                         |
-| `cron/`         | `/api/cron/`        | Expire holds, expire permits               |
+### Route Groups by Category
+
+**Authentication (9 routes)**
+- `/api/auth/[...nextauth]` — NextAuth handler
+- `/api/auth/login`, `/register`, `/verify-otp`, `/resend-otp`, `/forgot-password`
+- `/api/auth/logout`, `/2fa/setup`, `/2fa/verify`
+
+**Applications (4 routes)**
+- `/api/applications` — CRUD operations
+- `/api/applications/[id]` — Get/update/delete
+- `/api/applications/[id]/review` — Submit review
+- `/api/applications/verify-registration` — Government verification
+
+**Documents (4 routes)**
+- `/api/documents/upload` — File upload with validation
+- `/api/documents/[id]/verify` — Verify document
+- `/api/documents/[id]/download` — Download document
+- `/api/documents/[id]` — Get document details
+
+**Schedules (3 routes)**
+- `/api/schedules` — List/create
+- `/api/schedules/reserve` — Reserve time slot
+- `/api/schedules/reschedule` — Change reservation
+
+**Claims (4 routes)**
+- `/api/claims/today` — Get today's claims
+- `/api/claims/[id]/release` — Release permit
+- `/api/claims/verify` — Verify by reference number
+- `/api/claims/[id]` — Get claim details
+
+**Permits (3 routes)**
+- `/api/permits/[id]/pdf` — Generate PDF
+- `/api/permits/[id]/prefill` — Prefill renewal
+- `/api/permits/[id]` — Get permit details
+
+**Issuance (1 route)**
+- `/api/issuance/[id]` — Record/update issuance
+
+**Payments (2 routes)**
+- `/api/payments` — Create payment
+- `/api/payments/webhook` — PayMongo webhook
+
+**Admin (8 routes)**
+- `/api/admin/users` — List/create users
+- `/api/admin/users/[id]` — Get/update/delete
+- `/api/admin/schedules` — Schedule management (4 endpoints)
+- `/api/admin/settings` — System settings
+- `/api/admin/reports/export` — Export reports
+
+**Analytics, Events, Health, Monitoring (5 routes)**
+- `/api/analytics` — Dashboard analytics
+- `/api/events` — SSE stream
+- `/api/health` — Health check
+- `/api/metrics` — Prometheus metrics
+- `/api/monitoring` — Monitoring data
+
+**Profile, Privacy, Public (4 routes)**
+- `/api/profile` — User profile + 2FA
+- `/api/privacy/data` — GDPR data export
+- `/api/public/track` — Public tracking
+- `/api/public/verify-permit` — Public verification
+
+**Files & Cron (3 routes)**
+- `/api/files/[...key]` — Serve uploaded files
+- `/api/cron/expire-holds` — Expire temporary holds
+- `/api/cron/expire-permits` — Mark permits expired
 
 ---
 

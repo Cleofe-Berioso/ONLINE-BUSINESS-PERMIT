@@ -66,7 +66,7 @@ export default function RootLayout({
         <WebApplicationSchema />
       </head>
       <body className="min-h-screen bg-gray-50 font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
           <QueryProvider>{children}</QueryProvider>
           <CookieConsent />
           <ServiceWorkerRegistration />

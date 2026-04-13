@@ -87,7 +87,7 @@ export const prisma = globalForPrisma.prisma || new PrismaClient();
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 ```
 
-**Check**: Is Prisma client stored in globalThis for dev hot-reload?
+**Check**: Is Prisma 6.19.2 client stored in globalThis for dev hot-reload?
 
 ### 6. File Handle / Stream Leaks (Server-side)
 

@@ -396,7 +396,7 @@ model Permit {
   updatedAt       DateTime      @updatedAt
 
   application     Application   @relation("PermitApplication", fields: [applicationId], references: [id], onDelete: Cascade)
-  issuance        PermitIssuance?
+  issuance        PermitIssuance? @relation("PermitToIssuance")
   renewals        Application[] @relation("RenewalOfPermit")
 
   @@index([permitNumber])
@@ -417,7 +417,7 @@ model PermitIssuance {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  permit      Permit         @relation(fields: [permitId], references: [id], onDelete: Cascade)
+  permit      Permit         @relation("PermitToIssuance", fields: [permitId], references: [id], onDelete: Cascade)
   issuedBy    User           @relation("IssuedByUser", fields: [issuedById], references: [id], onDelete: Cascade)
 
   @@index([status])

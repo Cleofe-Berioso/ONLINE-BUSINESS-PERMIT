@@ -183,6 +183,191 @@ export const reviewActionSchema = z.object({
 });
 
 // ============================================================================
+// Admin User Management Validations
+// ============================================================================
+
+export const adminCreateUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  firstName: z
+    .string()
+    .min(2, "First name must be at least 2 characters")
+    .max(50, "First name must be at most 50 characters"),
+  lastName: z
+    .string()
+    .min(2, "Last name must be at least 2 characters")
+    .max(50, "Last name must be at most 50 characters"),
+  phone: z
+    .string()
+    .regex(/^(\+63|0)(9\d{9})$/, "Invalid Philippine phone number")
+    .optional()
+    .or(z.literal("")),
+  role: z.enum(["STAFF", "REVIEWER", "ADMINISTRATOR"]),
+});
+
+export const adminUpdateUserSchema = z.object({
+  role: z.enum(["STAFF", "REVIEWER", "ADMINISTRATOR"]).optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_VERIFICATION"]).optional(),
+  resetPassword: z.boolean().optional(),
+});
+
+// ============================================================================
+// Permit Application Validations (Multi-step Business Permit Application)
+// ============================================================================
+
+export const permitApplicationStep1Schema = z.object({
+  businessName: z
+    .string()
+    .min(2, "Business name must be at least 2 characters")
+    .max(200, "Business name is too long"),
+  businessType: z.string().min(1, "Business type is required"),
+  ownerName: z
+    .string()
+    .min(2, "Owner/Operator name must be at least 2 characters")
+    .max(100, "Owner name is too long"),
+  tinNumber: z
+    .string()
+    .regex(/^\d{3}-\d{3}-\d{3}-\d{3}$/, "Invalid TIN format (xxx-xxx-xxx-xxx)")
+    .optional()
+    .or(z.literal("")),
+  barangay: z.string().min(1, "Barangay is required"),
+  municipality: z.string().min(1, "Municipality is required"),
+  businessAddress: z
+    .string()
+    .min(5, "Business address is required")
+    .max(300, "Address is too long"),
+});
+
+export const permitApplicationStep2Schema = z.object({
+  documents: z
+    .array(
+      z.object({
+        type: z.string().min(1, "Document type is required"),
+        fileName: z.string(),
+      })
+    )
+    .optional(),
+});
+
+export const permitApplicationStep3Schema = z.object({
+  businessArea: z.coerce
+    .number()
+    .positive("Business area must be greater than 0")
+    .optional(),
+  numberOfEmployees: z.coerce
+    .number()
+    .int()
+    .nonnegative("Number of employees must be 0 or more")
+    .optional(),
+  capitalInvestment: z.coerce
+    .number()
+    .nonnegative("Capital investment must be 0 or more")
+    .optional(),
+  assessmentNotes: z.string().max(1000, "Assessment notes is too long").optional(),
+});
+
+export const permitApplicationStep4Schema = z.object({
+  paymentMethod: z.enum(["GCASH", "MAYA", "BANK_TRANSFER", "OTC", "CASH"], {
+    errorMap: () => ({ message: "Please select a payment method" }),
+  }),
+  paymentNotes: z.string().max(500, "Payment notes is too long").optional(),
+});
+
+export const permitApplicationStep5Schema = z.object({
+  agreedToTerms: z
+    .boolean()
+    .refine((val) => val === true, {
+      message: "You must agree to submit this application",
+    }),
+});
+
+export const fullPermitApplicationSchema = permitApplicationStep1Schema
+  .merge(permitApplicationStep4Schema)
+  .merge(permitApplicationStep5Schema);
+
+// ============================================================================
+// Enrollment Validations (Multi-step Business Enrollment)
+// ============================================================================
+
+export const enrollmentStep1Schema = z.object({
+  businessName: z
+    .string()
+    .min(2, "Business name must be at least 2 characters")
+    .max(200, "Business name is too long"),
+  businessType: z.string().min(1, "Business type is required"),
+  businessCategory: z.string().min(1, "Business category is required"),
+  dtiSecRegistration: z.string().optional(),
+  tinNumber: z
+    .string()
+    .regex(/^\d{3}-\d{3}-\d{3}-\d{3}$/, "Invalid TIN format (xxx-xxx-xxx-xxx)")
+    .optional()
+    .or(z.literal("")),
+  businessPhone: z
+    .string()
+    .regex(/^(\+63|0)(9\d{9})$/, "Invalid Philippine phone number")
+    .optional()
+    .or(z.literal("")),
+  businessEmail: z
+    .string()
+    .email("Invalid email address")
+    .optional()
+    .or(z.literal("")),
+});
+
+export const enrollmentStep2Schema = z.object({
+  ownerFirstName: z
+    .string()
+    .min(2, "First name must be at least 2 characters")
+    .max(50, "First name is too long"),
+  ownerLastName: z
+    .string()
+    .min(2, "Last name must be at least 2 characters")
+    .max(50, "Last name is too long"),
+  ownerMiddleName: z.string().max(50, "Middle name is too long").optional(),
+  ownerPhone: z
+    .string()
+    .regex(/^(\+63|0)(9\d{9})$/, "Invalid Philippine phone number"),
+  ownerEmail: z.string().email("Invalid email address"),
+  ownerPosition: z.string().min(1, "Position/Title is required"),
+});
+
+export const enrollmentStep3Schema = z.object({
+  businessAddress: z
+    .string()
+    .min(5, "Business address is required")
+    .max(300, "Address is too long"),
+  businessBarangay: z.string().min(1, "Barangay is required"),
+  businessCity: z.string().min(1, "City/Municipality is required"),
+  businessProvince: z.string().min(1, "Province is required"),
+  businessZipCode: z
+    .string()
+    .regex(/^\d{4}$/, "ZIP code must be 4 digits"),
+});
+
+export const enrollmentStep4Schema = z.object({
+  documents: z
+    .array(
+      z.object({
+        type: z.string().min(1, "Document type is required"),
+        file: z.instanceof(File),
+      })
+    )
+    .optional(),
+});
+
+export const enrollmentStep5Schema = z.object({
+  agreedToTerms: z
+    .boolean()
+    .refine((val) => val === true, {
+      message: "You must agree to the terms and conditions",
+    }),
+});
+
+export const fullEnrollmentSchema = enrollmentStep1Schema
+  .merge(enrollmentStep2Schema)
+  .merge(enrollmentStep3Schema)
+  .merge(enrollmentStep5Schema);
+
+// ============================================================================
 // Type Exports (inferred from schemas)
 // ============================================================================
 
@@ -197,3 +382,17 @@ export type ReserveSlotInput = z.infer<typeof reserveSlotSchema>;
 export type VerifyClaimInput = z.infer<typeof verifyClaimSchema>;
 export type PaymentInput = z.infer<typeof paymentSchema>;
 export type ReviewActionInput = z.infer<typeof reviewActionSchema>;
+export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
+export type AdminUpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
+export type EnrollmentStep1Input = z.infer<typeof enrollmentStep1Schema>;
+export type EnrollmentStep2Input = z.infer<typeof enrollmentStep2Schema>;
+export type EnrollmentStep3Input = z.infer<typeof enrollmentStep3Schema>;
+export type EnrollmentStep4Input = z.infer<typeof enrollmentStep4Schema>;
+export type EnrollmentStep5Input = z.infer<typeof enrollmentStep5Schema>;
+export type FullEnrollmentInput = z.infer<typeof fullEnrollmentSchema>;
+export type PermitApplicationStep1Input = z.infer<typeof permitApplicationStep1Schema>;
+export type PermitApplicationStep2Input = z.infer<typeof permitApplicationStep2Schema>;
+export type PermitApplicationStep3Input = z.infer<typeof permitApplicationStep3Schema>;
+export type PermitApplicationStep4Input = z.infer<typeof permitApplicationStep4Schema>;
+export type PermitApplicationStep5Input = z.infer<typeof permitApplicationStep5Schema>;
+export type FullPermitApplicationInput = z.infer<typeof fullPermitApplicationSchema>;

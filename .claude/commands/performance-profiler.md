@@ -63,7 +63,7 @@ npx k6 run tests/performance/load-test.js
 
 | Layer       | Implementation                      | TTL                  |
 | ----------- | ----------------------------------- | -------------------- |
-| Redis       | `src/lib/cache.ts` (ioredis)        | Per-key configurable |
+| Redis       | `src/lib/cache.ts` (ioredis 5.4.1)  | Per-key configurable |
 | In-memory   | Map fallback when Redis unavailable | Same                 |
 | React Query | Client-side stale-while-revalidate  | 5 min default        |
 | Next.js     | ISR / revalidate for public pages   | Varies               |
@@ -102,6 +102,19 @@ const users = await prisma.user.findMany({
   where: { status: 'ACTIVE' },
 });
 ```
+
+## Performance-Critical Lib Modules
+
+| Module | Performance Impact | Optimization |
+|--------|-------------------|--------------|
+| `src/lib/cache.ts` | Redis caching | Cache hot queries (applications, permits) for 5-10min TTL |
+| `src/lib/prisma.ts` | Database perf | Use `select` not `include` to avoid over-fetching |
+| `src/lib/queue.ts` | Async processing | Offload PDF generation, email sending to BullMQ jobs |
+| `src/lib/pdf.ts` | Document generation | Cache generated permits, async job processing |
+| `src/lib/storage.ts` | File operations | CloudFront CDN for S3, lazy-load large uploads |
+| `src/lib/email.ts` | Email delivery | Queue email jobs, don't block request |
+| `src/lib/sms.ts` | SMS delivery | Batch SMS sending, queue non-critical messages |
+| `src/lib/validations.ts` | Request validation | Parse once, reuse validated data (no re-parsing) |
 
 ## Checklist
 

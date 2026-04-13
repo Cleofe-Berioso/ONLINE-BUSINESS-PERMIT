@@ -149,6 +149,107 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
 }
 
 // ============================================================================
+// Email Templates - Admin Account Creation
+// ============================================================================
+
+export async function sendAdminAccountCreationEmail(
+  email: string,
+  firstName: string,
+  role: string,
+  tempPassword: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const html = emailLayout(
+    'Your Admin Account Has Been Created',
+    `
+    <h2>Welcome to ${APP_NAME}!</h2>
+    <p>Hello ${firstName},</p>
+    <p>Your admin account has been created. You can now log in to the system.</p>
+
+    <div class="info-box">
+      <strong>Account Details</strong>
+      <table class="details">
+        <tr>
+          <td>Email:</td>
+          <td><strong>${email}</strong></td>
+        </tr>
+        <tr>
+          <td>Role:</td>
+          <td><strong>${role}</strong></td>
+        </tr>
+      </table>
+    </div>
+
+    <p><strong>Temporary Password:</strong></p>
+    <div class="otp-code" style="font-family: 'Courier New', monospace; font-size: 18px; letter-spacing: 2px;">${tempPassword}</div>
+
+    <p style="color: #ef4444; font-weight: 600;">⚠️ Security Notice:</p>
+    <ul>
+      <li>This password will expire after your first login</li>
+      <li>You MUST change your password immediately upon first login</li>
+      <li>Do not share this password with anyone</li>
+      <li>If you did not expect this account, contact your administrator immediately</li>
+    </ul>
+
+    <p>
+      <a href="${APP_URL}/login" class="btn">Log In Now</a>
+    </p>
+
+    <p style="color: #666; font-size: 14px;">
+      If you have any questions or concerns about your account, please contact your system administrator.
+    </p>
+    `
+  );
+
+  return sendEmail({
+    to: email,
+    subject: `Your ${role} Account Has Been Created - ${APP_NAME}`,
+    html,
+  });
+}
+
+/**
+ * Send admin-initiated password reset email
+ */
+export async function sendAdminPasswordResetEmail(
+  email: string,
+  firstName: string,
+  tempPassword: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  const html = emailLayout(
+    'Your Password Has Been Reset',
+    `
+    <h2>Password Reset by Administrator</h2>
+    <p>Hello ${firstName},</p>
+    <p>Your password has been reset by an administrator. Please use the new temporary password below to log in.</p>
+
+    <p><strong>New Temporary Password:</strong></p>
+    <div class="otp-code" style="font-family: 'Courier New', monospace; font-size: 18px; letter-spacing: 2px;">${tempPassword}</div>
+
+    <p style="color: #ef4444; font-weight: 600;">⚠️ Important:</p>
+    <ul>
+      <li>This is a temporary password</li>
+      <li>You MUST change your password immediately upon next login</li>
+      <li>Do not share this password with anyone</li>
+    </ul>
+
+    <p>
+      <a href="${APP_URL}/login" class="btn">Log In Now</a>
+    </p>
+
+    <p style="color: #666; font-size: 14px;">
+      If you did not request this password reset, please contact your administrator immediately.
+    </p>
+    `
+  );
+
+  return sendEmail({
+    to: email,
+    subject: `Password Reset - ${APP_NAME}`,
+    html,
+  });
+}
+
+// ============================================================================
 // Email Templates
 // ============================================================================
 

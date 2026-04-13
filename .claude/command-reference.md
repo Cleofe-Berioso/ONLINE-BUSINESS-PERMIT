@@ -4,7 +4,7 @@
 
 Quick reference for all Claude skills available in the OBPS codebase. Each command maps to a `.md` file in `.claude/commands/`.
 
-**Tech Stack**: Next.js 16 · React 19 · Prisma 7 · PostgreSQL 16 · Tailwind CSS v4 · TypeScript 5.9
+**Tech Stack**: Next.js 15.1.6 · React 19.0.0 · Prisma 6.19.2 · PostgreSQL 16 · Tailwind CSS v4.0.0 · TypeScript 5.5.3
 
 ---
 

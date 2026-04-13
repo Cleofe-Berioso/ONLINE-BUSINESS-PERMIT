@@ -14,8 +14,8 @@ Create and run unit tests (Vitest), integration tests, E2E tests (Playwright), a
 
 | Tool                 | Type               | Config                 | Location                         |
 | -------------------- | ------------------ | ---------------------- | -------------------------------- |
-| Vitest               | Unit / Integration | `vitest.config.ts`     | `src/__tests__/`                 |
-| Playwright           | E2E / Visual       | `playwright.config.ts` | `e2e/`                           |
+| Vitest 2.0.1         | Unit / Integration | `vitest.config.ts`     | `src/__tests__/`                 |
+| Playwright 1.45.0    | E2E / Visual       | `playwright.config.ts` | `e2e/`                           |
 | @axe-core/playwright | Accessibility      | In Playwright specs    | `e2e/accessibility.spec.ts`      |
 | k6                   | Performance / Load | Script-based           | `tests/performance/load-test.js` |
 | OWASP ZAP            | Security           | `zap-config.conf`      | `tests/security/`                |
@@ -177,6 +177,21 @@ pwsh tests/security/run-zap-scan.ps1
 | STAFF         | staff@test.com     | Test1234! |
 | REVIEWER      | reviewer@test.com  | Test1234! |
 | ADMINISTRATOR | admin@test.com     | Test1234! |
+
+## Related Lib Modules for Testing
+
+| Module | Purpose | Testing Strategy |
+|--------|---------|------------------|
+| `src/lib/validations.ts` | Zod schemas | Unit test with safeParse() for valid/invalid inputs |
+| `src/lib/auth.ts` | Authentication | Mock auth() in API route tests |
+| `src/lib/permissions.ts` | RBAC enforcement | Test ability.can() with different roles |
+| `src/lib/payments.ts` | Payment processing | Mock PayMongo API calls, webhook verification |
+| `src/lib/email.ts` | Email notifications | Stub/mock SMTP, test template rendering |
+| `src/lib/sms.ts` | SMS notifications | Mock Semaphore API, test message formatting |
+| `src/lib/pdf.ts` | PDF generation | Test Puppeteer setup, QR code generation |
+| `src/lib/cache.ts` | Redis caching | Mock Redis for cache hit/miss scenarios |
+| `src/lib/queue.ts` | Background jobs | Mock BullMQ job processing |
+| `src/lib/sanitize.ts` | Input sanitization | Test XSS prevention with malicious inputs |
 
 ## Checklist
 

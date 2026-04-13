@@ -17,7 +17,7 @@ Audit and harden the security posture of the Online Business Permit System. Cove
 - **Provider**: Credentials (email + password)
 - **Strategy**: JWT (30-minute session, auto-refresh)
 - **Password**: bcrypt hashing (salt rounds: 12)
-- **2FA**: TOTP via otplib (Google Authenticator compatible) — `src/lib/two-factor.ts`
+- **2FA**: TOTP via otplib 12.0.1 (Google Authenticator compatible) — `src/lib/two-factor.ts`
 - **Account lockout**: Track failed attempts, lock after threshold
 - **OTP Verification**: Time-limited tokens in VerificationToken model
 
@@ -149,3 +149,19 @@ pwsh tests/security/run-zap-scan.ps1
 # Check for secrets in code
 git log --all --diff-filter=A -- '*.env*'
 ```
+
+## Security-Related Lib Modules
+
+| Module | Security Focus | Key Responsibility |
+|--------|---------------|--------------------|
+| `src/lib/auth.ts` | Authentication | NextAuth Credentials provider, bcrypt password hashing |
+| `src/lib/auth.config.ts` | Token security | JWT generation, session callbacks, 30-min maxAge |
+| `src/lib/permissions.ts` | Authorization (RBAC) | CASL.js ability definitions for 4 roles × 10 actions |
+| `src/lib/rate-limit.ts` | DoS prevention | Sliding window rate limiting for auth/API/upload endpoints |
+| `src/lib/sanitize.ts` | XSS prevention | Remove sensitive fields, sanitize user input |
+| `src/lib/validations.ts` | Input validation | Zod schemas enforce type/length/format on all inputs |
+| `src/lib/two-factor.ts` | MFA security | TOTP 2FA via otplib, Google Authenticator compatible |
+| `src/lib/payments.ts` | Payment security | PayMongo webhook signature verification, amount validation |
+| `src/lib/storage.ts` | File security | Magic bytes validation, type whitelisting, virus scanning |
+| `src/lib/logger.ts` | Audit logging | Winston logger for security events, no PII in logs |
+

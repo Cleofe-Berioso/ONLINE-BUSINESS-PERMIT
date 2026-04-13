@@ -4,9 +4,9 @@
 
 This document catalogs all available skills and commands for the Online Business Permit System (OBPS), organized by domain and functionality.
 
-**Last Updated**: March 9, 2026
+**Last Updated**: April 12, 2026
 **Total Skills**: 22
-**Tech Stack**: Next.js 16 · React 19 · TypeScript 5.9 · Prisma 7 · PostgreSQL 16 · Tailwind CSS v4
+**Tech Stack**: Next.js 15.1.6 · React 19.0.0 · TypeScript 5.5.3 · Prisma 6.19.2 · PostgreSQL 16 · Tailwind CSS v4.0.0
 
 ---
 
@@ -579,30 +579,30 @@ npx prisma migrate deploy    # Apply migrations (production)
 
 ### Frontend
 
-- **Framework**: Next.js 16 (App Router, React Server Components)
-- **UI**: React 19 + TypeScript 5.9
-- **Styling**: Tailwind CSS v4 + CVA + tailwind-merge
-- **State**: Zustand 5 + TanStack React Query v5
-- **Forms**: React Hook Form 7 + Zod 4
-- **Icons**: Lucide React
-- **Toasts**: sonner
-- **Theme**: next-themes
+- **Framework**: Next.js 15.1.6 (App Router, React Server Components)
+- **UI**: React 19.0.0 + TypeScript 5.5.3
+- **Styling**: Tailwind CSS v4.0.0 + CVA v0.7.0 + tailwind-merge v2.5.0
+- **State**: Zustand 5.0.3 + TanStack React Query v5.51.0
+- **Forms**: React Hook Form 7.52.0 + Zod 3.23.8
+- **Icons**: Lucide React 0.445.0
+- **Toasts**: sonner 1.5.0
+- **Theme**: next-themes 0.4.4
 
 ### Backend (Next.js API Routes)
 
-- **Runtime**: Node.js 18+ (22.x recommended)
-- **Auth**: NextAuth v5 (Auth.js) with Credentials provider
-- **ORM**: Prisma 7 with `@prisma/adapter-pg`
+- **Runtime**: Node.js 22.x (Docker base: node:22-alpine)
+- **Auth**: NextAuth v5.0.0-beta.24 (Auth.js) with Credentials provider
+- **ORM**: Prisma Client 6.19.2 with `@prisma/adapter-pg` 7.5.0
 - **Database**: PostgreSQL 16
-- **Caching**: Redis (ioredis) with in-memory fallback
-- **Queue**: BullMQ (Redis-backed)
-- **Storage**: AWS SDK v3 (S3/MinIO) with local fallback
-- **Email**: Nodemailer (SMTP/Resend/SES)
-- **SMS**: Semaphore / Globe Labs
-- **Payments**: PayMongo (GCash, Maya)
-- **PDF**: QR code + HTML-to-PDF (Puppeteer)
-- **2FA**: otplib TOTP
-- **RBAC**: CASL.js
+- **Caching**: ioredis 5.4.1 with in-memory Map fallback
+- **Queue**: BullMQ 5.8.0 (Redis-backed, 5 job queues)
+- **Storage**: AWS SDK v3 S3 3.600.0 with MinIO support + local fallback
+- **Email**: Nodemailer 7.0.0 (SMTP/Resend/SES, 6 templates)
+- **SMS**: Semaphore / Globe Labs (5 req/min)
+- **Payments**: PayMongo (GCash, Maya, bank transfer, OTC, cash)
+- **PDF**: qrcode 1.5.3 + Puppeteer 23.0.0
+- **2FA**: otplib 12.0.1 TOTP
+- **RBAC**: CASL.js 6.7.1
 
 ### Testing
 

@@ -12,9 +12,9 @@ Write, optimize, and debug Prisma queries, migrations, and schema changes for th
 
 ## Context
 
-- **ORM**: Prisma 7 with `@prisma/adapter-pg` (PrismaPg driver adapter)
+- **ORM**: Prisma 6.19.2 with `@prisma/adapter-pg` (PrismaPg driver adapter)
 - **Database**: PostgreSQL 16 (via Docker or hosted)
-- **Schema**: `web/prisma/schema.prisma` (~500 lines, 16 models, 11 enums)
+- **Schema**: `web/prisma/schema.prisma` (490 lines, 16 models, 11 enums)
 - **Client**: `src/lib/prisma.ts` — singleton instance with `$extends`
 - **Config**: `web/prisma.config.ts` — Prisma config with PrismaPg adapter
 
@@ -148,6 +148,17 @@ npx prisma studio
 3. Use `prisma.$transaction()` for atomic multi-model operations
 4. Leverage Redis caching (`src/lib/cache.ts`) for frequently read, rarely written data
 5. Use cursor-based pagination for large datasets (not offset)
+
+## Related Lib Modules
+
+| Module | Purpose | Database Connection |
+|--------|---------|-------------------|
+| `src/lib/cache.ts` | Redis + in-memory caching | Cache query results, hot data |
+| `src/lib/schedules.ts` | Schedule domain logic | ClaimSchedule, TimeSlot, SlotReservation queries |
+| `src/lib/government-api.ts` | DTI/BIR/SEC integration | Verify registration data across models |
+| `src/lib/queue.ts` | BullMQ background jobs | Process async database operations |
+| `src/lib/email.ts` | Notifications system | Send emails triggered by database changes |
+| `src/lib/sms.ts` | SMS notifications | Send SMS on application status changes |
 6. Use `@@index` in schema for composite query patterns
 7. Monitor with `prisma.$on('query')` in development
 

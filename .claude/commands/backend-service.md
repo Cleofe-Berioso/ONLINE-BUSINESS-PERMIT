@@ -12,14 +12,14 @@ Create, modify, and debug Next.js App Router API routes for the Online Business 
 
 ## Context
 
-- **Framework**: Next.js 16 App Router (route handlers in `src/app/api/`)
-- **ORM**: Prisma 7 with `@prisma/adapter-pg` (PrismaPg adapter)
-- **Validation**: Zod 4 schemas in `src/lib/validations.ts`
-- **Auth**: NextAuth v5 — `auth()` for server, Edge-safe config split
-- **RBAC**: CASL.js in `src/lib/permissions.ts` (4 roles × 10 actions × 10 subjects)
+- **Framework**: Next.js 15.1.6 App Router (route handlers in `src/app/api/`)
+- **ORM**: Prisma 6.19.2 with `@prisma/adapter-pg` (PrismaPg adapter)
+- **Validation**: Zod 3.23.8 schemas in `src/lib/validations.ts`
+- **Auth**: NextAuth v5.0.0-beta.24 — `auth()` for server, Edge-safe config split
+- **RBAC**: CASL.js 6.7.1 in `src/lib/permissions.ts` (4 roles × 10 actions × 10 subjects)
 - **Database**: PostgreSQL 16 — schema in `web/prisma/schema.prisma`
-- **Cache**: Redis (ioredis) with in-memory Map fallback (`src/lib/cache.ts`)
-- **Queue**: BullMQ for background jobs (`src/lib/queue.ts`)
+- **Cache**: Redis (ioredis 5.4.1) with in-memory Map fallback (`src/lib/cache.ts`)
+- **Queue**: BullMQ 5.8.0 for background jobs (`src/lib/queue.ts`)
 
 ## Architecture Rules
 
@@ -89,14 +89,30 @@ export async function POST(request: NextRequest) {
 | `/api/issuance/*`      | Manage permit issuance lifecycle                           |
 | `/api/admin/*`         | Users CRUD, settings, reports                              |
 | `/api/analytics/*`     | Dashboard analytics data                                   |
-| `/api/events`          | SSE real-time event stream                                 |
-| `/api/notifications/*` | In-app notification management                             |
+| `/api/events`          | SSE real-time event stream (for notifications)             |
 | `/api/cron/*`          | Scheduled tasks (expire holds/permits)                     |
 | `/api/public/*`        | Unauthenticated endpoints (verify-permit, track)           |
 
 ## Prisma Models (16 total)
 
 User, Application, ApplicationHistory, Document, Payment, Permit, PermitIssuance, ClaimSchedule, TimeSlot, SlotReservation, ClaimReference, ReviewAction, SystemSetting, Notification, AuditLog, VerificationToken
+
+## Additional Lib Modules
+
+| Module | Purpose | When to Use |
+|--------|---------|------------|
+| `src/lib/email.ts` | Nodemailer for SMTP/Resend/SES | Send permit confirmations, payment receipts |
+| `src/lib/sms.ts` | Semaphore/Globe SMS delivery | OTP codes, appointment reminders |
+| `src/lib/pdf.ts` | Puppeteer PDF generation | Generate permits, reports, documentation |
+| `src/lib/storage.ts` | S3/MinIO + local filesystem | Upload/download documents, permit files |
+| `src/lib/payments.ts` | PayMongo integration | GCash, Maya, bank transfer processing |
+| `src/lib/two-factor.ts` | TOTP 2FA (otplib) | Multi-factor authentication setup |
+| `src/lib/sse.ts` | Server-Sent Events | Real-time application status updates |
+| `src/lib/government-api.ts` | DTI/BIR/SEC integration | Government registration verification |
+| `src/lib/i18n.ts` | next-intl configuration | Multi-language support (EN/FIL) |
+| `src/lib/schedules.ts` | Schedule domain logic | Permit claim schedule management |
+| `src/lib/stores.ts` | Zustand stores | Notifications, UI state management |
+| `src/lib/monitoring.ts` | Sentry + Prometheus | Error tracking, performance metrics |
 
 ## Checklist
 

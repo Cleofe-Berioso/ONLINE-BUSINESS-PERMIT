@@ -4,18 +4,19 @@
     "application": "Online Business Permit System",
     "description": "Business Permit Application & Management System for Philippine LGUs",
     "version": "v1.0.0",
-    "generatedAt": "2026-03-09",
+    "generatedAt": "2026-04-12",
     "totalWorkflows": 24,
+    "totalApiRoutes": 46,
     "techStack": {
-      "framework": "Next.js 16 (App Router)",
-      "frontend": "React 19 + TypeScript 5.9 + Tailwind CSS v4",
-      "orm": "Prisma 7 with @prisma/adapter-pg",
+      "framework": "Next.js 15.1.6 (App Router)",
+      "frontend": "React 19.0.0 + TypeScript 5.5.3 + Tailwind CSS v4.0.0",
+      "orm": "Prisma 6.19.2 with @prisma/adapter-pg 7.5.0",
       "database": "PostgreSQL 16",
-      "auth": "NextAuth v5 (Auth.js) — JWT strategy",
+      "auth": "NextAuth v5.0.0-beta.24 (Auth.js) — JWT strategy",
       "realtime": "Server-Sent Events (SSE)",
-      "payments": "PayMongo (GCash, Maya)",
-      "storage": "S3/MinIO with local fallback",
-      "deployment": "Docker (standalone build)"
+      "payments": "PayMongo (GCash, Maya, Bank Transfer, OTC, Cash)",
+      "storage": "AWS SDK v3 S3 + MinIO with local fallback",
+      "deployment": "Docker (Node.js 22-alpine standalone)"
     }
   },
   "summary": {

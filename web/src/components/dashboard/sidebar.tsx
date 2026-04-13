@@ -4,38 +4,32 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  UserPlus,
   FileText,
-  Clock,
+  RefreshCw,
+  FolderOpen,
   CalendarCheck,
-  Upload,
-  CheckSquare,
-  BarChart3,
-  Users,
-  Settings,
-  Shield,
-  Printer,
-  Tag,
+  File,
+  Bell,
+  User,
   X,
-  ClipboardList,
   ChevronLeft,
   ChevronRight,
+  Users,
+  ClipboardList,
+  CheckSquare,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Role } from "@prisma/client";
 
 interface SidebarProps {
   user: {
-    role: Role;
     firstName: string;
     lastName: string;
   };
-  /** Mobile drawer: whether the sidebar is open */
   isOpen?: boolean;
-  /** Mobile drawer: callback to close the sidebar */
   onClose?: () => void;
-  /** Desktop: whether the sidebar is in collapsed (icon-only) mode */
   collapsed?: boolean;
-  /** Desktop: callback to toggle collapsed state */
   onToggleCollapse?: () => void;
 }
 
@@ -43,149 +37,320 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
-  roles: Role[];
 }
 
-const navItems: NavItem[] = [
+// ── APPLICANT NAVIGATION ──
+const applicantMainNav: NavItem[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
-    roles: ["APPLICANT", "STAFF", "REVIEWER", "ADMINISTRATOR"],
   },
-  // Applicant
+  {
+    label: "Enroll Business",
+    href: "/dashboard/enroll",
+    icon: <UserPlus className="h-5 w-5" />,
+  },
+  {
+    label: "Apply for Permit",
+    href: "/dashboard/apply",
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    label: "Renew Permit",
+    href: "/dashboard/renew",
+    icon: <RefreshCw className="h-5 w-5" />,
+  },
   {
     label: "My Applications",
     href: "/dashboard/applications",
-    icon: <FileText className="h-5 w-5" />,
-    roles: ["APPLICANT"],
+    icon: <FolderOpen className="h-5 w-5" />,
   },
   {
-    label: "Track Status",
-    href: "/dashboard/tracking",
-    icon: <Clock className="h-5 w-5" />,
-    roles: ["APPLICANT"],
-  },
-  {
-    label: "My Documents",
-    href: "/dashboard/documents",
-    icon: <Upload className="h-5 w-5" />,
-    roles: ["APPLICANT"],
-  },
-  {
-    label: "Schedule Claiming",
+    label: "Claim Schedule",
     href: "/dashboard/schedule",
     icon: <CalendarCheck className="h-5 w-5" />,
-    roles: ["APPLICANT"],
+  },
+];
+
+const applicantAccountNav: NavItem[] = [
+  {
+    label: "Documents",
+    href: "/dashboard/documents",
+    icon: <File className="h-5 w-5" />,
   },
   {
-    label: "Claim Reference",
-    href: "/dashboard/claim-reference",
-    icon: <Tag className="h-5 w-5" />,
-    roles: ["APPLICANT"],
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: <Bell className="h-5 w-5" />,
   },
-  // Staff & Reviewer
   {
-    label: "Review Applications",
-    href: "/dashboard/review",
-    icon: <CheckSquare className="h-5 w-5" />,
-    roles: ["STAFF", "REVIEWER", "ADMINISTRATOR"],
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: <User className="h-5 w-5" />,
+  },
+];
+
+// ── STAFF NAVIGATION ──
+const staffMainNav: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
     label: "Verify Documents",
     href: "/dashboard/verify-documents",
-    icon: <Upload className="h-5 w-5" />,
-    roles: ["STAFF", "REVIEWER"],
-  },
-  {
-    label: "Claims Processing",
-    href: "/dashboard/claims",
-    icon: <Tag className="h-5 w-5" />,
-    roles: ["STAFF", "ADMINISTRATOR"],
-  },
-  {
-    label: "Permit Issuance",
-    href: "/dashboard/issuance",
-    icon: <Printer className="h-5 w-5" />,
-    roles: ["STAFF", "ADMINISTRATOR"],
-  },
-  // Admin
-  {
-    label: "Manage Users",
-    href: "/dashboard/admin/users",
-    icon: <Users className="h-5 w-5" />,
-    roles: ["ADMINISTRATOR"],
+    icon: <CheckSquare className="h-5 w-5" />,
   },
   {
     label: "Manage Schedules",
     href: "/dashboard/admin/schedules",
     icon: <CalendarCheck className="h-5 w-5" />,
-    roles: ["ADMINISTRATOR"],
+  },
+  {
+    label: "Process Claims",
+    href: "/dashboard/claims",
+    icon: <ClipboardList className="h-5 w-5" />,
+  },
+  {
+    label: "Issue Permits",
+    href: "/dashboard/issuance",
+    icon: <FileText className="h-5 w-5" />,
+  },
+];
+
+const staffAccountNav: NavItem[] = [
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: <Bell className="h-5 w-5" />,
+  },
+  {
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: <User className="h-5 w-5" />,
+  },
+];
+
+// ── REVIEWER NAVIGATION ──
+const reviewerMainNav: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    label: "Review Queue",
+    href: "/dashboard/review",
+    icon: <ClipboardList className="h-5 w-5" />,
+  },
+  {
+    label: "Applications",
+    href: "/dashboard/admin/applications",
+    icon: <FolderOpen className="h-5 w-5" />,
   },
   {
     label: "Reports",
     href: "/dashboard/admin/reports",
-    icon: <BarChart3 className="h-5 w-5" />,
-    roles: ["ADMINISTRATOR"],
-  },  {
-    label: "System Settings",
+    icon: <FileText className="h-5 w-5" />,
+  },
+];
+
+const reviewerAccountNav: NavItem[] = [
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: <Bell className="h-5 w-5" />,
+  },
+  {
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: <User className="h-5 w-5" />,
+  },
+];
+
+// ── ADMIN NAVIGATION ──
+const adminMainNav: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    label: "Users",
+    href: "/dashboard/admin/users",
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    label: "Applications",
+    href: "/dashboard/admin/applications",
+    icon: <FolderOpen className="h-5 w-5" />,
+  },
+  {
+    label: "Schedules",
+    href: "/dashboard/admin/schedules",
+    icon: <CalendarCheck className="h-5 w-5" />,
+  },
+  {
+    label: "Enrollment",
+    href: "/dashboard/admin/enrollment",
+    icon: <UserPlus className="h-5 w-5" />,
+  },
+];
+
+const adminAccountNav: NavItem[] = [
+  {
+    label: "Settings",
     href: "/dashboard/admin/settings",
     icon: <Settings className="h-5 w-5" />,
-    roles: ["ADMINISTRATOR"],
   },
   {
     label: "Audit Logs",
     href: "/dashboard/admin/audit-logs",
+    icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    label: "Reports",
+    href: "/dashboard/admin/reports",
     icon: <ClipboardList className="h-5 w-5" />,
-    roles: ["ADMINISTRATOR"],
+  },
+  {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: <Bell className="h-5 w-5" />,
+  },
+  {
+    label: "Profile",
+    href: "/dashboard/profile",
+    icon: <User className="h-5 w-5" />,
   },
 ];
 
-function SidebarContent({
-  user,
-  onClose,
+// ── SHARED COMPONENTS ──
+function NavGroup({
+  label,
+  items,
+  pathname,
   collapsed,
-  onToggleCollapse,
+  onClose,
 }: {
+  label: string;
+  items: NavItem[];
+  pathname: string;
+  collapsed?: boolean;
+  onClose?: () => void;
+}) {
+  return (
+    <div className="mb-4">
+      {!collapsed && (
+        <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-gray-500">
+          {label}
+        </p>
+      )}
+      <ul className="space-y-0.5">
+        {items.map((item) => {
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                title={collapsed ? item.label : undefined}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  collapsed && "justify-center px-2",
+                  isActive
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                {item.icon}
+                {!collapsed && item.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+interface SidebarContentProps {
   user: SidebarProps["user"];
+  mainNav: NavItem[];
+  accountNav: NavItem[];
+  roleLabel: string;
   onClose?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
-}) {
+}
+
+function SidebarContent({
+  user,
+  mainNav,
+  accountNav,
+  roleLabel,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarContentProps) {
   const pathname = usePathname();
-  const filteredItems = navItems.filter((item) => item.roles.includes(user.role));
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className={cn(
-        "flex items-center border-b border-gray-200 dark:border-gray-700 py-4",
-        collapsed ? "justify-center px-2" : "justify-between px-6"
-      )}>
-        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-          <Shield className="h-8 w-8 flex-shrink-0 text-blue-600" />
-          {!collapsed && (
-            <div>
-              <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100">Business Permit</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">System</p>
+    <div className="flex h-full flex-col bg-[#1a2035]">
+      {/* ── Header ── */}
+      <div
+        className={cn(
+          "flex items-center border-b border-white/10 py-4",
+          collapsed ? "justify-center px-2" : "justify-between px-4"
+        )}
+      >
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white flex-shrink-0">
+              {user.firstName[0]}
+              {user.lastName[0]}
             </div>
-          )}
-        </div>
-        {/* Close button — only shown in mobile drawer */}
+            <div>
+              <p className="text-sm font-semibold text-white leading-tight">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="text-[11px] text-gray-400 leading-tight">
+                {roleLabel}
+              </p>
+            </div>
+          </div>
+        )}
+        {collapsed && (
+          <div
+            title={`${user.firstName} ${user.lastName}`}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white"
+          >
+            {user.firstName[0]}
+            {user.lastName[0]}
+          </div>
+        )}
+
+        {/* Close — mobile */}
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
           </button>
         )}
-        {/* Collapse toggle — only on desktop */}
+
+        {/* Collapse — desktop */}
         {onToggleCollapse && !onClose && (
           <button
             onClick={onToggleCollapse}
-            className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:block"
+            className="hidden rounded-lg p-1.5 text-gray-400 hover:bg-white/10 lg:block"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
@@ -197,85 +362,64 @@ function SidebarContent({
         )}
       </div>
 
-      {/* Navigation */}
+      {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="space-y-1">
-          {filteredItems.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  title={collapsed ? item.label : undefined}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    collapsed && "justify-center px-2",
-                    isActive
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
-                  )}
-                >
-                  {item.icon}
-                  {!collapsed && item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <NavGroup
+          label="Main"
+          items={mainNav}
+          pathname={pathname}
+          collapsed={collapsed}
+          onClose={onClose}
+        />
+        <NavGroup
+          label="Account"
+          items={accountNav}
+          pathname={pathname}
+          collapsed={collapsed}
+          onClose={onClose}
+        />
       </nav>
-
-      {/* User Info */}
-      {!collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
-              {user.firstName[0]}
-              {user.lastName[0]}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-                {user.firstName} {user.lastName}
-              </p>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400 capitalize">
-                {user.role.toLowerCase().replace("_", " ")}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      {collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700 px-2 py-4 flex justify-center">
-          <div
-            title={`${user.firstName} ${user.lastName}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700"
-          >
-            {user.firstName[0]}
-            {user.lastName[0]}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
+// ── SHARED SIDEBAR LAYOUTS ──
+interface RoleSidebarProps extends SidebarProps {
+  mainNav: NavItem[];
+  accountNav: NavItem[];
+  roleLabel: string;
+}
+
+function RoleSidebar({
+  user,
+  mainNav,
+  accountNav,
+  roleLabel,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: RoleSidebarProps) {
   return (
     <>
-      {/* ── Desktop sidebar (always visible on lg+) ── */}
+      {/* ── Desktop ── */}
       <aside
         className={cn(
-          "hidden flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 lg:block",
-          collapsed ? "w-16" : "w-64"
+          "hidden flex-shrink-0 border-r border-white/10 bg-[#1a2035] transition-all duration-300 lg:block",
+          collapsed ? "w-16" : "w-56"
         )}
       >
-        <SidebarContent user={user} collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
+        <SidebarContent
+          user={user}
+          mainNav={mainNav}
+          accountNav={accountNav}
+          roleLabel={roleLabel}
+          collapsed={collapsed}
+          onToggleCollapse={onToggleCollapse}
+        />
       </aside>
 
-      {/* ── Mobile drawer overlay ── */}
+      {/* ── Mobile overlay ── */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -284,15 +428,106 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
         />
       )}
 
-      {/* ── Mobile drawer panel ── */}
+      {/* ── Mobile drawer ── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 flex-shrink-0 border-r border-gray-200 bg-white dark:bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-56 flex-shrink-0 bg-[#1a2035] shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <SidebarContent user={user} onClose={onClose} />
+        <SidebarContent
+          user={user}
+          mainNav={mainNav}
+          accountNav={accountNav}
+          roleLabel={roleLabel}
+          onClose={onClose}
+        />
       </aside>
     </>
+  );
+}
+
+// ── ROLE-SPECIFIC SIDEBARS ──
+export function ApplicantSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={applicantMainNav}
+      accountNav={applicantAccountNav}
+      roleLabel="Applicant"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+
+export function StaffSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={staffMainNav}
+      accountNav={staffAccountNav}
+      roleLabel="Staff"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+
+export function ReviewerSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={reviewerMainNav}
+      accountNav={reviewerAccountNav}
+      roleLabel="Reviewer"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+
+export function AdminSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={adminMainNav}
+      accountNav={adminAccountNav}
+      roleLabel="Administrator"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
   );
 }
