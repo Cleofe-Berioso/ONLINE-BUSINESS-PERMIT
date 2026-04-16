@@ -15,6 +15,8 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const files = formData.getAll("files") as File[];
     const applicationId = formData.get("applicationId") as string;
+    // CRITICAL FIX #9: Require explicit document type instead of inferring from filename
+    const documentTypes = formData.getAll("documentTypes") as string[];
 
     if (!applicationId) {
       return NextResponse.json(
@@ -26,6 +28,18 @@ export async function POST(request: Request) {
     if (files.length === 0) {
       return NextResponse.json(
         { error: "At least one file is required" },
+        { status: 400 }
+      );
+    }
+
+    // CRITICAL FIX #9: Validate documentTypes array length matches files
+    if (documentTypes.length !== files.length) {
+      return NextResponse.json(
+        {
+          error: "Document type must be specified for each file",
+          expectedCount: files.length,
+          providedCount: documentTypes.length,
+        },
         { status: 400 }
       );
     }
@@ -51,8 +65,30 @@ export async function POST(request: Request) {
 
     const documents = [];
     const errors = [];
+    const VALID_DOCUMENT_TYPES = [
+      "DTI_SEC_REGISTRATION",
+      "BARANGAY_CLEARANCE",
+      "ZONING_CLEARANCE",
+      "FIRE_SAFETY_CERTIFICATE",
+      "SANITARY_PERMIT",
+      "COMMUNITY_TAX_CERTIFICATE",
+      "VALID_ID",
+      "LEASE_CONTRACT",
+      "OTHER",
+    ];
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const documentType = documentTypes[i];
+
+      // CRITICAL FIX #9: Validate document type is in allowed list
+      if (!VALID_DOCUMENT_TYPES.includes(documentType)) {
+        errors.push(
+          `${file.name}: Invalid document type "${documentType}". Allowed types: ${VALID_DOCUMENT_TYPES.join(", ")}`
+        );
+        continue;
+      }
+
       // Validate file type and size
       if (!ALLOWED_FILE_TYPES.includes(file.type)) {
         errors.push(`${file.name}: Invalid file type`);
@@ -84,6 +120,7 @@ export async function POST(request: Request) {
           applicationId,
           uploadedBy: session.user.id,
           originalName: file.name,
+          documentType, // Track explicitly provided type
         },
       });
 
@@ -92,6 +129,10 @@ export async function POST(request: Request) {
         continue;
       }
 
+<<<<<<< Updated upstream
+=======
+      // CRITICAL FIX #9: Use explicitly provided type, don't infer
+>>>>>>> Stashed changes
       const doc = await prisma.document.create({
         data: {
           applicationId,
@@ -101,7 +142,11 @@ export async function POST(request: Request) {
           mimeType: file.type,
           fileSize: buffer.length,
           filePath: storagePath,
+<<<<<<< Updated upstream
           documentType: inferDocumentType(file.name),
+=======
+          documentType, // Use provided type, not inferred
+>>>>>>> Stashed changes
           status: "UPLOADED",
         },
       });
@@ -134,21 +179,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-function inferDocumentType(fileName: string): string {
-  const lower = fileName.toLowerCase();
-  if (lower.includes("dti") || lower.includes("sec") || lower.includes("cda"))
-    return "DTI_SEC_REGISTRATION";
-  if (lower.includes("barangay")) return "BARANGAY_CLEARANCE";
-  if (lower.includes("zoning")) return "ZONING_CLEARANCE";
-  if (lower.includes("fire")) return "FIRE_SAFETY_CERTIFICATE";
-  if (lower.includes("sanitary") || lower.includes("health"))
-    return "SANITARY_PERMIT";
-  if (lower.includes("cedula") || lower.includes("ctc"))
-    return "COMMUNITY_TAX_CERTIFICATE";
-  if (lower.includes("id")) return "VALID_ID";
-  if (lower.includes("lease") || lower.includes("title"))
-    return "LEASE_CONTRACT";
-  return "OTHER";
 }

@@ -12,6 +12,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { captureException } from "@/lib/monitoring";
+import { enqueueEmail } from "@/lib/queue";
+import { broadcastPermitExpired } from "@/lib/sse";
 
 export const dynamic = "force-dynamic";
 
@@ -29,20 +31,24 @@ export async function GET(request: Request) {
     const now = new Date();
 
     // Find all ACTIVE permits that have passed their expiry date
+    // Include applicant details for email notifications
     const expired = await prisma.permit.findMany({
       where: {
         status: "ACTIVE",
         expiryDate: { lt: now },
       },
-      select: {
-        id: true,
-        permitNumber: true,
-        expiryDate: true,
+      include: {
         application: {
-          select: {
-            applicantId: true,
-            businessName: true,
-          },
+          include: {
+            applicant: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
         },
       },
     });
@@ -63,26 +69,71 @@ export async function GET(request: Request) {
       data: { status: "EXPIRED" },
     });
 
-    // Log activity for each expired permit
+    // Log activity and send notifications for each expired permit
+    const activityLogs = expired.map((p) => ({
+      action: "PERMIT_EXPIRED",
+      entity: "Permit",
+      entityId: p.id,
+      userId: p.application.applicantId,
+      details: {
+        permitNumber: p.permitNumber,
+        expiredAt: now.toISOString(),
+        businessName: p.application.businessName,
+      },
+    }));
+
     await prisma.activityLog.createMany({
-      data: expired.map((p) => ({
-        action: "PERMIT_EXPIRED",
-        entity: "Permit",
-        entityId: p.id,
-        userId: p.application.applicantId,
-        details: {
-          permitNumber: p.permitNumber,
-          expiredAt: now.toISOString(),
-          businessName: p.application.businessName,
-        },
-      })),
+      data: activityLogs,
       skipDuplicates: true,
     });
 
-    logger.info(`[cron/expire-permits] Successfully expired ${result.count} permit(s)`);
+    // CRITICAL FIX #7: Queue email notifications in batch instead of loop (N+1 prevention)
+    // Use enqueueEmail for each permit instead of sending synchronously
+    let successfulEmails = 0;
+    for (const permit of expired) {
+      try {
+        if (permit.application.applicant.email) {
+          const jobId = await enqueueEmail({
+            type: "permit_expiry",
+            to: permit.application.applicant.email,
+            data: {
+              applicantName: permit.application.applicant.firstName || "Permit Holder",
+              permitNumber: permit.permitNumber,
+              businessName: permit.application.businessName || "Your Business",
+              expiryDate: permit.expiryDate.toLocaleDateString("en-PH"),
+            },
+          });
+          if (jobId) successfulEmails++;
+        }
+      } catch (emailError) {
+        logger.error(
+          `[cron/expire-permits] Email queue failed for ${permit.permitNumber}:`,
+          emailError
+        );
+      }
+    }
+
+    // SSE broadcasts (fire and forget)
+    for (const permit of expired) {
+      try {
+        void broadcastPermitExpired(
+          permit.application.applicantId,
+          permit.permitNumber,
+          permit.application.businessName || "Your Business"
+        );
+      } catch (sseError) {
+        logger.error(
+          `[cron/expire-permits] SSE error for ${permit.permitNumber}:`,
+          sseError
+        );
+      }
+    }
+
+    logger.info(`[cron/expire-permits] Successfully expired ${result.count} permit(s), queued ${successfulEmails} email(s)`);
     return NextResponse.json({
       expired: result.count,
       message: `Expired ${result.count} permit(s)`,
+      emailsQueued: successfulEmails,
       permits: expired.map((p) => ({
         id: p.id,
         permitNumber: p.permitNumber,

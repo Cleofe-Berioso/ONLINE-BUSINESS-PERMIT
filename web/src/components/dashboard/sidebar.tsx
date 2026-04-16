@@ -37,6 +37,7 @@ interface SidebarProps {
   collapsed?: boolean;
   /** Desktop: callback to toggle collapsed state */
   onToggleCollapse?: () => void;
+  isRenewalEligible?: boolean;
 }
 
 interface NavItem {
@@ -46,6 +47,7 @@ interface NavItem {
   roles: Role[];
 }
 
+<<<<<<< Updated upstream
 const navItems: NavItem[] = [
   {
     label: "Dashboard",
@@ -77,6 +79,14 @@ const navItems: NavItem[] = [
     href: "/dashboard/schedule",
     icon: <CalendarCheck className="h-5 w-5" />,
     roles: ["APPLICANT"],
+=======
+// ── APPLICANT ACCOUNT NAVIGATION ──
+const applicantAccountNav: NavItem[] = [
+  {
+    label: "Documents",
+    href: "/dashboard/documents",
+    icon: <File className="h-5 w-5" />,
+>>>>>>> Stashed changes
   },
   {
     label: "Claim Reference",
@@ -156,6 +166,7 @@ function SidebarContent({
   const filteredItems = navItems.filter((item) => item.roles.includes(user.role));
 
   return (
+<<<<<<< Updated upstream
     <div className="flex h-full flex-col">
       {/* Logo */}
       <div className={cn(
@@ -172,6 +183,42 @@ function SidebarContent({
           )}
         </div>
         {/* Close button — only shown in mobile drawer */}
+=======
+    <div className="flex h-full flex-col bg-[#1a2035]">
+      <div
+        className={cn(
+          "flex items-center border-b border-white/10 py-4",
+          collapsed ? "justify-center px-2" : "justify-between px-4"
+        )}
+      >
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+              {user.firstName[0]}
+              {user.lastName[0]}
+            </div>
+            <div>
+              <p className="text-sm font-semibold leading-tight text-white">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="text-[11px] leading-tight text-gray-400">
+                {roleLabel}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {collapsed && (
+          <div
+            title={`${user.firstName} ${user.lastName}`}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white"
+          >
+            {user.firstName[0]}
+            {user.lastName[0]}
+          </div>
+        )}
+
+>>>>>>> Stashed changes
         {onClose && (
           <button
             onClick={onClose}
@@ -181,7 +228,11 @@ function SidebarContent({
             <X className="h-5 w-5" />
           </button>
         )}
+<<<<<<< Updated upstream
         {/* Collapse toggle — only on desktop */}
+=======
+
+>>>>>>> Stashed changes
         {onToggleCollapse && !onClose && (
           <button
             onClick={onToggleCollapse}
@@ -197,7 +248,10 @@ function SidebarContent({
         )}
       </div>
 
+<<<<<<< Updated upstream
       {/* Navigation */}
+=======
+>>>>>>> Stashed changes
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-1">
           {filteredItems.map((item) => {
@@ -265,7 +319,10 @@ function SidebarContent({
 export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   return (
     <>
+<<<<<<< Updated upstream
       {/* ── Desktop sidebar (always visible on lg+) ── */}
+=======
+>>>>>>> Stashed changes
       <aside
         className={cn(
           "hidden flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 lg:block",
@@ -275,7 +332,10 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
         <SidebarContent user={user} collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
       </aside>
 
+<<<<<<< Updated upstream
       {/* ── Mobile drawer overlay ── */}
+=======
+>>>>>>> Stashed changes
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -284,7 +344,10 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
         />
       )}
 
+<<<<<<< Updated upstream
       {/* ── Mobile drawer panel ── */}
+=======
+>>>>>>> Stashed changes
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72 flex-shrink-0 border-r border-gray-200 bg-white dark:bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
@@ -296,3 +359,124 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
     </>
   );
 }
+<<<<<<< Updated upstream
+=======
+
+// ── ROLE-SPECIFIC SIDEBARS ──
+export function ApplicantSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+  isRenewalEligible = false,
+}: SidebarProps) {
+  const mainNav: NavItem[] = [
+    {
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      label: "Apply for Permit",
+      href: "/dashboard/apply",
+      icon: <FileText className="h-5 w-5" />,
+    },
+    ...(isRenewalEligible
+      ? [
+          {
+            label: "Renew Permit",
+            href: "/dashboard/renew",
+            icon: <RefreshCw className="h-5 w-5" />,
+          },
+        ]
+      : []),
+    {
+      label: "My Applications",
+      href: "/dashboard/applications",
+      icon: <FolderOpen className="h-5 w-5" />,
+    },
+    {
+      label: "Claim Schedule",
+      href: "/dashboard/schedule",
+      icon: <CalendarCheck className="h-5 w-5" />,
+    },
+  ];
+
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={mainNav}
+      accountNav={applicantAccountNav}
+      roleLabel="Applicant"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+
+export function StaffSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={staffMainNav}
+      accountNav={staffAccountNav}
+      roleLabel="Staff"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+
+export function ReviewerSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={reviewerMainNav}
+      accountNav={reviewerAccountNav}
+      roleLabel="Reviewer"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+
+export function AdminSidebar({
+  user,
+  isOpen,
+  onClose,
+  collapsed,
+  onToggleCollapse,
+}: SidebarProps) {
+  return (
+    <RoleSidebar
+      user={user}
+      mainNav={adminMainNav}
+      accountNav={adminAccountNav}
+      roleLabel="Administrator"
+      isOpen={isOpen}
+      onClose={onClose}
+      collapsed={collapsed}
+      onToggleCollapse={onToggleCollapse}
+    />
+  );
+}
+>>>>>>> Stashed changes

@@ -27,30 +27,30 @@ async function checkA11y(
     .analyze();
 
   // Generate a readable report of violations
-  const violations = results.violations.map((v) => ({
+  const violations = results.violations.map((v: any) => ({
     id: v.id,
     impact: v.impact,
     description: v.description,
     helpUrl: v.helpUrl,
     nodes: v.nodes.length,
-    targets: v.nodes.slice(0, 3).map((n) => n.target.join(" > ")),
+    targets: v.nodes.slice(0, 3).map((n: any) => n.target.join(" > ")),
   }));
 
   if (violations.length > 0) {
     console.log(
       `\n⚠️ ${description} — ${violations.length} accessibility violations:\n`
     );
-    violations.forEach((v) => {
+    violations.forEach((v: any) => {
       console.log(`  [${v.impact?.toUpperCase()}] ${v.id}: ${v.description}`);
       console.log(`    Help: ${v.helpUrl}`);
       console.log(`    Affected: ${v.nodes} element(s)`);
-      v.targets.forEach((t) => console.log(`      → ${t}`));
+      v.targets.forEach((t: any) => console.log(`      → ${t}`));
     });
   }
 
   // Fail on critical/serious violations only
   const critical = results.violations.filter(
-    (v) => v.impact === "critical" || v.impact === "serious"
+    (v: any) => v.impact === "critical" || v.impact === "serious"
   );
   expect(critical, `${description} has critical a11y violations`).toHaveLength(0);
 }
@@ -120,7 +120,7 @@ test.describe("Accessibility — Color Contrast", () => {
       .analyze();
 
     const contrastViolations = results.violations.filter(
-      (v) => v.id === "color-contrast"
+      (v: any) => v.id === "color-contrast"
     );
 
     expect(contrastViolations).toHaveLength(0);

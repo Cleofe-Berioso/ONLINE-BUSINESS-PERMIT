@@ -57,6 +57,8 @@ model User {
   slotReservations  SlotReservation[]
   claimReferences   ClaimReference[]  @relation("GeneratedClaimReferences")
   payments          Payment[]         @relation("UserPayments")
+  checkInsAsApplicant CheckInRecord[]  @relation("CheckInAsApplicant")
+  checkInsAsStaff    CheckInRecord[]   @relation("CheckInByStaff")
 
   @@index([email])
   @@index([role])
@@ -319,6 +321,7 @@ model SlotReservation {
   timeSlot           TimeSlot          @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
   application        Application       @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkIn            CheckInRecord?    // For IDOR prevention
 
   @@index([timeSlotId])
   @@index([userId])
@@ -488,4 +491,50 @@ model Payment {
   @@index([status])
   @@index([transactionId])
   @@map("payments")
+}
+
+// ============================================================================
+// WEBHOOK TRACKING (Critical for Idempotency)
+// ============================================================================
+model WebhookLog {
+  id                  String   @id @default(cuid())
+  paymongoWebhookId   String   @unique  // PayMongo's unique webhook ID
+  eventType           String              // "payment.succeeded", etc.
+  status              String   @default("PROCESSED")  // PROCESSED, FAILED, PENDING
+  result              Json?               // { permitId, issuanceId, etc. }
+  errorMessage        String?
+  retryCount          Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([paymongoWebhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// ============================================================================
+// CHECK-IN VERIFICATION (Critical for IDOR Prevention)
+// ============================================================================
+model CheckInRecord {
+  id                  String   @id @default(cuid())
+  reservationId       String   @unique
+  applicantId         String
+  verifiedBy          String?  // Staff ID who verified
+
+  idType              String?  // NATIONAL_ID, PASSPORT, DRIVER_LICENSE, etc.
+  idNumber            String?
+  verificationStatus  String   @default("PENDING")  // PENDING, VERIFIED, REJECTED
+
+  notes               String?
+  createdAt           DateTime @default(now())
+  verifiedAt          DateTime?
+
+  reservation         SlotReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  applicant           User     @relation("CheckInAsApplicant", fields: [applicantId], references: [id], onDelete: Cascade)
+  staff               User?    @relation("CheckInByStaff", fields: [verifiedBy], references: [id], onDelete: SetNull)
+
+  @@index([applicantId])
+  @@index([verificationStatus])
+  @@map("check_in_records")
 }

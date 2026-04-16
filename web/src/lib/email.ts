@@ -338,3 +338,188 @@ export async function sendPermitExpiryReminderEmail(
     html: emailLayout('Permit Expiry', body),
   });
 }
+<<<<<<< Updated upstream
+=======
+
+export async function sendClearanceUpdateEmail(
+  to: string,
+  applicantName: string,
+  officeName: string,
+  status: string,
+  remarks?: string,
+  applicationNumber?: string
+): Promise<void> {
+  const statusLabels: Record<string, string> = {
+    CLEARED: '✅ Cleared',
+    WITH_DEFICIENCY: '⚠️ With Deficiency',
+    FOR_FURTHER_INSPECTION: '🔍 For Further Inspection',
+  };
+
+  const statusExplanations: Record<string, string> = {
+    CLEARED: 'Your application has been cleared by the required office.',
+    WITH_DEFICIENCY: 'The clearance office has identified some deficiencies that need to be addressed.',
+    FOR_FURTHER_INSPECTION: 'Your application requires further inspection before clearance.',
+  };
+
+  const body = `
+    <h2>Clearance Status Update ${statusLabels[status] || ''}</h2>
+    <p>Dear ${applicantName},</p>
+    <p>${statusExplanations[status] || 'Your clearance status has been updated.'}</p>
+    <table class="details">
+      <tr><td>Application Number</td><td><strong>${applicationNumber || 'N/A'}</strong></td></tr>
+      <tr><td>Clearance Office</td><td><strong>${officeName}</strong></td></tr>
+      <tr><td>Status</td><td><span class="status-badge">${statusLabels[status] || status}</span></td></tr>
+    </table>
+    ${remarks ? `<div class="info-box"><strong>Requirements/Remarks:</strong><br>${remarks.replace(/\n/g, '<br>')}</div>` : ''}
+    ${status === 'WITH_DEFICIENCY' || status === 'FOR_FURTHER_INSPECTION' ? `
+      <p>Please address the requirements above and then coordinate with the clearance office to complete the process.</p>
+    ` : ''}
+    <a href="${APP_URL}/dashboard/tracking" class="btn">Track Application</a>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Clearance Update - ${officeName}`,
+    html: emailLayout('Clearance Update', body),
+  });
+}
+
+/**
+ * Payment confirmation email
+ */
+export async function sendPaymentConfirmationEmail(
+  to: string,
+  details: {
+    businessName: string;
+    amount: number | { toDecimalPlaces: (places: number) => string };
+    referenceNumber: string;
+    checkoutUrl?: string;
+  }
+): Promise<void> {
+  const amount = typeof details.amount === 'number'
+    ? `₱${details.amount.toFixed(2)}`
+    : `₱${details.amount.toDecimalPlaces(2)}`;
+
+  const body = `
+    <h2>Payment Confirmation</h2>
+    <p>Your business permit payment has been initiated.</p>
+    <table class="details">
+      <tr><td>Business Name</td><td><strong>${details.businessName}</strong></td></tr>
+      <tr><td>Amount</td><td><strong>${amount}</strong></td></tr>
+      <tr><td>Reference Number</td><td><strong>${details.referenceNumber}</strong></td></tr>
+    </table>
+    ${details.checkoutUrl ? `<a href="${details.checkoutUrl}" class="btn">Complete Payment</a>` : ''}
+    <p>Your permit will be issued automatically once payment is confirmed.</p>
+    <a href="${APP_URL}/dashboard/applications" class="btn">View Application</a>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Payment Confirmation - ${details.referenceNumber}`,
+    html: emailLayout('Payment Confirmation', body),
+  });
+}
+
+/**
+ * Schedule confirmation email
+ */
+export async function sendScheduleConfirmationEmail(
+  to: string,
+  details: {
+    businessName: string;
+    confirmationNumber: string;
+    scheduleDate: Date | string;
+    timeSlot: string;
+  }
+): Promise<void> {
+  const date = typeof details.scheduleDate === 'string'
+    ? new Date(details.scheduleDate).toLocaleDateString('en-PH')
+    : details.scheduleDate.toLocaleDateString('en-PH');
+
+  const body = `
+    <h2>Claim Schedule Confirmation</h2>
+    <p>Your permit claim schedule has been confirmed.</p>
+    <table class="details">
+      <tr><td>Business Name</td><td><strong>${details.businessName}</strong></td></tr>
+      <tr><td>Confirmation No.</td><td><strong>${details.confirmationNumber}</strong></td></tr>
+      <tr><td>Date</td><td><strong>${date}</strong></td></tr>
+      <tr><td>Time</td><td><strong>${details.timeSlot}</strong></td></tr>
+    </table>
+    <div class="info-box">Please arrive 15 minutes before your scheduled time with a valid ID.</div>
+    <a href="${APP_URL}/dashboard/schedule" class="btn">View Schedule</a>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Claim Schedule Confirmation - ${details.confirmationNumber}`,
+    html: emailLayout('Schedule Confirmation', body),
+  });
+}
+
+/**
+ * Claim release/permit issued email
+ */
+export async function sendClaimReleaseEmail(
+  to: string,
+  details: {
+    businessName: string;
+    permitNumber: string;
+    referenceNumber: string;
+    qrCode?: string;
+  }
+): Promise<void> {
+  const body = `
+    <h2>Permit Ready for Claim</h2>
+    <p>Your business permit is ready for pickup.</p>
+    <table class="details">
+      <tr><td>Business Name</td><td><strong>${details.businessName}</strong></td></tr>
+      <tr><td>Permit Number</td><td><strong>${details.permitNumber}</strong></td></tr>
+      <tr><td>Claim Reference</td><td><strong>${details.referenceNumber}</strong></td></tr>
+    </table>
+    ${details.qrCode ? `<div class="info-box"><strong>QR Code:</strong><br><img src="data:image/png;base64,${details.qrCode}" style="max-width: 200px;" /></div>` : ''}
+    <p>Please present the reference number or QR code above when claiming your permit.</p>
+    <a href="${APP_URL}/dashboard/claims" class="btn">View Claims</a>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Permit Ready for Claim - ${details.referenceNumber}`,
+    html: emailLayout('Claim Release', body),
+  });
+}
+
+/**
+ * Permit issued email
+ */
+export async function sendPermitIssuedEmail(
+  to: string,
+  details: {
+    businessName: string;
+    permitNumber: string;
+    expiryDate: Date | string;
+  },
+  pdfBuffer?: Buffer
+): Promise<void> {
+  const expiryDate = typeof details.expiryDate === 'string'
+    ? new Date(details.expiryDate).toLocaleDateString('en-PH')
+    : details.expiryDate.toLocaleDateString('en-PH');
+
+  const body = `
+    <h2>Business Permit Issued</h2>
+    <p>Congratulations! Your business permit has been issued.</p>
+    <table class="details">
+      <tr><td>Business Name</td><td><strong>${details.businessName}</strong></td></tr>
+      <tr><td>Permit Number</td><td><strong>${details.permitNumber}</strong></td></tr>
+      <tr><td>Expiry Date</td><td><strong>${expiryDate}</strong></td></tr>
+    </table>
+    <p>You can download your permit from your dashboard or claim it in person at the BPLO office.</p>
+    <a href="${APP_URL}/dashboard/issuance" class="btn">Download Permit</a>
+  `;
+
+  await sendEmail({
+    to,
+    subject: `[${APP_NAME}] Business Permit Issued - ${details.permitNumber}`,
+    html: emailLayout('Permit Issued', body),
+  });
+}
+>>>>>>> Stashed changes
