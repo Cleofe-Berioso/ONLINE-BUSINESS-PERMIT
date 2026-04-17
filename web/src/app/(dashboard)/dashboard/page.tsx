@@ -3,6 +3,11 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { cacheOrCompute, CacheKeys, CacheTTL } from "@/lib/cache";
 import {
+  canStartNewApplication,
+  getRenewalEligibility,
+  checkClosureEligibility,
+} from "@/lib/application-helpers";
+import {
   FileText,
   Clock,
   CheckCircle,
@@ -43,6 +48,61 @@ export default async function DashboardPage() {
   );
 
   const { total: totalApplications, under: underReview, app: approved, rej: rejected } = stats;
+
+  // APPLICANT-specific: Load business contexts and compute eligibility per context
+  let applicantContextData: {
+    canStartNew: boolean;
+    renewalEligibleCount: number;
+    closureEligibleCount: number;
+  } | null = null;
+
+  if (role === "APPLICANT") {
+    const [userPermits, pendingNewApps] = await Promise.all([
+      prisma.permit.findMany({
+        where: {
+          application: { applicantId: session.user.id },
+        },
+        select: {
+          id: true,
+          application: {
+            select: {
+              dtiSecRegistration: true,
+            },
+          },
+        },
+      }),
+      prisma.application.findMany({
+        where: {
+          applicantId: session.user.id,
+          type: "NEW",
+          status: { in: ["DRAFT", "SUBMITTED"] },
+        },
+        select: {
+          dtiSecRegistration: true,
+        },
+      }),
+    ]);
+
+    // Can start NEW if no pending NEW applications exist
+    const canStartNew = pendingNewApps.length === 0;
+
+    // Count renewal and closure eligible permits
+    const renewalChecks = await Promise.all(
+      userPermits.map((p) => getRenewalEligibility(session.user.id, p.id))
+    );
+    const renewalEligibleCount = renewalChecks.filter((r) => r.isEligible).length;
+
+    const closureChecks = await Promise.all(
+      userPermits.map((p) => checkClosureEligibility(session.user.id, p.id))
+    );
+    const closureEligibleCount = closureChecks.filter((c) => c.isEligible).length;
+
+    applicantContextData = {
+      canStartNew,
+      renewalEligibleCount,
+      closureEligibleCount,
+    };
+  }
 
   return (
     <div>
@@ -96,12 +156,30 @@ export default async function DashboardPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {role === "APPLICANT" && (
             <>
-              <QuickAction
-                icon={<FileText className="h-5 w-5" />}
-                title="New Application"
-                description="Submit a new business permit application"
-                href="/dashboard/applications/new"
-              />
+              {applicantContextData?.canStartNew && (
+                <QuickAction
+                  icon={<FileText className="h-5 w-5" />}
+                  title="New Application"
+                  description="Submit a new business permit application"
+                  href="/dashboard/applications/new"
+                />
+              )}
+              {applicantContextData && applicantContextData.renewalEligibleCount > 0 && (
+                <QuickAction
+                  icon={<FileText className="h-5 w-5" />}
+                  title="Renew Permit"
+                  description={`${applicantContextData.renewalEligibleCount} permit${applicantContextData.renewalEligibleCount !== 1 ? 's' : ''} eligible for renewal`}
+                  href="/dashboard/renew"
+                />
+              )}
+              {applicantContextData && applicantContextData.closureEligibleCount > 0 && (
+                <QuickAction
+                  icon={<FileText className="h-5 w-5" />}
+                  title="Close Business"
+                  description={`${applicantContextData.closureEligibleCount} permit${applicantContextData.closureEligibleCount !== 1 ? 's' : ''} eligible for closure`}
+                  href="/dashboard/applications/closure"
+                />
+              )}
               <QuickAction
                 icon={<Clock className="h-5 w-5" />}
                 title="Track Application"

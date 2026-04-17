@@ -70,10 +70,7 @@ export async function GET(
         officeName: true,
         status: true,
         remarks: true,
-        requirementsBefore: true,
-        requirementsAfter: true,
-        submittedBy: true,
-        submittedAt: true,
+        dateCleared: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -160,12 +157,12 @@ export async function POST(
       );
     }
 
-    // Validate application status is UNDER_REVIEW (must pass initial document verification)
-    if (application.status !== "UNDER_REVIEW") {
+    // Validate application status is SUBMITTED (documents uploaded and ready for clearance)
+    if (application.status !== "SUBMITTED") {
       return NextResponse.json(
         {
           error: "Invalid application status",
-          message: `Cannot initiate clearance for application in ${application.status} status. Application must be UNDER_REVIEW.`,
+          message: `Cannot initiate clearance for application in ${application.status} status. Application must be SUBMITTED.`,
         },
         { status: 409 }
       );
@@ -213,7 +210,7 @@ export async function POST(
       await tx.applicationHistory.create({
         data: {
           applicationId,
-          previousStatus: "UNDER_REVIEW",
+          previousStatus: "SUBMITTED",
           newStatus: "ENDORSED",
           comment: "Clearance packages generated and workflow initiated",
           changedBy: session.user.id,

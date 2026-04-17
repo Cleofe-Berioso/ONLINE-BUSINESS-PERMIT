@@ -87,37 +87,67 @@ export const profileUpdateSchema = z.object({
 // Application Validations
 // ============================================================================
 
-export const applicationSchema = z.object({
-  type: z.enum(["NEW", "RENEWAL"]),
-  businessName: z
-    .string()
-    .min(2, "Business name is required")
-    .max(200, "Business name is too long"),
-  businessType: z.string().min(1, "Business type is required"),
-  businessAddress: z.string().min(5, "Business address is required"),
-  businessBarangay: z.string().optional(),
-  businessCity: z.string().optional(),
-  businessProvince: z.string().optional(),
-  businessZipCode: z
-    .string()
-    .regex(/^\d{4}$/, "ZIP code must be 4 digits")
-    .optional()
-    .or(z.literal("")),
-  businessPhone: z.string().optional(),
-  businessEmail: z.string().email("Invalid email").optional().or(z.literal("")),
-  dtiSecRegistration: z.string().optional(),
-  tinNumber: z
-    .string()
-    .regex(/^\d{3}-\d{3}-\d{3}-\d{3}$/, "Invalid TIN format (xxx-xxx-xxx-xxx)")
-    .optional()
-    .or(z.literal("")),
-  sssNumber: z.string().optional(),
-  businessArea: z.coerce.number().positive().optional(),
-  numberOfEmployees: z.coerce.number().int().positive().optional(),
-  capitalInvestment: z.coerce.number().nonnegative().optional(),
-  grossSales: z.coerce.number().nonnegative().optional(),
-  previousPermitId: z.string().optional(),
-});
+export const applicationSchema = z
+  .object({
+    type: z.enum(["NEW", "RENEWAL", "CLOSURE"]),
+    businessName: z
+      .string()
+      .min(2, "Business name is required")
+      .max(200, "Business name is too long"),
+    businessType: z.string().min(1, "Business type is required"),
+    businessAddress: z.string().min(5, "Business address is required"),
+    businessBarangay: z.string().optional(),
+    businessCity: z.string().optional(),
+    businessProvince: z.string().optional(),
+    businessZipCode: z
+      .string()
+      .regex(/^\d{4}$/, "ZIP code must be 4 digits")
+      .optional()
+      .or(z.literal("")),
+    businessPhone: z.string().optional(),
+    businessEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+    dtiSecRegistration: z.string().optional(),
+    tinNumber: z
+      .string()
+      .regex(/^\d{3}-\d{3}-\d{3}-\d{3}$/, "Invalid TIN format (xxx-xxx-xxx-xxx)")
+      .optional()
+      .or(z.literal("")),
+    sssNumber: z.string().optional(),
+    businessArea: z.coerce.number().positive().optional(),
+    numberOfEmployees: z.coerce.number().int().positive().optional(),
+    capitalInvestment: z.coerce.number().nonnegative().optional(),
+    grossSales: z.coerce.number().nonnegative().optional(),
+    previousPermitId: z.string().optional(),
+    // CLOSURE-specific fields
+    closureReason: z
+      .string()
+      .min(5, "Closure reason must be at least 5 characters")
+      .optional(),
+    closureEffectiveDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)")
+      .optional(),
+  })
+  .refine((data) => {
+    // CLOSURE type requires closure-specific fields
+    if (data.type === "CLOSURE") {
+      return data.closureReason && data.closureEffectiveDate;
+    }
+    return true;
+  }, {
+    message: "Closure reason and effective date are required for CLOSURE applications",
+    path: ["closureReason"],
+  })
+  .refine((data) => {
+    // RENEWAL requires Gross Sales or previous permit
+    if (data.type === "RENEWAL") {
+      return data.grossSales !== undefined || data.previousPermitId;
+    }
+    return true;
+  }, {
+    message: "Renewal requires either Gross Sales information or a previous permit reference",
+    path: ["grossSales"],
+  });
 
 // ============================================================================
 // Claim Schedule Validations
@@ -183,22 +213,9 @@ export const reviewActionSchema = z.object({
 });
 
 // ============================================================================
-// Type Exports (inferred from schemas)
+// Admin User Validations
 // ============================================================================
 
-<<<<<<< Updated upstream
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type OtpVerificationInput = z.infer<typeof otpVerificationSchema>;
-export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
-export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
-export type ApplicationInput = z.infer<typeof applicationSchema>;
-export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;
-export type ReserveSlotInput = z.infer<typeof reserveSlotSchema>;
-export type VerifyClaimInput = z.infer<typeof verifyClaimSchema>;
-export type PaymentInput = z.infer<typeof paymentSchema>;
-export type ReviewActionInput = z.infer<typeof reviewActionSchema>;
-=======
 export const adminCreateUserSchema = z.object({
   email: z.string().email("Invalid email address"),
   firstName: z
@@ -222,6 +239,24 @@ export const adminUpdateUserSchema = z.object({
   status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED", "PENDING_VERIFICATION"]).optional(),
   resetPassword: z.boolean().optional(),
 });
+
+// ============================================================================
+// Type Exports (inferred from schemas)
+// ============================================================================
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type OtpVerificationInput = z.infer<typeof otpVerificationSchema>;
+export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+export type ApplicationInput = z.infer<typeof applicationSchema>;
+export type CreateScheduleInput = z.infer<typeof createScheduleSchema>;
+export type ReserveSlotInput = z.infer<typeof reserveSlotSchema>;
+export type VerifyClaimInput = z.infer<typeof verifyClaimSchema>;
+export type PaymentInput = z.infer<typeof paymentSchema>;
+export type ReviewActionInput = z.infer<typeof reviewActionSchema>;
+export type AdminCreateUserInput = z.infer<typeof adminCreateUserSchema>;
+export type AdminUpdateUserInput = z.infer<typeof adminUpdateUserSchema>;
 
 // ============================================================================
 // Permit Application Validations (Multi-step Business Permit Application)
@@ -389,7 +424,7 @@ export const documentTypeVerificationSchema = z.object({
 // ============================================================================
 
 export const clearanceUpdateSchema = z.object({
-  status: z.enum(["CLEARED", "WITH_DEFICIENCY", "FOR_FURTHER_INSPECTION"], {
+  status: z.enum(["CLEARED", "WITH_DEFICIENCY", "FOR_INSPECTION"], {
     errorMap: () => ({ message: "Invalid clearance status" }),
   }),
   remarks: z.string().max(1000, "Remarks cannot exceed 1000 characters").optional(),
@@ -476,5 +511,3 @@ export type VerifyPermitInput = z.infer<typeof verifyPermitSchema>;
 export type RescheduleInput = z.infer<typeof rescheduleSchema>;
 export type ReportExportInput = z.infer<typeof reportExportSchema>;
 export type AnalyticsQueryInput = z.infer<typeof analyticsQuerySchema>;
-
->>>>>>> Stashed changes

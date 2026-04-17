@@ -120,11 +120,13 @@ model ActivityLog {
 enum ApplicationType {
   NEW
   RENEWAL
+  CLOSURE
 }
 
 enum ApplicationStatus {
   DRAFT
   SUBMITTED
+  ENDORSED
   UNDER_REVIEW
   APPROVED
   REJECTED
@@ -182,6 +184,7 @@ model Application {
   claimReference     ClaimReference?
   permit             Permit?            @relation("PermitApplication")
   payments           Payment[]
+  clearances         Clearance[]        @relation("ApplicationClearances")
 
   @@index([applicantId])
   @@index([status])
@@ -375,6 +378,7 @@ enum PermitStatus {
   EXPIRED
   REVOKED
   RENEWED
+  CLOSED
 }
 
 enum IssuanceStatus {
@@ -409,22 +413,32 @@ model Permit {
 }
 
 model PermitIssuance {
-  id          String         @id @default(cuid())
-  permitId    String         @unique
-  issuedById  String
-  status      IssuanceStatus @default(PREPARED)
-  issuedAt    DateTime?
-  releasedAt  DateTime?
-  completedAt DateTime?
-  staffNotes  String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  permitId              String         @unique
+  issuedById            String
+  status                IssuanceStatus @default(PREPARED)
+  issuedAt              DateTime?
+  releasedAt            DateTime?
+  completedAt           DateTime?
+  staffNotes            String?
 
-  permit      Permit         @relation(fields: [permitId], references: [id], onDelete: Cascade)
-  issuedBy    User           @relation("IssuedByUser", fields: [issuedById], references: [id], onDelete: Cascade)
+  // P7.2: Mayor Signing (offline process tracked in system)
+  // For NEW/RENEWAL: permits must be signed by Mayor before release
+  // For CLOSURE: no Mayor signing required
+  mayorSigningStatus    String         @default("NOT_REQUIRED")  // NOT_REQUIRED | PENDING | SIGNED | HELD
+  mayorSignedAt         DateTime?      // When Mayor signed (set by BPLO staff after offline signing)
+  mayorSignedBy         String?        // Name/title of Mayor (text, not FK to User, since Mayor isn't in system)
+  mayorSigningRemarks   String?        // Hold/return remarks from Mayor
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  permit                Permit         @relation(fields: [permitId], references: [id], onDelete: Cascade)
+  issuedBy              User           @relation("IssuedByUser", fields: [issuedById], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([issuedById])
+  @@index([mayorSigningStatus])
   @@map("permit_issuances")
 }
 
@@ -537,4 +551,55 @@ model CheckInRecord {
   @@index([applicantId])
   @@index([verificationStatus])
   @@map("check_in_records")
+}
+
+// ============================================================================
+// MODULE 3.0: ENDORSEMENT & CLEARANCE OFFICES
+// ============================================================================
+
+enum ClearanceStatus {
+  PENDING
+  CLEARED
+  WITH_DEFICIENCY
+  FOR_INSPECTION
+  RETURNED
+}
+
+model ClearanceOffice {
+  id                String        @id @default(cuid())
+  code              String        @unique
+  name              String
+  description       String?
+  applicationTypes  String[]      // "NEW", "RENEWAL", "CLOSURE"
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  clearances        Clearance[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("clearance_offices")
+}
+
+model Clearance {
+  id                String            @id @default(cuid())
+  applicationId     String
+  officeId          String
+  officeCode        String            // Denormalized for quick lookup: SANITARY, ZONING, etc.
+  officeName        String            // Denormalized for quick lookup
+  status            ClearanceStatus   @default(PENDING)
+  remarks           String?
+  dateCleared       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  application       Application       @relation("ApplicationClearances", fields: [applicationId], references: [id], onDelete: Cascade)
+  office            ClearanceOffice   @relation(fields: [officeId], references: [id], onDelete: Restrict)
+
+  @@unique([applicationId, officeId])
+  @@index([applicationId])
+  @@index([officeId])
+  @@index([status])
+  @@map("clearances")
 }

@@ -39,10 +39,13 @@ async function main() {
   await prisma.slotReservation.deleteMany();
   await prisma.timeSlot.deleteMany();
   await prisma.claimSchedule.deleteMany();
+  await prisma.clearance.deleteMany();
+  await prisma.clearanceOffice.deleteMany();
   await prisma.reviewAction.deleteMany();
   await prisma.applicationHistory.deleteMany();
   await prisma.document.deleteMany();
   await prisma.application.deleteMany();
+  await prisma.payment.deleteMany();
   await prisma.activityLog.deleteMany();
   await prisma.otpToken.deleteMany();
   await prisma.session.deleteMany();
@@ -135,7 +138,101 @@ async function main() {
     },
   });
 
-  console.log(`  ✓ Created ${6} users`);
+  const applicant4 = await prisma.user.create({
+    data: {
+      email: "maria@example.com",
+      password,
+      firstName: "Maria",
+      lastName: "Gonzales",
+      phone: "09231234567",
+      role: "APPLICANT",
+      status: "ACTIVE",
+      emailVerified: new Date(),
+      /* RENEWAL ELIGIBLE APPLICANT - Has ACTIVE permit, can access renewal portal */
+    },
+  });
+
+  console.log(`  ✓ Created ${7} users`);
+
+  // ── ClearanceOffice ────────────────────────────────────────────────────
+  console.log("🏢 Creating clearance offices...");
+
+  const offices = await Promise.all([
+    prisma.clearanceOffice.create({
+      data: {
+        code: "SANITARY",
+        name: "Department of Health - Sanitary Division",
+        description: "Health and sanitation clearance for food and beverage businesses",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "ZONING",
+        name: "City Planning & Development Office - Zoning Division",
+        description: "Zoning compliance and land use verification",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "ENVIRONMENT",
+        name: "Department of Environment & Natural Resources - Environmental Compliance",
+        description: "Environmental impact assessment and compliance",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "ENGINEERING",
+        name: "City Engineering Office - Building Compliance",
+        description: "Building structural and safety compliance",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "BFP_FIRE",
+        name: "Bureau of Fire Protection - Fire Safety",
+        description: "Fire safety certificate and compliance",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "RPT_CLEARANCE",
+        name: "City Treasurer's Office - Real Property Tax",
+        description: "Real property tax clearance (CLOSURE clearance required per DFD: Process 3.2)",
+        applicationTypes: ["NEW", "RENEWAL", "CLOSURE"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "MARKET",
+        name: "Market Regulatory Office - Market Compliance",
+        description: "Market stall and operations compliance for market vendors",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "AGRICULTURE",
+        name: "City Agriculture Office - Agricultural Compliance",
+        description: "Farm, garden, and agricultural operations compliance",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+  ]);
+
+  console.log(`  ✓ Created ${offices.length} clearance offices`);
 
   // ── Applications ───────────────────────────────────────────────────
   console.log("📋 Creating applications...");
@@ -187,117 +284,6 @@ async function main() {
     },
   });
 
-<<<<<<< Updated upstream
-  const app3 = await prisma.application.create({
-    data: {
-      applicationNumber: "BP-2026-000003",
-      type: "NEW",
-      status: "SUBMITTED",
-      applicantId: applicant2.id,
-      businessName: "Pedro's Auto Repair",
-      businessType: "Service - Automotive",
-      businessAddress: "789 Bonifacio Avenue, Barangay 10",
-      businessBarangay: "Barangay 10",
-      businessCity: "Quezon City",
-      businessProvince: "Metro Manila",
-      businessZipCode: "1105",
-      dtiSecRegistration: "DTI-2026-009012",
-      tinNumber: "987-654-321-000",
-      numberOfEmployees: 8,
-      capitalInvestment: 1000000,
-      submittedAt: new Date("2026-02-15"),
-    },
-  });
-
-  const app4 = await prisma.application.create({
-    data: {
-      applicationNumber: "BP-2026-000004",
-      type: "NEW",
-      status: "DRAFT",
-      applicantId: applicant2.id,
-      businessName: "Garcia Hardware & Construction",
-      businessType: "Retail - Hardware",
-      businessAddress: "321 Luna Street",
-      businessCity: "Quezon City",
-      businessProvince: "Metro Manila",
-      numberOfEmployees: 12,
-      capitalInvestment: 2000000,
-    },
-  });
-=======
-  // app3 is commented out — applicant2 (Pedro) is kept as a NEW APPLICANT with NO applications
-  // const app3 = await prisma.application.create({
-  //   data: {
-  //     applicationNumber: "BP-2026-000003",
-  //     type: "NEW",
-  //     status: "SUBMITTED",
-  //     applicantId: applicant2.id,
-  //     businessName: "Pedro's Auto Repair",
-  //     businessType: "Service - Automotive",
-  //     businessAddress: "789 Bonifacio Avenue, Barangay 10",
-  //     businessBarangay: "Barangay 10",
-  //     businessCity: "Quezon City",
-  //     businessProvince: "Metro Manila",
-  //     businessZipCode: "1105",
-  //     businessPhone: "09211111111",
-  //     businessEmail: "pedro.repair@example.com",
-  //     dtiSecRegistration: "DTI-2026-009012",
-  //     tinNumber: "987-654-321-000",
-  //     numberOfEmployees: 8,
-  //     capitalInvestment: 1000000,
-  //     grossSales: 1200000,
-  //     submittedAt: new Date("2026-02-15"),
-  //   },
-  // });
-
-  // app4 is commented out — applicant2 (Pedro) has no applications
-  // const app4 = await prisma.application.create({
-  //   data: {
-  //     applicationNumber: "BP-2026-000004",
-  //     type: "NEW",
-  //     status: "DRAFT",
-  //     applicantId: applicant2.id,
-  //     businessName: "Garcia Hardware & Construction",
-  //     businessType: "Retail - Hardware",
-  //     businessAddress: "321 Luna Street, Barangay 12",
-  //     businessBarangay: "Barangay 12",
-  //     businessCity: "Quezon City",
-  //     businessProvince: "Metro Manila",
-  //     businessZipCode: "1106",
-  //     businessPhone: "09211111112",
-  //     businessEmail: "garcia.hardware@example.com",
-  //     numberOfEmployees: 12,
-  //     capitalInvestment: 2000000,
-  //     grossSales: 3000000,
-  //   },
-  // });
->>>>>>> Stashed changes
-
-  // app5 is commented out — applicant2 (Pedro) has no applications
-  // const app5 = await prisma.application.create({
-  //   data: {
-  //     applicationNumber: "BP-2026-000005",
-  //     type: "NEW",
-  //     status: "REJECTED",
-  //     applicantId: applicant2.id,
-  //     businessName: "Garcia Food Cart",
-  //     businessType: "Food - Street Food",
-  //     businessAddress: "Market Area, Barangay 3",
-  //     businessBarangay: "Barangay 3",
-  //     businessCity: "Quezon City",
-  //     businessProvince: "Metro Manila",
-  //     numberOfEmployees: 2,
-  //     capitalInvestment: 50000,
-  //     submittedAt: new Date("2026-01-10"),
-  //     reviewedAt: new Date("2026-01-18"),
-  //     rejectedAt: new Date("2026-01-18"),
-  //     rejectionReason: "Incomplete documentary requirements. Missing Barangay Clearance and Fire Safety Certificate.",
-  //   },
-  // });
-
-<<<<<<< Updated upstream
-  console.log(`  ✓ Created ${5} applications`);
-=======
   const app6 = await prisma.application.create({
     data: {
       applicationNumber: "BP-2026-000006",
@@ -352,37 +338,8 @@ async function main() {
     },
   });
 
-  // appEndorsed2 is commented out — applicant2 (Pedro) has no applications
-  // const appEndorsed2 = await prisma.application.create({
-  //   data: {
-  //     applicationNumber: "BP-2026-000008",
-  //     type: "NEW",
-  //     status: "ENDORSED",
-  //     applicantId: applicant2.id,
-  //     businessName: "Fresh Groceries Mart",
-  //     businessType: "Retail - Grocery",
-  //     businessAddress: "321 Commonwealth Avenue, Barangay 8",
-  //     businessBarangay: "Barangay 8",
-  //     businessCity: "Quezon City",
-  //     businessProvince: "Metro Manila",
-  //     businessZipCode: "1104",
-  //     businessPhone: "09211111119",
-  //     businessEmail: "fresh.groceries@example.com",
-  //     dtiSecRegistration: "DTI-2026-022222",
-  //     tinNumber: "444-555-666-000",
-  //     numberOfEmployees: 15,
-  //     capitalInvestment: 1500000,
-  //     grossSales: 2000000,
-  //     submittedAt: new Date("2026-02-18"),
-  //     reviewedAt: new Date("2026-02-24"),
-  //   },
-  // });
-
   console.log("  ✓ Created 1 ENDORSED application (ready for payment)");
-
-
   console.log(`  ✓ Created ${4} applications`);
->>>>>>> Stashed changes
 
   // ── Application History ────────────────────────────────────────────
   console.log("📜 Creating application history...");
@@ -394,16 +351,9 @@ async function main() {
     { applicationId: app1.id, previousStatus: "UNDER_REVIEW", newStatus: "APPROVED", comment: "Application approved. All requirements met.", changedBy: reviewer.id },
     { applicationId: app2.id, newStatus: "SUBMITTED", comment: "Application submitted", changedBy: applicant1.id },
     { applicationId: app2.id, previousStatus: "SUBMITTED", newStatus: "UNDER_REVIEW", comment: "Under review", changedBy: staff.id },
-<<<<<<< Updated upstream
-    { applicationId: app3.id, newStatus: "SUBMITTED", comment: "Application submitted", changedBy: applicant2.id },
-    { applicationId: app5.id, newStatus: "SUBMITTED", comment: "Application submitted", changedBy: applicant2.id },
-    { applicationId: app5.id, previousStatus: "SUBMITTED", newStatus: "REJECTED", comment: "Incomplete requirements", changedBy: reviewer.id },
-=======
-    // Removed app3, app5 history entries (applicant2 Pedro has no applications)
     { applicationId: app6.id, newStatus: "SUBMITTED", comment: "Renewal submitted", changedBy: applicant4.id },
     { applicationId: app6.id, previousStatus: "SUBMITTED", newStatus: "UNDER_REVIEW", comment: "Renewal under review", changedBy: staff.id },
     { applicationId: app6.id, previousStatus: "UNDER_REVIEW", newStatus: "APPROVED", comment: "Renewal approved. All documents verified.", changedBy: reviewer.id },
->>>>>>> Stashed changes
   ];
 
   for (const entry of historyEntries) {
@@ -420,14 +370,9 @@ async function main() {
     { applicationId: app1.id, uploadedBy: applicant1.id, fileName: "fire_cert.pdf", originalName: "Fire Safety Certificate.pdf", mimeType: "application/pdf", fileSize: 410000, filePath: "uploads/app1/fire_cert.pdf", documentType: "FIRE_SAFETY_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-01-19") },
     { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "dti_cert2.pdf", originalName: "DTI Certificate.pdf", mimeType: "application/pdf", fileSize: 530000, filePath: "uploads/app2/dti_cert2.pdf", documentType: "DTI_CERTIFICATE", status: "PENDING_VERIFICATION" },
     { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "brgy_clearance2.pdf", originalName: "Barangay Clearance.pdf", mimeType: "application/pdf", fileSize: 298000, filePath: "uploads/app2/brgy_clearance2.pdf", documentType: "BARANGAY_CLEARANCE", status: "UPLOADED" },
-<<<<<<< Updated upstream
-    { applicationId: app3.id, uploadedBy: applicant2.id, fileName: "dti_cert3.pdf", originalName: "DTI Registration.pdf", mimeType: "application/pdf", fileSize: 450000, filePath: "uploads/app3/dti_cert3.pdf", documentType: "DTI_CERTIFICATE", status: "UPLOADED" },
-=======
-    // Removed app3 document (applicant2 Pedro has no applications)
     { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "dti_renewal.pdf", originalName: "DTI Renewal Certificate.pdf", mimeType: "application/pdf", fileSize: 520000, filePath: "uploads/app6/dti_renewal.pdf", documentType: "DTI_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
     { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "brgy_renewal.pdf", originalName: "Barangay Clearance Renewal.pdf", mimeType: "application/pdf", fileSize: 310000, filePath: "uploads/app6/brgy_renewal.pdf", documentType: "BARANGAY_CLEARANCE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
     { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "fire_renewal.pdf", originalName: "Fire Safety Certificate Renewal.pdf", mimeType: "application/pdf", fileSize: 405000, filePath: "uploads/app6/fire_renewal.pdf", documentType: "FIRE_SAFETY_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
->>>>>>> Stashed changes
   ];
 
   for (const doc of docs) {
@@ -447,10 +392,6 @@ async function main() {
     },
   });
 
-  // Removed app5 review action (applicant2 has no applications)
-
-<<<<<<< Updated upstream
-=======
   await prisma.reviewAction.create({
     data: {
       applicationId: app6.id,
@@ -460,7 +401,6 @@ async function main() {
     },
   });
 
->>>>>>> Stashed changes
   console.log("  ✓ Created 2 review actions");
 
   // ── Permit (for approved app) ──────────────────────────────────────
@@ -488,9 +428,6 @@ async function main() {
     },
   });
 
-<<<<<<< Updated upstream
-  console.log("  ✓ Created 1 permit with issuance");
-=======
   const permit2 = await prisma.permit.create({
     data: {
       permitNumber: "PERMIT-2026-000002",
@@ -516,7 +453,6 @@ async function main() {
   // ── Test Permits for Claim Processing (from webhook approval workflow) ──
   console.log("🧪 Creating test permits for claim processing...");
 
-  // Simulate permits that would be auto-generated from webhook
   const permit3 = await prisma.permit.create({
     data: {
       permitNumber: "PERMIT-2026-000003",
@@ -538,30 +474,7 @@ async function main() {
     },
   });
 
-  // permit4 is commented out — appEndorsed2 is no longer created
-  // const permit4 = await prisma.permit.create({
-  //   data: {
-  //     permitNumber: "PERMIT-2026-000004",
-  //     applicationId: appEndorsed2.id,
-  //     businessName: appEndorsed2.businessName,
-  //     businessAddress: appEndorsed2.businessAddress,
-  //     ownerName: `${applicant2.firstName} ${applicant2.lastName}`,
-  //     issueDate: new Date(),
-  //     expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-  //     status: "ACTIVE",
-  //   },
-  // });
-
-  // await prisma.permitIssuance.create({
-  //   data: {
-  //     permitId: permit4.id,
-  //     issuedById: applicant2.id,
-  //     status: "PREPARED",
-  //   },
-  // });
-
   console.log("  ✓ Created 3 permits with issuance records (2 existing + 1 test)");
->>>>>>> Stashed changes
 
   // ── Claim Reference ────────────────────────────────────────────────
   console.log("🔖 Creating claim references...");
@@ -582,9 +495,6 @@ async function main() {
     },
   });
 
-<<<<<<< Updated upstream
-  console.log("  ✓ Created 1 claim reference");
-=======
   await prisma.claimReference.create({
     data: {
       referenceNumber: "CLM-20260215-DEF456",
@@ -614,10 +524,7 @@ async function main() {
     },
   });
 
-  // Removed claim reference for appEndorsed2 — applicant2 has no applications
-
   console.log("  ✓ Created 3 claim references (2 existing + 1 test)");
->>>>>>> Stashed changes
 
   // ── Claim Schedules ────────────────────────────────────────────────
   console.log("📅 Creating claim schedules...");
@@ -648,9 +555,6 @@ async function main() {
     schedules.push(schedule);
   }
 
-<<<<<<< Updated upstream
-  console.log(`  ✓ Created ${schedules.length} schedules with time slots`);
-=======
   // Create some blocked dates (holidays/maintenance)
   const blockedDates = [
     new Date(today.getFullYear(), today.getMonth() + 1, 13), // Valentine's Day alternative
@@ -672,70 +576,66 @@ async function main() {
   // ── Slot Reservations ──────────────────────────────────────────────
   console.log("🎫 Creating slot reservations...");
 
-  // Get first schedule with time slots
-  const firstSchedule = schedules[0];
   const reservations = [];
-  if (firstSchedule && firstSchedule.timeSlots.length > 0) {
-    // Reserve some slots
-    const slot1 = firstSchedule.timeSlots[1]; // 09:00-10:00
-    const slot2 = firstSchedule.timeSlots[2]; // 10:00-11:00
-    const slot3 = firstSchedule.timeSlots[3]; // 13:00-14:00
-
-    const r1 = await prisma.slotReservation.create({
-      data: {
-        timeSlotId: slot1.id,
-        applicationId: app1.id,
-        userId: applicant1.id,
-        status: "CONFIRMED",
-        confirmedAt: new Date(),
-      },
+  if (schedules.length > 0) {
+    // Fetch the schedule with timeSlots populated
+    const scheduleWithSlots = await prisma.claimSchedule.findUnique({
+      where: { id: schedules[0].id },
+      include: { timeSlots: true },
     });
-    reservations.push(r1);
 
-    const r2 = await prisma.slotReservation.create({
-      data: {
-        timeSlotId: slot2.id,
-        applicationId: app6.id,
-        userId: applicant4.id,
-        status: "CONFIRMED",
-        confirmedAt: new Date(),
-      },
-    });
-    reservations.push(r2);
+    if (scheduleWithSlots && scheduleWithSlots.timeSlots.length > 1) {
+      const slot1 = scheduleWithSlots.timeSlots[1]; // 09:00-10:00
+      const slot2 = scheduleWithSlots.timeSlots[2]; // 10:00-11:00
 
-    // ── Test Reservations for Claim Processing ───────────────────
-    // Get second schedule for additional test reservations
-    if (schedules.length > 1 && schedules[1].timeSlots.length > 0) {
-      const testSlot1 = schedules[1].timeSlots[0]; // 08:00-09:00
-      const testSlot2 = schedules[1].timeSlots[1]; // 09:00-10:00
-
-      const r3 = await prisma.slotReservation.create({
+      const r1 = await prisma.slotReservation.create({
         data: {
-          timeSlotId: testSlot1.id,
-          applicationId: appEndorsed1.id,
+          timeSlotId: slot1.id,
+          applicationId: app1.id,
           userId: applicant1.id,
           status: "CONFIRMED",
           confirmedAt: new Date(),
         },
       });
-      reservations.push(r3);
+      reservations.push(r1);
 
-      // r4 is commented out — appEndorsed2 is no longer created
-      // const r4 = await prisma.slotReservation.create({
-      //   data: {
-      //     timeSlotId: testSlot2.id,
-      //     applicationId: appEndorsed2.id,
-      //     userId: applicant2.id,
-      //     status: "CONFIRMED",
-      //     confirmedAt: new Date(),
-      //   },
-      // });
-      // reservations.push(r4);
+      const r2 = await prisma.slotReservation.create({
+        data: {
+          timeSlotId: slot2.id,
+          applicationId: app6.id,
+          userId: applicant4.id,
+          status: "CONFIRMED",
+          confirmedAt: new Date(),
+        },
+      });
+      reservations.push(r2);
+
+    if (schedules.length > 1) {
+      // Fetch second schedule with timeSlots
+      const schedule2WithSlots = await prisma.claimSchedule.findUnique({
+        where: { id: schedules[1].id },
+        include: { timeSlots: true },
+      });
+
+      if (schedule2WithSlots && schedule2WithSlots.timeSlots.length > 0) {
+        const testSlot1 = schedule2WithSlots.timeSlots[0]; // 08:00-09:00
+
+        const r3 = await prisma.slotReservation.create({
+          data: {
+            timeSlotId: testSlot1.id,
+            applicationId: appEndorsed1.id,
+            userId: applicant1.id,
+            status: "CONFIRMED",
+            confirmedAt: new Date(),
+          },
+        });
+        reservations.push(r3);
+      }
+    }
     }
   }
 
   console.log(`  ✓ Created ${reservations.length} slot reservations`);
->>>>>>> Stashed changes
 
   // ── System Settings ────────────────────────────────────────────────
   console.log("⚙️ Creating system settings...");
@@ -831,10 +731,6 @@ async function main() {
     { userId: reviewer.id, action: "REVIEW_APPROVE", entity: "Application", entityId: app1.id },
     { userId: staff.id, action: "DOCUMENT_VERIFIED", entity: "Document", entityId: app1.id },
     { userId: applicant2.id, action: "REGISTER", entity: "User", entityId: applicant2.id },
-<<<<<<< Updated upstream
-    { userId: applicant2.id, action: "CREATE_APPLICATION", entity: "Application", entityId: app3.id },
-=======
-    // Removed applicant2 (Pedro) action logs — he's a NEW APPLICANT with no applications
     { userId: applicant4.id, action: "REGISTER", entity: "User", entityId: applicant4.id },
     { userId: applicant4.id, action: "CREATE_APPLICATION", entity: "Application", entityId: app6.id },
     { userId: applicant4.id, action: "UPLOAD_DOCUMENTS", entity: "Application", entityId: app6.id, details: { count: 3 } },
@@ -845,7 +741,6 @@ async function main() {
     { userId: applicant4.id, action: "SLOT_RESERVED", entity: "SlotReservation", entityId: app6.id },
     { userId: staff.id, action: "PERMIT_ISSUED", entity: "Permit", entityId: app6.id },
     { userId: admin.id, action: "ADMIN_UPDATE_USER", entity: "User", entityId: applicant4.id, details: { changes: ["role"] } },
->>>>>>> Stashed changes
   ];
 
   for (const log of logs) {
@@ -853,16 +748,6 @@ async function main() {
   }
   console.log(`  ✓ Created ${logs.length} activity logs`);
 
-<<<<<<< Updated upstream
-  console.log("\n✅ Database seeded successfully!");
-  console.log("\n📌 Test Credentials:");
-  console.log("  Admin:      admin@lgu.gov.ph       / Password123!");
-  console.log("  Reviewer:   reviewer@lgu.gov.ph    / Password123!");
-  console.log("  Staff:      staff@lgu.gov.ph       / Password123!");
-  console.log("  Applicant:  juan@example.com       / Password123!");
-  console.log("  Applicant:  pedro@example.com      / Password123!");
-  console.log("  Pending:    ana@example.com         / Password123!");
-=======
   // ── OTP Tokens ─────────────────────────────────────────────────────
   console.log("🔐 Creating OTP tokens...");
 
@@ -917,7 +802,7 @@ async function main() {
   });
 
   // PENDING payment (ready to process)
-  const pendingPayment = await prisma.payment.create({
+  await prisma.payment.create({
     data: {
       applicationId: app2.id,
       payerId: applicant1.id,
@@ -928,11 +813,8 @@ async function main() {
     },
   });
 
-  // ── Payment Test Data for /api/payments route ───────────────────────
-  console.log("🧪 Creating payment test data for route testing...");
-
-  // Pending payment for endorsed app 1
-  const testPayment1 = await prisma.payment.create({
+  // Test payment for endorsed app 1
+  await prisma.payment.create({
     data: {
       applicationId: appEndorsed1.id,
       payerId: applicant1.id,
@@ -951,46 +833,6 @@ async function main() {
     },
   });
 
-  // testPayment2 is commented out — appEndorsed2 is no longer created (applicant2 has no applications)
-  // const testPayment2 = await prisma.payment.create({
-  //   data: {
-  //     applicationId: appEndorsed2.id,
-  //     payerId: applicant2.id,
-  //     amount: 6500,
-  //     method: "MAYA",
-  //     status: "PENDING",
-  //     referenceNumber: "REF-TEST-MAYA-001",
-  //     transactionId: "TXN-TEST-WEBHOOK-001", // Will be used in webhook test
-  //     metadata: {
-  //       businessName: appEndorsed2.businessName,
-  //       applicationType: "NEW",
-  //       businessType: appEndorsed2.businessType,
-  //       permitFee: 4000,
-  //       processingFee: 1500,
-  //       filingFee: 1000,
-  //     },
-  //   },
-  // });
-
-  // Failed payment test is commented out — app3 is no longer created (applicant2 has no applications)
-  // await prisma.payment.create({
-  //   data: {
-  //     applicationId: app3.id,
-  //     payerId: applicant2.id,
-  //     amount: 6500,
-  //     method: "BANK_TRANSFER",
-  //     status: "FAILED",
-  //     referenceNumber: "REF-TEST-FAILED-001",
-  //     failedAt: new Date(),
-  //     metadata: {
-  //       businessName: app3.businessName,
-  //       applicationType: "NEW",
-  //       businessType: app3.businessType,
-  //       failureReason: "Insufficient funds",
-  //     },
-  //   },
-  // });
-
   console.log("  ✓ Created 5 payment records (3 paid, 2 pending for testing)");
 
   console.log("\n✅ Database seeded successfully!");
@@ -998,18 +840,19 @@ async function main() {
   console.log("  🔹 NEW Applicant (no permits, cannot access renewal):");
   console.log("     pedro@example.com / Password123!");
   console.log("");
-  console.log("  🔹 RENEWAL ELIGIBLE Applicant (has ACTIVE permit, CAN access renewal):");
+  console.log("  🔹 RENEWAL ELIGIBLE Applicants (have ACTIVE permits, CAN access renewal):");
   console.log("     juan@example.com / Password123!");
+  console.log("     maria@example.com / Password123!");
   console.log("");
   console.log("  🔹 Other Test Accounts:");
   console.log("     Admin:      admin@lgu.gov.ph       / Password123!");
   console.log("     Reviewer:   reviewer@lgu.gov.ph    / Password123!");
   console.log("     Staff:      staff@lgu.gov.ph       / Password123!");
-  console.log("     Applicant:  maria@example.com      / Password123!");
   console.log("     Pending:    ana@example.com         / Password123!");
   console.log("");
   console.log("\n📊 Test Data Summary:");
   console.log("  • 7 test users (4 roles)");
+  console.log("  • 8 clearance offices (routing per DFD)");
   console.log("  • 4 applications (app1-APPROVED, app2-UNDER_REVIEW, app6-RENEWAL/APPROVED, appEndorsed1-ENDORSED)");
   console.log("  • 8 documents (verified & pending)");
   console.log("  • 3 permits (ACTIVE) - for Juan(app1), Maria(app6), and appEndorsed1");
@@ -1025,7 +868,6 @@ async function main() {
   console.log("");
   console.log("  ✅ juan@example.com → Should see 'Renew Permit' in sidebar");
   console.log("     CAN access /dashboard/renew and all renewal sub-pages");
->>>>>>> Stashed changes
 }
 
 main()
@@ -1036,3 +878,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

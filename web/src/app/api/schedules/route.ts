@@ -1,16 +1,3 @@
-<<<<<<< Updated upstream
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import prisma from "@/lib/prisma";
-import { createScheduleSchema } from "@/lib/validations";
-import {
-  cacheOrCompute,
-  cacheDel,
-  cacheDelPattern,
-  CacheKeys,
-  CacheTTL,
-} from "@/lib/cache";
-=======
 /**
  * GET /api/schedules?days=30
  * POST /api/schedules/reserve
@@ -30,7 +17,6 @@ import { broadcastSlotAvailabilityChanged } from "@/lib/sse";
 import {
   scheduleReservationSchema,
 } from "@/lib/validations/schedules";
->>>>>>> Stashed changes
 
 export async function GET(request: Request) {
   try {
@@ -40,52 +26,6 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-<<<<<<< Updated upstream
-    const dateStr = searchParams.get("date");
-    const upcoming = searchParams.get("upcoming") === "true";    const where: Record<string, unknown> = {};
-
-    if (dateStr) {
-      where.date = new Date(dateStr);
-    } else if (upcoming) {
-      where.date = { gte: new Date() };
-    }
-
-    // Build a stable cache key from the query params
-    const cacheKey = dateStr
-      ? CacheKeys.scheduleSlots(dateStr)
-      : upcoming
-        ? "schedule:slots:upcoming"
-        : "schedule:slots:all";
-
-    const schedules = await cacheOrCompute(
-      cacheKey,
-      () =>
-        prisma.claimSchedule.findMany({
-          where,
-          orderBy: { date: "asc" },
-          include: {
-            timeSlots: {
-              orderBy: { startTime: "asc" },
-              include: {
-                reservations: {
-                  select: {
-                    id: true,
-                    status: true,
-                    userId: true,
-                    applicationId: true,
-                  },
-                },
-              },
-            },
-          },
-        }),
-      CacheTTL.LONG // 10 min — slots change infrequently
-    );
-
-    return NextResponse.json({ schedules });
-  } catch (error) {
-    console.error("Fetch schedules error:", error);
-=======
     const daysParam = searchParams.get("days") || "30";
     const days = Math.min(parseInt(daysParam), 90); // Max 90 days
 
@@ -139,7 +79,6 @@ export async function GET(request: Request) {
   } catch (error) {
     captureException(error, { route: "GET /api/schedules" });
     console.error("List schedules error:", error);
->>>>>>> Stashed changes
     return NextResponse.json(
       { error: "Failed to fetch schedules" },
       { status: 500 }
@@ -153,81 +92,6 @@ export async function POST(request: Request) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-<<<<<<< Updated upstream
-
-    // Only admin/staff can create schedules
-    if (session.user.role !== "ADMINISTRATOR" && session.user.role !== "STAFF") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const validated = createScheduleSchema.safeParse(body);
-    if (!validated.success) {
-      return NextResponse.json(
-        { error: validated.error.issues[0].message },
-        { status: 400 }
-      );
-    }
-
-    const { date, timeSlots } = validated.data;
-    const scheduleDate = new Date(date);
-
-    // Check if schedule already exists for this date
-    const existing = await prisma.claimSchedule.findUnique({
-      where: { date: scheduleDate },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "A schedule already exists for this date" },
-        { status: 409 }
-      );
-    }
-
-    const schedule = await prisma.claimSchedule.create({
-      data: {
-        date: scheduleDate,
-        timeSlots: {
-          create: timeSlots.map((slot) => ({
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            maxCapacity: slot.maxCapacity,
-          })),
-        },
-      },
-      include: {
-        timeSlots: true,
-      },
-    });    await prisma.activityLog.create({
-      data: {
-        userId: session.user.id,
-        action: "CREATE_SCHEDULE",
-        entity: "ClaimSchedule",
-        entityId: schedule.id,
-        details: { date, slotsCount: timeSlots.length },
-      },
-    });
-
-    // Invalidate schedule caches so next GET reflects the new schedule
-    await Promise.all([
-      cacheDel(CacheKeys.scheduleSlots(date)),
-      cacheDel("schedule:slots:upcoming"),
-      cacheDel("schedule:slots:all"),
-      cacheDelPattern("schedule:slots:*"),
-    ]);
-
-    return NextResponse.json(
-      { message: "Schedule created successfully", schedule },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Create schedule error:", error);
-    return NextResponse.json(
-      { error: "Failed to create schedule" },
-      { status: 500 }
-    );
-  }
-=======
 
     // Rate limiting: 10 reservations per hour
     const rateLimitResult = rateLimitUpload(session.user.id);
@@ -556,5 +420,4 @@ export async function PUT(request: Request) {
       { status: 500 }
     );
   }
->>>>>>> Stashed changes
 }

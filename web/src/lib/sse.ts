@@ -9,12 +9,20 @@
 
 export type SSEEventType =
   | 'application_status_changed'
+  | 'application_approved'
+  | 'application_rejected'
+  | 'revision_requested'
   | 'document_verified'
+  | 'document_uploaded'
+  | 'document_rejected'
   | 'claim_scheduled'
+  | 'clearance_initiated'
+  | 'clearance_updated'
   | 'permit_issued'
   | 'permit_printed'
   | 'permit_expired'
   | 'claim_completed'
+  | 'payment_initiated'
   | 'slot_availability_changed'
   | 'notification'
   | 'heartbeat';
@@ -182,8 +190,6 @@ export function broadcastNotification(
     }, userId)
   );
 }
-<<<<<<< Updated upstream
-=======
 
 // ============================================================================
 // P2.3: Document Upload & Verification Events
@@ -459,5 +465,3 @@ export function broadcastClaimCompleted(
     }, userId)
   );
 }
-
->>>>>>> Stashed changes

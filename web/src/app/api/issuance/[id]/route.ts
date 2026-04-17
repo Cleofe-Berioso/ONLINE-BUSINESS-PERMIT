@@ -41,7 +41,68 @@ export async function POST(
     let updateData: Record<string, unknown> = {};
 
     switch (action) {
+      // P7.2: Mayor Signing Actions (offline process tracked in system)
+      case "READY_FOR_MAYOR":
+        // Mark permit as ready for Mayor signing (prepare printed permit)
+        updateData = {
+          status: "PREPARED",
+          mayorSigningStatus: "PENDING",
+          staffNotes: staffNotes || null,
+        };
+        break;
+      case "MAYOR_SIGNED":
+        // Mark permit as signed by Mayor (after offline signing)
+        // Requires mayorSignedBy (name/title) in request body
+        const { mayorSignedBy } = body;
+        if (!mayorSignedBy) {
+          return NextResponse.json(
+            { error: "mayorSignedBy is required for MAYOR_SIGNED action" },
+            { status: 400 }
+          );
+        }
+        updateData = {
+          mayorSigningStatus: "SIGNED",
+          mayorSignedAt: new Date(),
+          mayorSignedBy,
+          staffNotes: staffNotes || null,
+        };
+        break;
+      case "MAYOR_HELD":
+        // Mark permit as held by Mayor (e.g., needs correction)
+        // Requires remarks in body
+        const { remarks } = body;
+        updateData = {
+          mayorSigningStatus: "HELD",
+          mayorSigningRemarks: remarks || "Held by Mayor - action pending",
+          staffNotes: staffNotes || null,
+        };
+        break;
+      case "MAYOR_RETURNED":
+        // Mark permit as returned by Mayor (e.g., rejected, needs resubmission)
+        updateData = {
+          mayorSigningStatus: "NOT_REQUIRED", // Reset for re-preparation if needed
+          status: "PREPARED",
+          mayorSigningRemarks: body.remarks || "Returned by Mayor",
+          staffNotes: staffNotes || null,
+        };
+        break;
+
+      // Issuance workflow actions (require Mayor signature first if applicable)
       case "ISSUE":
+        // Verify Mayor signature if applicable (NEW/RENEWAL)
+        if (
+          issuance.mayorSigningStatus === "PENDING" ||
+          issuance.mayorSigningStatus === "HELD"
+        ) {
+          return NextResponse.json(
+            {
+              error: "Cannot issue permit",
+              message:
+                "Permit awaits Mayor signature. Please complete Mayor signing before issuing.",
+            },
+            { status: 409 }
+          );
+        }
         updateData = {
           status: "ISSUED",
           issuedAt: new Date(),
@@ -64,7 +125,11 @@ export async function POST(
         break;
       default:
         return NextResponse.json(
-          { error: "Invalid action. Use ISSUE, RELEASE, or COMPLETE" },
+          {
+            error: "Invalid action",
+            message:
+              "Use: READY_FOR_MAYOR, MAYOR_SIGNED, MAYOR_HELD, MAYOR_RETURNED, ISSUE, RELEASE, COMPLETE",
+          },
           { status: 400 }
         );
     }

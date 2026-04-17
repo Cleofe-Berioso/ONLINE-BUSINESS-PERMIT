@@ -129,10 +129,7 @@ export async function POST(request: Request) {
         continue;
       }
 
-<<<<<<< Updated upstream
-=======
       // CRITICAL FIX #9: Use explicitly provided type, don't infer
->>>>>>> Stashed changes
       const doc = await prisma.document.create({
         data: {
           applicationId,
@@ -142,11 +139,7 @@ export async function POST(request: Request) {
           mimeType: file.type,
           fileSize: buffer.length,
           filePath: storagePath,
-<<<<<<< Updated upstream
-          documentType: inferDocumentType(file.name),
-=======
           documentType, // Use provided type, not inferred
->>>>>>> Stashed changes
           status: "UPLOADED",
         },
       });

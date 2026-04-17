@@ -95,6 +95,322 @@ export async function validateRenewalPermit(previousPermitId: string): Promise<{
 }
 
 /**
+ * P2.3: CLOSURE - Check if applicant has outstanding obligations for this specific permit
+ * Block CLOSURE only if the permit being closed has pending, partial, or installment payments
+ */
+export async function checkClosureEligibility(
+  userId: string,
+  permitId: string
+): Promise<{
+  isEligible: boolean;
+  reason?: string;
+  permitNumber?: string;
+  businessName?: string;
+  outstandingBalance?: number;
+  pendingPayments?: Array<{ id: string; amount: number; status: string }>;
+}> {
+  try {
+    // Get the specific permit being closed
+    const permit = await prisma.permit.findUnique({
+      where: { id: permitId },
+      select: {
+        id: true,
+        permitNumber: true,
+        applicationId: true,
+        application: {
+          select: {
+            applicantId: true,
+            businessName: true,
+          },
+        },
+      },
+    });
+
+    if (!permit) {
+      return {
+        isEligible: false,
+        reason: "Permit not found",
+      };
+    }
+
+    // Verify ownership
+    if (permit.application.applicantId !== userId) {
+      return {
+        isEligible: false,
+        reason: "You do not have permission to close this permit",
+        permitNumber: permit.permitNumber,
+      };
+    }
+
+    // Check for pending or failed payments for THIS PERMIT ONLY
+    const pendingPayments = await prisma.payment.findMany({
+      where: {
+        applicationId: permit.applicationId,
+        status: { in: ["PENDING", "FAILED"] },
+      },
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+      },
+    });
+
+    if (pendingPayments.length > 0) {
+      const totalOutstanding = pendingPayments.reduce(
+        (sum, p) => sum + (typeof p.amount === "number" ? p.amount : parseFloat(p.amount.toString())),
+        0
+      );
+      return {
+        isEligible: false,
+        reason: `Cannot proceed with closure. Permit ${permit.permitNumber} has ${pendingPayments.length} pending payment(s) totaling ₱${totalOutstanding.toFixed(2)}. Please complete all payments before closing.`,
+        permitNumber: permit.permitNumber,
+        businessName: permit.application.businessName,
+        outstandingBalance: totalOutstanding,
+        pendingPayments: pendingPayments.map((p) => ({
+          id: p.id,
+          amount: typeof p.amount === "number" ? p.amount : parseFloat(p.amount.toString()),
+          status: p.status,
+        })),
+      };
+    }
+
+    // All checks passed
+    return {
+      isEligible: true,
+      permitNumber: permit.permitNumber,
+      businessName: permit.application.businessName,
+    };
+  } catch (error) {
+    console.error("Error checking closure eligibility:", error);
+    return {
+      isEligible: false,
+      reason: "Unable to verify closure eligibility. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Per-Business Context: NEW Application Access Control
+ * Check if user can start a NEW application for a specific DTI registration
+ * Returns false if user already has pending/draft/active application for this DTI
+ */
+export async function canStartNewApplication(
+  userId: string,
+  dtiSecRegistration: string
+): Promise<{
+  isEligible: boolean;
+  reason?: string;
+  conflictingAppId?: string;
+  conflictingAppNumber?: string;
+}> {
+  try {
+    // Check for existing pending/draft NEW application for this DTI
+    const existing = await prisma.application.findFirst({
+      where: {
+        applicantId: userId,
+        type: "NEW",
+        dtiSecRegistration,
+        status: { in: ["DRAFT", "SUBMITTED"] },
+      },
+      select: {
+        id: true,
+        applicationNumber: true,
+      },
+    });
+
+    if (existing) {
+      return {
+        isEligible: false,
+        reason: `You already have a pending application for this business. Please complete or withdraw application ${existing.applicationNumber} first.`,
+        conflictingAppId: existing.id,
+        conflictingAppNumber: existing.applicationNumber,
+      };
+    }
+
+    return { isEligible: true };
+  } catch (error) {
+    console.error("Error checking NEW application eligibility:", error);
+    return {
+      isEligible: false,
+      reason: "Unable to verify eligibility. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Per-Permit Context: RENEWAL Eligibility Check
+ * Check if user can start RENEWAL for a specific permit
+ * Returns false if permit inactive, expired > 6 months, or user has pending renewal
+ */
+export async function getRenewalEligibility(
+  userId: string,
+  permitId: string
+): Promise<{
+  isEligible: boolean;
+  permit?: {
+    permitNumber: string;
+    businessName: string;
+    expiryDate: Date;
+    status: string;
+  };
+  reason?: string;
+  renewalWindowInfo?: {
+    expirerOn: Date;
+    earliestRenewalDate: Date;
+    latestRenewalDate: Date;
+  };
+  pendingRenewalAppId?: string;
+}> {
+  try {
+    // Fetch permit and verify ownership
+    const permit = await prisma.permit.findUnique({
+      where: { id: permitId },
+      select: {
+        id: true,
+        permitNumber: true,
+        status: true,
+        expiryDate: true,
+        application: {
+          select: {
+            applicantId: true,
+            businessName: true,
+          },
+        },
+      },
+    });
+
+    if (!permit) {
+      return {
+        isEligible: false,
+        reason: "Permit not found.",
+      };
+    }
+
+    if (permit.application.applicantId !== userId) {
+      return {
+        isEligible: false,
+        reason: "You do not have permission to renew this permit.",
+      };
+    }
+
+    // Check permit status
+    if (permit.status === "REVOKED") {
+      return {
+        isEligible: false,
+        reason: "This permit has been revoked and cannot be renewed.",
+        permit: {
+          permitNumber: permit.permitNumber,
+          businessName: permit.application.businessName,
+          expiryDate: permit.expiryDate,
+          status: permit.status,
+        },
+      };
+    }
+
+    if (permit.status === "CLOSED") {
+      return {
+        isEligible: false,
+        reason: "This permit has been closed and cannot be renewed.",
+        permit: {
+          permitNumber: permit.permitNumber,
+          businessName: permit.application.businessName,
+          expiryDate: permit.expiryDate,
+          status: permit.status,
+        },
+      };
+    }
+
+    // Renewal window: 30 days before expiry to 6 months after expiry
+    const today = new Date();
+    const expiryDate = new Date(permit.expiryDate);
+    const thirtyDaysBefore = new Date(expiryDate);
+    thirtyDaysBefore.setDate(thirtyDaysBefore.getDate() - 30);
+    const sixMonthsAfter = new Date(expiryDate);
+    sixMonthsAfter.setMonth(sixMonthsAfter.getMonth() + 6);
+
+    if (today < thirtyDaysBefore) {
+      return {
+        isEligible: false,
+        reason: `Renewal window hasn't opened yet. You can renew starting ${thirtyDaysBefore.toLocaleDateString()}.`,
+        permit: {
+          permitNumber: permit.permitNumber,
+          businessName: permit.application.businessName,
+          expiryDate: permit.expiryDate,
+          status: permit.status,
+        },
+        renewalWindowInfo: {
+          expirerOn: expiryDate,
+          earliestRenewalDate: thirtyDaysBefore,
+          latestRenewalDate: sixMonthsAfter,
+        },
+      };
+    }
+
+    if (today > sixMonthsAfter) {
+      return {
+        isEligible: false,
+        reason: `Permit expired more than 6 months ago (${expiryDate.toLocaleDateString()}). Please apply as NEW instead.`,
+        permit: {
+          permitNumber: permit.permitNumber,
+          businessName: permit.application.businessName,
+          expiryDate: permit.expiryDate,
+          status: permit.status,
+        },
+      };
+    }
+
+    // Check for existing pending/draft RENEWAL application for this permit
+    const existingRenewal = await prisma.application.findFirst({
+      where: {
+        applicantId: userId,
+        type: "RENEWAL",
+        previousPermitId: permitId,
+        status: { in: ["DRAFT", "SUBMITTED"] },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingRenewal) {
+      return {
+        isEligible: false,
+        reason: "You already have a pending renewal application for this permit.",
+        permit: {
+          permitNumber: permit.permitNumber,
+          businessName: permit.application.businessName,
+          expiryDate: permit.expiryDate,
+          status: permit.status,
+        },
+        pendingRenewalAppId: existingRenewal.id,
+      };
+    }
+
+    // All checks passed
+    return {
+      isEligible: true,
+      permit: {
+        permitNumber: permit.permitNumber,
+        businessName: permit.application.businessName,
+        expiryDate: permit.expiryDate,
+        status: permit.status,
+      },
+      renewalWindowInfo: {
+        expirerOn: expiryDate,
+        earliestRenewalDate: thirtyDaysBefore,
+        latestRenewalDate: sixMonthsAfter,
+      },
+    };
+  } catch (error) {
+    console.error("Error checking renewal eligibility:", error);
+    return {
+      isEligible: false,
+      reason: "Unable to verify renewal eligibility. Please try again later.",
+    };
+  }
+}
+
+/**
  * Generate unique application number
  * Format: APP-YYYYMMDD-XXXXXX (e.g., APP-20260415-A1B2C3)
  */
@@ -508,7 +824,7 @@ export async function getClearanceRequirements(
     where: {
       isActive: true,
       applicationTypes: {
-        contains: applicationType,
+        hasSome: [applicationType],
       },
     },
     select: {
@@ -567,10 +883,11 @@ export async function generateClearancePackages(
     where: {
       isActive: true,
       applicationTypes: {
-        contains: app.type,
+        hasSome: [app.type],
       },
     },
     select: {
+      id: true,
       code: true,
       name: true,
     },
@@ -582,11 +899,10 @@ export async function generateClearancePackages(
     const clearance = await client.clearance.create({
       data: {
         applicationId,
+        officeId: office.id,
         officeCode: office.code,
         officeName: office.name,
         status: "PENDING",
-        submittedBy: userId, // Track who generated this clearance
-        submittedAt: new Date(), // Track when generated
       },
       select: {
         id: true,
@@ -624,7 +940,7 @@ export async function checkAllClearancesReceived(applicationId: string): Promise
       if (item.status === "CLEARED") acc.cleared += item._count;
       else if (item.status === "PENDING") acc.pending += item._count;
       else if (item.status === "WITH_DEFICIENCY") acc.deficiency += item._count;
-      else if (item.status === "FOR_FURTHER_INSPECTION")
+      else if (item.status === "FOR_INSPECTION")
         acc.forInspection += item._count;
       return acc;
     },
@@ -650,7 +966,6 @@ export async function getClearanceSummary(applicationId: string): Promise<{
     officeName: string;
     status: string;
     remarks: string | null;
-    submittedAt: Date | null;
   }>;
   completionPercentage: number;
   canProceedToReview: boolean;
@@ -670,7 +985,6 @@ export async function getClearanceSummary(applicationId: string): Promise<{
       officeName: true,
       status: true,
       remarks: true,
-      submittedAt: true,
     },
   });
 
@@ -679,7 +993,7 @@ export async function getClearanceSummary(applicationId: string): Promise<{
       if (c.status === "CLEARED") acc.cleared++;
       else if (c.status === "PENDING") acc.pending++;
       else if (c.status === "WITH_DEFICIENCY") acc.deficiency++;
-      else if (c.status === "FOR_FURTHER_INSPECTION") acc.forInspection++;
+      else if (c.status === "FOR_INSPECTION") acc.forInspection++;
       return acc;
     },
     { cleared: 0, pending: 0, deficiency: 0, forInspection: 0 }

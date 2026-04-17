@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 /**
  * GET /api/public/verify-permit?ref={referenceNumber}
  * P6.0 Phase E: Public Permit Verification
@@ -8,38 +6,10 @@
  * Supports QR code scanning
  */
 
->>>>>>> Stashed changes
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function GET(request: Request) {
-<<<<<<< Updated upstream
-  const { searchParams } = new URL(request.url);
-  const number = searchParams.get("number")?.trim().toUpperCase();
-
-  if (!number) {
-    return NextResponse.json({ error: "Permit number is required" }, { status: 400 });
-  }
-
-  const permit = await prisma.permit.findFirst({
-    where: { permitNumber: number },
-    select: {
-      permitNumber: true,
-      businessName: true,
-      businessAddress: true,
-      ownerName: true,
-      issueDate: true,
-      expiryDate: true,
-      status: true,
-    },
-  });
-
-  if (!permit) {
-    return NextResponse.json({ error: "Permit not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ permit });
-=======
   try {
     const { searchParams } = new URL(request.url);
     const referenceNumber = searchParams.get("ref");
@@ -127,5 +97,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
->>>>>>> Stashed changes
 }

@@ -338,8 +338,6 @@ export async function sendPermitExpiryReminderEmail(
     html: emailLayout('Permit Expiry', body),
   });
 }
-<<<<<<< Updated upstream
-=======
 
 export async function sendClearanceUpdateEmail(
   to: string,
@@ -522,4 +520,3 @@ export async function sendPermitIssuedEmail(
     html: emailLayout('Permit Issued', body),
   });
 }
->>>>>>> Stashed changes
