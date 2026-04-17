@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import prisma from "@/lib/prisma";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +29,9 @@ export default function ClosureApplicationPage() {
       closureReason: string;
       closureEffectiveDate: string;
     }) => {
+      // Get selected permit's business info
+      const selectedPermit = permits?.permits?.find((p: any) => p.id === formData.previousPermitId);
+
       const res = await fetch("/api/applications/closure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,11 +40,11 @@ export default function ClosureApplicationPage() {
           previousPermitId: formData.previousPermitId,
           closureReason: formData.closureReason,
           closureEffectiveDate: formData.closureEffectiveDate,
-          businessName: "TBD",
-          businessType: "TBD",
-          businessAddress: "TBD",
-          businessCity: "TBD",
-          businessProvince: "TBD",
+          businessName: selectedPermit?.businessName || "",
+          businessType: selectedPermit?.businessType || "",
+          businessAddress: selectedPermit?.businessAddress || "",
+          businessCity: selectedPermit?.businessCity || "",
+          businessProvince: selectedPermit?.businessProvince || "",
         }),
       });
       if (!res.ok) {
@@ -155,6 +157,29 @@ export default function ClosureApplicationPage() {
               onChange={(e) => setClosureEffectiveDate(e.target.value)}
               className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
             />
+          </div>
+
+          {/* What to Expect */}
+          <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+            <p className="font-medium text-blue-900 mb-3">What Happens Next</p>
+            <ul className="space-y-2 text-sm text-blue-900">
+              <li className="flex gap-3">
+                <span className="font-medium">1.</span>
+                <span>Your closure request will be reviewed by the BPLO office.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-medium">2.</span>
+                <span>You may be asked to provide additional supporting documents if needed.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-medium">3.</span>
+                <span>Real Property Tax (RPT) clearance may be required during the closure processing.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="font-medium">4.</span>
+                <span>If there are outstanding permit obligations or unpaid fees, closure will be blocked until these are settled.</span>
+              </li>
+            </ul>
           </div>
         </div>
 

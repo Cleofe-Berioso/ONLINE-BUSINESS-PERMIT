@@ -15,6 +15,10 @@ interface IssuanceDetail {
   releasedAt: string | null;
   completedAt: string | null;
   staffNotes: string | null;
+  mayorSigningStatus?: string | null;
+  mayorSignedAt?: string | null;
+  mayorSignedBy?: string | null;
+  mayorSigningRemarks?: string | null;
   permit: {
     id: string;
     permitNumber: string;
@@ -61,7 +65,7 @@ export default function IssuanceDetailPage() {
     fetchIssuance();
   }, [fetchIssuance]);
 
-  const handleAction = async (action: "ISSUE" | "RELEASE" | "COMPLETE") => {
+  const handleAction = async (action: "ISSUE" | "RELEASE" | "COMPLETE" | "READY_FOR_MAYOR" | "MAYOR_SIGNED" | "MAYOR_HELD" | "MAYOR_RETURNED") => {
     setActionLoading(true);
     setError("");
     setSuccess("");
@@ -81,7 +85,10 @@ export default function IssuanceDetailPage() {
       }
 
       setSuccess(data.message);
-      setTimeout(() => router.push("/dashboard/issuance"), 2000);
+      setTimeout(() => {
+        fetchIssuance();
+        setStaffNotes("");
+      }, 1000);
     } catch {
       setError("An unexpected error occurred");
     } finally {
@@ -195,6 +202,97 @@ export default function IssuanceDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Mayor Signing Workflow */}
+          {issuance.permit.application && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Mayor Signing Workflow</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <span className="text-sm text-gray-500">Signing Status</span>
+                  <p className="mt-1 font-medium">
+                    {issuance.mayorSigningStatus
+                      ? issuance.mayorSigningStatus.replace(/_/g, " ")
+                      : "Not Started"}
+                  </p>
+                </div>
+
+                {issuance.mayorSignedAt && (
+                  <>
+                    <div>
+                      <span className="text-sm text-gray-500">Signed By</span>
+                      <p className="mt-1 font-medium">{issuance.mayorSignedBy || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Signed On</span>
+                      <p className="mt-1 font-medium">
+                        {new Date(issuance.mayorSignedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {issuance.mayorSigningRemarks && (
+                  <div>
+                    <span className="text-sm text-gray-500">Remarks</span>
+                    <p className="mt-1 text-sm italic">{issuance.mayorSigningRemarks}</p>
+                  </div>
+                )}
+
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Available Actions:</p>
+                  <div className="grid gap-2">
+                    {!issuance.mayorSigningStatus && (
+                      <Button
+                        onClick={() => handleAction("READY_FOR_MAYOR")}
+                        loading={actionLoading}
+                        variant="outline"
+                        className="w-full"
+                        size="sm"
+                      >
+                        Submit to Mayor
+                      </Button>
+                    )}
+                    {issuance.mayorSigningStatus === "READY_FOR_MAYOR" && (
+                      <>
+                        <Button
+                          onClick={() => handleAction("MAYOR_SIGNED")}
+                          loading={actionLoading}
+                          variant="success"
+                          className="w-full"
+                          size="sm"
+                        >
+                          Mark as Signed by Mayor
+                        </Button>
+                        <Button
+                          onClick={() => handleAction("MAYOR_HELD")}
+                          loading={actionLoading}
+                          variant="warning"
+                          className="w-full"
+                          size="sm"
+                        >
+                          Mark as Held by Mayor
+                        </Button>
+                      </>
+                    )}
+                    {issuance.mayorSigningStatus === "MAYOR_HELD" && (
+                      <Button
+                        onClick={() => handleAction("MAYOR_RETURNED")}
+                        loading={actionLoading}
+                        variant="outline"
+                        className="w-full"
+                        size="sm"
+                      >
+                        Mark as Returned by Mayor
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       ) : (
         <Card>

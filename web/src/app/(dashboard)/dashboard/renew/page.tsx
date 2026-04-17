@@ -51,38 +51,9 @@ export default function RenewalPage() {
     loadRenewalEligiblePermits();
   }, []);
 
-  const handleStartRenewal = async (permitId: string) => {
-    setSubmittingPermitId(permitId);
-    try {
-      const response = await fetch("/api/applications/renewal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "RENEWAL",
-          previousPermitId: permitId,
-          businessName: "",
-          businessType: "",
-          businessAddress: "",
-          businessCity: "",
-          businessProvince: "",
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.reason || error.error || "Failed to start renewal");
-        return;
-      }
-
-      const data = await response.json();
-      toast.success("Renewal application created successfully");
-      router.push(`/dashboard/applications/${data.application.id}`);
-    } catch (error) {
-      toast.error("Failed to start renewal application");
-      console.error(error);
-    } finally {
-      setSubmittingPermitId(null);
-    }
+  const handleStartRenewal = (permitId: string) => {
+    // Navigate to renewal form instead of immediately creating application
+    router.push(`/dashboard/renew/permit?permitId=${permitId}`);
   };
 
   if (loading) {

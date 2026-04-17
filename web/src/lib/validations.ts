@@ -94,7 +94,17 @@ export const applicationSchema = z
       .string()
       .min(2, "Business name is required")
       .max(200, "Business name is too long"),
+    businessTypeCategory: z
+      .enum(["SOLE_PROPRIETORSHIP", "PARTNERSHIP", "CORPORATION", "COOPERATIVE"], {
+        errorMap: () => ({ message: "Please select a valid business type" }),
+      })
+      .optional(),
     businessType: z.string().min(1, "Business type is required"),
+    lineOfBusiness: z
+      .string()
+      .min(2, "Line of business is required")
+      .max(200, "Line of business is too long")
+      .optional(),
     businessAddress: z.string().min(5, "Business address is required"),
     businessBarangay: z.string().optional(),
     businessCity: z.string().optional(),
@@ -114,8 +124,29 @@ export const applicationSchema = z
       .or(z.literal("")),
     sssNumber: z.string().optional(),
     businessArea: z.coerce.number().positive().optional(),
+    assetValue: z.coerce.number().positive().optional(),
+    monthlyRental: z.coerce.number().positive().optional(),
     numberOfEmployees: z.coerce.number().int().positive().optional(),
     capitalInvestment: z.coerce.number().nonnegative().optional(),
+    ownerName: z
+      .string()
+      .min(2, "Owner name is required")
+      .max(100, "Owner name is too long")
+      .optional(),
+    ownerBirthdate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)")
+      .optional(),
+    ownerResidenceAddress: z
+      .string()
+      .min(5, "Residence address is required")
+      .max(300, "Residence address is too long")
+      .optional(),
+    ownerPhone: z
+      .string()
+      .regex(/^(\+63|0)(9\d{9})$/, "Invalid Philippine phone number")
+      .optional()
+      .or(z.literal("")),
     grossSales: z.coerce.number().nonnegative().optional(),
     previousPermitId: z.string().optional(),
     // CLOSURE-specific fields
@@ -363,9 +394,20 @@ export const applicationStep2Schema = z.object({
     .string()
     .min(2, "Business name must be at least 2 characters")
     .max(200, "Business name must be less than 200 characters"),
+  businessTypeCategory: z
+    .enum(["SOLE_PROPRIETORSHIP", "PARTNERSHIP", "CORPORATION", "COOPERATIVE"], {
+      errorMap: () => ({ message: "Please select a valid business type" }),
+    })
+    .optional(),
   businessType: z
     .string()
-    .min(1, "Business type is required"),
+    .min(1, "Business type is required")
+    .optional(),
+  lineOfBusiness: z
+    .string()
+    .min(2, "Line of business is required")
+    .max(200, "Line of business is too long")
+    .optional(),
   businessAddress: z
     .string()
     .min(5, "Business address must be at least 5 characters")
@@ -387,6 +429,18 @@ export const applicationStep2Schema = z.object({
     .optional()
     .or(z.literal("")),
   sssNumber: z.string().optional(),
+  businessArea: z.coerce
+    .number()
+    .positive("Business area must be greater than 0")
+    .optional(),
+  assetValue: z.coerce
+    .number()
+    .positive("Asset value must be greater than 0")
+    .optional(),
+  monthlyRental: z.coerce
+    .number()
+    .positive("Monthly rental must be greater than 0")
+    .optional(),
   numberOfEmployees: z.coerce
     .number()
     .int("Number of employees must be a whole number")
@@ -396,6 +450,25 @@ export const applicationStep2Schema = z.object({
     .number()
     .nonnegative("Capital investment must be 0 or greater")
     .optional(),
+  ownerName: z
+    .string()
+    .min(2, "Owner name must be at least 2 characters")
+    .max(100, "Owner name is too long")
+    .optional(),
+  ownerBirthdate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)")
+    .optional(),
+  ownerResidenceAddress: z
+    .string()
+    .min(5, "Residence address must be at least 5 characters")
+    .max(300, "Residence address is too long")
+    .optional(),
+  ownerPhone: z
+    .string()
+    .regex(/^(\+63|0)(9\d{9})$/, "Invalid Philippine phone number")
+    .optional()
+    .or(z.literal("")),
 });
 
 export const applicationSubmitSchema = applicationStep1Schema
