@@ -5,7 +5,7 @@ import { PublicFooter } from "@/components/public/public-footer";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[var(--surface)]">
       <PublicNav />
 
       {/* Hero Section */}
@@ -14,7 +14,7 @@ export default function HomePage() {
           <div className="grid items-center gap-10 lg:grid-cols-2">
             {/* Text */}
             <div className="text-center lg:text-left">
-              <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-100 mb-4">
+              <span className="inline-block rounded-full bg-[var(--surface)]/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-100 mb-4">
                 LGU Digital Services
               </span>
               <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
@@ -29,14 +29,14 @@ export default function HomePage() {
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
                 <Link
                   href="/register"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-semibold text-blue-700 shadow-lg hover:bg-blue-50 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--surface)] px-6 py-3 text-base font-semibold text-[var(--accent-hover)] shadow-lg hover:bg-[var(--accent-light)] transition-colors"
                 >
                   Apply Now
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
                   href="/track"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/40 px-6 py-3 text-base font-semibold text-white hover:bg-white/10 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white/40 px-6 py-3 text-base font-semibold text-white hover:bg-[var(--surface)]/10 transition-colors"
                 >
                   <Search className="h-4 w-4" />
                   Track Application
@@ -54,7 +54,7 @@ export default function HomePage() {
               ].map((item) => (
                 <div
                   key={item.text}
-                  className="flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm"
+                  className="flex items-center gap-3 rounded-xl bg-[var(--surface)]/10 px-4 py-3 backdrop-blur-sm"
                 >
                   {item.icon}
                   <span className="text-sm font-medium">{item.text}</span>
@@ -66,7 +66,7 @@ export default function HomePage() {
       </section>
 
       {/* Quick Actions Bar */}
-      <section className="border-b bg-blue-50 px-4 py-4 sm:px-6 lg:px-8">
+      <section className="border-b bg-[var(--accent-light)] px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6">
             {[
@@ -78,7 +78,7 @@ export default function HomePage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium text-blue-700 hover:text-blue-900 hover:underline"
+                className="text-sm font-medium text-[var(--accent-hover)] hover:text-blue-900 hover:underline"
               >
                 {item.label}
               </Link>
@@ -91,10 +91,10 @@ export default function HomePage() {
       <section className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            <h2 className="text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
               How It Works
             </h2>
-            <p className="mt-3 text-base text-gray-600">
+            <p className="mt-3 text-base text-[var(--text-secondary)]">
               Get your business permit in 4 simple steps
             </p>
           </div>          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -128,15 +128,15 @@ export default function HomePage() {
             ).map((feature) => (
               <div
                 key={feature.step}
-                className="relative rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+                className="relative rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-blue-600">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-lg font-bold text-[var(--accent)]">
                   {feature.step}
                 </div>
-                <h3 className="text-base font-semibold text-gray-900">
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                <p className="mt-2 text-sm text-[var(--text-secondary)] leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -146,7 +146,7 @@ export default function HomePage() {
           <div className="mt-10 text-center">
             <Link
               href="/how-to-apply"
-              className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
             >
               View detailed guide <ArrowRight className="h-4 w-4" />
             </Link>
@@ -155,7 +155,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <section className="bg-[var(--surface-muted)] px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
@@ -166,12 +166,12 @@ export default function HomePage() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-xl bg-white p-5 text-center shadow-sm border"
+                className="rounded-xl bg-[var(--surface)] p-5 text-center shadow-sm border"
               >
-                <p className="text-2xl font-extrabold text-blue-600 sm:text-3xl">
+                <p className="text-2xl font-extrabold text-[var(--accent)] sm:text-3xl">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-xs font-medium text-gray-500 sm:text-sm">
+                <p className="mt-1 text-xs font-medium text-[var(--background)]0 sm:text-sm">
                   {stat.label}
                 </p>
               </div>
@@ -193,7 +193,7 @@ export default function HomePage() {
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/register"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-8 py-3 text-base font-semibold text-white hover:bg-blue-500 transition-colors sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-8 py-3 text-base font-semibold text-white hover:bg-[var(--accent-light)]0 transition-colors sm:w-auto"
             >
               Get Started
               <ArrowRight className="h-5 w-5" />

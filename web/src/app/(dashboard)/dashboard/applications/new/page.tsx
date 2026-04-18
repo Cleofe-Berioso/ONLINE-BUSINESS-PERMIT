@@ -17,7 +17,13 @@ export default function NewApplicationPage() {
   const [formData, setFormData] = useState({
     type: "NEW",
     businessName: "",
-    businessType: "",
+    businessTypeCategory: "", // Sole Prop / Partnership / Corporation / Cooperative
+    lineOfBusiness: "",
+    businessPhone: "",
+    businessEmail: "",
+    assetValue: "",
+    businessArea: "",
+    monthlyRental: "",
     businessAddress: "",
     businessBarangay: "",
     businessCity: "",
@@ -27,7 +33,10 @@ export default function NewApplicationPage() {
     dtiSecRegistration: "",
     capitalInvestment: "",
     numberOfEmployees: "",
-    businessDescription: "",
+    ownerName: "",
+    ownerBirthdate: "",
+    ownerResidenceAddress: "",
+    ownerPhone: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -40,12 +49,17 @@ export default function NewApplicationPage() {
     setError("");
 
     try {
+      const { businessTypeCategory, ...apiData } = formData;
       const res = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
+          ...apiData,
+          businessType: businessTypeCategory,
           capitalInvestment: formData.capitalInvestment ? parseFloat(formData.capitalInvestment) : null,
+          assetValue: formData.assetValue ? parseFloat(formData.assetValue) : null,
+          businessArea: formData.businessArea ? parseFloat(formData.businessArea) : null,
+          monthlyRental: formData.monthlyRental ? parseFloat(formData.monthlyRental) : null,
           numberOfEmployees: formData.numberOfEmployees ? parseInt(formData.numberOfEmployees) : null,
         }),
       });
@@ -68,8 +82,8 @@ export default function NewApplicationPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">New Business Permit Application</h1>
-        <p className="text-gray-600">Fill out the form below to apply for a business permit</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">New Business Permit Application</h1>
+        <p className="text-[var(--text-secondary)]">Fill out the form below to apply for a business permit</p>
       </div>
 
       {error && (
@@ -109,21 +123,70 @@ export default function NewApplicationPage() {
               onChange={handleChange}
               required
             />
-            <Input
-              label="Business Type"
-              name="businessType"
-              value={formData.businessType}
+            <Select
+              label="Type of Business"
+              name="businessTypeCategory"
+              value={formData.businessTypeCategory}
               onChange={handleChange}
+              options={[
+                { value: "", label: "Select..." },
+                { value: "SOLE_PROPRIETORSHIP", label: "Sole Proprietorship" },
+                { value: "PARTNERSHIP", label: "Partnership" },
+                { value: "CORPORATION", label: "Corporation" },
+                { value: "COOPERATIVE", label: "Cooperative" },
+              ]}
               required
-              placeholder="e.g., Retail, Food Service, Manufacturing"
             />
-            <Textarea
-              label="Business Description"
-              name="businessDescription"
-              value={formData.businessDescription}
+            <Input
+              label="Line of Business / Business Activity"
+              name="lineOfBusiness"
+              value={formData.lineOfBusiness}
               onChange={handleChange}
-              placeholder="Describe your business activities..."
+              placeholder="e.g., Retail Trade, Food Service, Manufacturing"
+              required
             />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Business Phone Number"
+                name="businessPhone"
+                type="tel"
+                value={formData.businessPhone}
+                onChange={handleChange}
+              />
+              <Input
+                label="Business Email Address"
+                name="businessEmail"
+                type="email"
+                value={formData.businessEmail}
+                onChange={handleChange}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <Input
+                label="Asset Value (₱)"
+                name="assetValue"
+                type="number"
+                value={formData.assetValue}
+                onChange={handleChange}
+                step="0.01"
+              />
+              <Input
+                label="Business Area (sqm)"
+                name="businessArea"
+                type="number"
+                value={formData.businessArea}
+                onChange={handleChange}
+                step="0.01"
+              />
+              <Input
+                label="Monthly Rental (₱)"
+                name="monthlyRental"
+                type="number"
+                value={formData.monthlyRental}
+                onChange={handleChange}
+                step="0.01"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -161,12 +224,51 @@ export default function NewApplicationPage() {
                 onChange={handleChange}
               />
               <Input
-                label="Zip Code"
+                label="Postal Code"
                 name="businessZipCode"
                 value={formData.businessZipCode}
                 onChange={handleChange}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Personal Information (Owner)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              label="Owner's Full Name"
+              name="ownerName"
+              value={formData.ownerName}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label="Date of Birth"
+              name="ownerBirthdate"
+              type="date"
+              value={formData.ownerBirthdate}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label="Residence Address"
+              name="ownerResidenceAddress"
+              value={formData.ownerResidenceAddress}
+              onChange={handleChange}
+              placeholder="Street address, Barangay, City/Municipality"
+              required
+            />
+            <Input
+              label="Mobile Number"
+              name="ownerPhone"
+              type="tel"
+              value={formData.ownerPhone}
+              onChange={handleChange}
+              required
+            />
           </CardContent>
         </Card>
 
@@ -183,7 +285,7 @@ export default function NewApplicationPage() {
                 onChange={handleChange}
               />
               <Input
-                label="DTI/SEC Registration"
+                label="DTI/SEC/CDA Registration"
                 name="dtiSecRegistration"
                 value={formData.dtiSecRegistration}
                 onChange={handleChange}
@@ -191,7 +293,7 @@ export default function NewApplicationPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Capital Investment (PHP)"
+                label="Capital Investment (₱)"
                 name="capitalInvestment"
                 type="number"
                 value={formData.capitalInvestment}
@@ -204,6 +306,28 @@ export default function NewApplicationPage() {
                 value={formData.numberOfEmployees}
                 onChange={handleChange}
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6 border-blue-200 bg-[var(--accent-light)]">
+          <CardHeader>
+            <CardTitle className="text-blue-900">Required Documents</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-blue-900">
+            <p className="font-medium">Please prepare the following documents for upload after submission:</p>
+            <ul className="space-y-2 ml-4 list-disc">
+              <li>Proof / Certificate of Registration (DTI / SEC / CDA) — 1 photocopy</li>
+              <li>Proof of ownership or right to use location (Transfer Certificate, Lease, or Consent) — 1 certified copy</li>
+              <li>Location plan or sketch of location — 1 original copy</li>
+              <li>Fire Safety Inspection Certificate (at least 9 months valid) — 1 original copy</li>
+              <li>Affidavit of Undertaking (if you have a valid FSIC) — 1 original copy</li>
+              <li><strong>Government Clearances</strong> from relevant agencies depending on your line of business (e.g., Sanitary, Environment, Engineering, BFP, Tax/RPT, Water, Assessor, Market/Agriculture)</li>
+            </ul>
+            <div className="border-t border-blue-200 pt-3 mt-3">
+              <p className="text-xs">
+                You will upload these documents on the next page after submitting this form. Ensure all documents meet the specified requirements.
+              </p>
             </div>
           </CardContent>
         </Card>

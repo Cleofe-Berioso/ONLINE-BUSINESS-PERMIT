@@ -1,114 +1,94 @@
-# Performance Profiler — OBPS Next.js Performance Analysis
+# Performance Profiler Skill (`/performance-profiler`)
 
-## Purpose
+**Purpose**: Identify and optimize performance bottlenecks.
 
-Profile and optimize performance across the Online Business Permit System — bundle size, Prisma query performance, React rendering, API response times, and load testing.
+## Profiling Domains
 
-## Usage
+### 1. Prisma Queries
+**Check for N+1**: Query in loop instead of using include
 
+```typescript
+// BAD - N+1
+const apps = await prisma.application.findMany();
+apps.forEach(app => console.log(app.applicant)); // N+1!
+
+// GOOD
+const apps = await prisma.application.findMany({
+  include: { applicant: true },
+});
 ```
-/performance-profiler <area-or-page-to-profile>
+
+**Optimization**: Add Prisma indexes on frequently filtered columns
+
+```prisma
+@@index([userId, status])
+@@index([createdAt])
 ```
 
-## Profiling Areas
+### 2. React Rendering
+**Optimize**: Avoid re-rendering with `React.memo` and `useMemo`
 
-### 1. Next.js Bundle Analysis
+```typescript
+const TableRow = React.memo(({ item }) => <tr>...</tr>);
+```
+
+**Large lists**: Use virtualization or pagination
+
+### 3. Bundle Size
+**Check**: `npm run build` → analyze with source-map-explorer
+
+**Optimize**:
+- Code splitting for admin pages: `dynamic(() => import(...))`
+- Remove unused dependencies
+- Lazy load heavy libraries
+
+### 4. Network & Caching
+**Cache with Redis**:
+```typescript
+const result = await cacheOrCompute(`app:${id}`, async () => {
+  return await prisma.application.findUnique({ where: { id } });
+}, { ttl: 5 * 60 }); // 5 minutes
+```
+
+**HTTP caching**: Set proper headers for static assets
+
+### 5. API Response
+**Paginate**: Return limited results with skip/take
+
+```typescript
+const [items, total] = await Promise.all([
+  prisma.application.findMany({ skip: 0, take: 15 }),
+  prisma.application.count(),
+]);
+```
+
+**Select only needed**: Use Prisma `select:` not `include:`
+
+### 6. SSE Performance
+**Heartbeat**: Keep-alive every 30 seconds
+**Payload size**: Minimize event data
+**Cleanup**: Remove listeners on disconnect
+
+## Performance Targets
+
+| Metric | Target | Current |
+|--------|--------|---------|
+| API response | <500ms | TBD |
+| Page load | <2s | TBD |
+| First paint | <1s | TBD |
+| Bundle size | <400KB | TBD |
+| DB query | <100ms | TBD |
+
+## Commands
 
 ```bash
 # Analyze bundle size
-ANALYZE=true npm run build
+npm run build
 
-# Check build output
-npm run build  # Review .next/standalone size and page sizes
+# Monitor API responses
+npm run test:e2e -- --reporter=list
+
+# Test performance
+npm run db:studio  # check query performance
 ```
 
-**Targets**: First Load JS < 100KB per route, Total < 300KB
-
-### 2. Prisma Query Performance
-
-```typescript
-// Enable query logging in development
-prisma.$on("query", (e) => {
-  console.log(`Query: ${e.query}`);
-  console.log(`Duration: ${e.duration}ms`);
-});
-```
-
-**Checklist**:
-
-- [ ] No N+1 queries — use `include` or `select` properly
-- [ ] Cursor-based pagination (not offset) for large tables
-- [ ] Indexes on frequently filtered columns
-- [ ] `@@index` composites for multi-column WHERE clauses
-- [ ] Transactions don't hold locks too long
-
-### 3. React Rendering
-
-- Use React DevTools Profiler to detect unnecessary re-renders
-- Server Components by default — only `'use client'` when needed
-- Memoize expensive computations with `useMemo`
-- Lazy load heavy components with `dynamic()`
-- Use Suspense boundaries for streaming
-
-### 4. API Response Times
-
-```bash
-# k6 load test
-npx k6 run tests/performance/load-test.js
-```
-
-**Targets**: p95 < 500ms for reads, p95 < 1000ms for writes
-
-### 5. Caching Strategy
-
-| Layer       | Implementation                      | TTL                  |
-| ----------- | ----------------------------------- | -------------------- |
-| Redis       | `src/lib/cache.ts` (ioredis)        | Per-key configurable |
-| In-memory   | Map fallback when Redis unavailable | Same                 |
-| React Query | Client-side stale-while-revalidate  | 5 min default        |
-| Next.js     | ISR / revalidate for public pages   | Varies               |
-
-### 6. Image & Asset Optimization
-
-- Use `next/image` for automatic optimization
-- Icons: pre-generated PWA icon set in `public/icons/`
-- Fonts: Use `next/font` for zero-layout-shift loading
-
-## Performance Monitoring
-
-- **Sentry**: Performance tracing (optional, `src/lib/monitoring.ts`)
-- **Prometheus**: Metrics endpoint at `/api/metrics`
-- **Web Vitals**: Track LCP, FID, CLS in production
-
-## Optimization Patterns
-
-```typescript
-// Dynamic import for heavy components
-const PdfViewer = dynamic(() => import('@/components/pdf-viewer'), {
-  loading: () => <Skeleton className="h-96" />,
-  ssr: false,
-});
-
-// React Query with proper stale time
-const { data } = useQuery({
-  queryKey: ['applications', page],
-  queryFn: () => fetchApplications(page),
-  staleTime: 5 * 60 * 1000, // 5 minutes
-});
-
-// Prisma: select only needed fields
-const users = await prisma.user.findMany({
-  select: { id: true, name: true, email: true, role: true },
-  where: { status: 'ACTIVE' },
-});
-```
-
-## Checklist
-
-- [ ] Bundle size within targets
-- [ ] No N+1 Prisma queries
-- [ ] Redis caching for hot paths
-- [ ] React Server Components used where possible
-- [ ] Lazy loading for non-critical components
-- [ ] k6 load test passes under expected load
-- [ ] Core Web Vitals within "Good" thresholds

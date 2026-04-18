@@ -109,8 +109,8 @@ export default function SchedulePage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Schedule Claiming</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Schedule Claiming</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Select your preferred date and time slot to claim your approved permit
         </p>
       </div>
@@ -139,14 +139,14 @@ export default function SchedulePage() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CalendarCheck className="h-5 w-5 text-blue-600" />
+            <CalendarCheck className="h-5 w-5 text-[var(--accent)]" />
             Select Date
           </CardTitle>
           <CardDescription>Choose an available claiming date</CardDescription>
         </CardHeader>
         <CardContent>
           {schedules.length === 0 ? (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[var(--background)]0">
               No claiming schedules available at this time. Please check back later.
             </p>
           ) : (
@@ -169,22 +169,22 @@ export default function SchedulePage() {
                       }}
                       className={`rounded-lg border-2 p-3 text-center transition-colors ${
                         selectedDate === schedule.date
-                          ? "border-blue-600 bg-blue-50"
+                          ? "border-[var(--accent)] bg-[var(--accent-light)]"
                           : hasAvailable
-                          ? "border-gray-200 hover:border-blue-300"
-                          : "cursor-not-allowed border-gray-100 bg-gray-50 opacity-50"
+                          ? "border-[var(--border)] hover:border-blue-300"
+                          : "cursor-not-allowed border-gray-100 bg-[var(--surface-muted)] opacity-50"
                       }`}
                     >
-                      <p className="text-lg font-bold text-gray-900">
+                      <p className="text-lg font-bold text-[var(--text-primary)]">
                         {date.getDate()}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-[var(--background)]0">
                         {date.toLocaleDateString("en-PH", {
                           month: "short",
                           weekday: "short",
                         })}
                       </p>
-                      <p className="mt-1 text-xs text-gray-400">
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
                         {hasAvailable ? "Available" : "Full"}
                       </p>
                     </button>
@@ -200,7 +200,7 @@ export default function SchedulePage() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
+              <Clock className="h-5 w-5 text-[var(--accent)]" />
               Select Time Slot
             </CardTitle>
             <CardDescription>
@@ -225,15 +225,15 @@ export default function SchedulePage() {
                       onClick={() => setSelectedSlot(slot.id)}
                       className={`flex items-center justify-between rounded-lg border-2 p-4 transition-colors ${
                         selectedSlot === slot.id
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-200 hover:border-blue-300"
+                          ? "border-[var(--accent)] bg-[var(--accent-light)]"
+                          : "border-[var(--border)] hover:border-blue-300"
                       }`}
                     >
                       <div className="text-left">
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-[var(--text-primary)]">
                           {slot.startTime} – {slot.endTime}
                         </p>
-                        <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                        <div className="mt-1 flex items-center gap-1 text-xs text-[var(--background)]0">
                           <Users className="h-3 w-3" />
                           {remaining} slot{remaining !== 1 ? "s" : ""} remaining
                         </div>
@@ -241,8 +241,8 @@ export default function SchedulePage() {
                       <div
                         className={`h-4 w-4 rounded-full border-2 ${
                           selectedSlot === slot.id
-                            ? "border-blue-600 bg-blue-600"
-                            : "border-gray-300"
+                            ? "border-[var(--accent)] bg-[var(--accent)]"
+                            : "border-[var(--border)]"
                         }`}
                       />
                     </button>
@@ -250,7 +250,7 @@ export default function SchedulePage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[var(--background)]0">
                 No available time slots for this date.
               </p>
             )}

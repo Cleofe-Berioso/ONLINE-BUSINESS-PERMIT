@@ -1,199 +1,172 @@
-# Frontend Design — OBPS React 19 + Tailwind CSS v4 UI Builder
+# Frontend Design Skill (`/frontend-design`)
 
-## Purpose
+**Purpose**: Create and modify React 19 components with Tailwind CSS v4 and CVA.
 
-Create, modify, and debug React UI components and pages for the Online Business Permit System. Covers App Router pages, client/server components, form handling, state management, and responsive design.
+## UI Components (src/components/ui/)
+- `button.tsx` - Variants: primary, secondary, danger, outline
+- `input.tsx` - Text/email/password/number inputs
+- `card.tsx` - Container with padding
+- `alert.tsx` - Info, warning, error, success
+- `badge.tsx` - Status indicators
+- `modal.tsx` - Dialog overlay
+- `select.tsx` - Dropdown selector
+- `textarea.tsx` - Multi-line text
+- `data-table.tsx` - Sortable/filterable table
+- `file-upload.tsx` - Drag-and-drop uploader
+- `loading.tsx`, `skeleton.tsx`, `empty-state.tsx`
+- `language-switcher.tsx` - English/Filipino
 
-## Usage
-
-```
-/frontend-design <description-of-ui-to-build>
-```
-
-## Context
-
-- **Framework**: Next.js 16 App Router with React 19 + TypeScript 5.9
-- **Styling**: Tailwind CSS v4 + CVA (class-variance-authority) + tailwind-merge + clsx
-- **Forms**: React Hook Form 7 + Zod 4 resolver
-- **State**: Zustand 5 (client) + TanStack React Query v5 (server state)
-- **Components**: Custom UI library in `src/components/ui/`
-- **i18n**: next-intl (English + Filipino) — messages in `src/messages/`
-
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── layout.tsx              # Root layout (providers, metadata)
-│   ├── page.tsx                # Landing page
-│   ├── globals.css             # Tailwind v4 imports
-│   ├── (auth)/                 # Auth route group (no dashboard nav)
-│   │   ├── login/page.tsx
-│   │   ├── register/page.tsx
-│   │   ├── verify-otp/page.tsx
-│   │   └── forgot-password/page.tsx
-│   ├── (dashboard)/            # Dashboard route group (with sidebar)
-│   │   └── dashboard/
-│   │       ├── page.tsx        # Dashboard home
-│   │       ├── applications/   # Application management
-│   │       ├── tracking/       # Real-time tracking
-│   │       ├── claims/         # Claim scheduling
-│   │       ├── review/         # Reviewer queue
-│   │       ├── schedule/       # Schedule management
-│   │       ├── issuance/       # Permit issuance
-│   │       └── admin/          # Admin section
-│   └── (public)/               # Public pages (no auth required)
-│       ├── track/page.tsx      # Public status tracking
-│       ├── verify-permit/page.tsx
-│       ├── how-to-apply/page.tsx
-│       ├── requirements/page.tsx
-│       ├── faqs/page.tsx
-│       └── contact/page.tsx
-├── components/
-│   ├── ui/                     # Reusable UI primitives
-│   │   ├── button.tsx          # CVA-based button variants
-│   │   ├── card.tsx            # Card container
-│   │   ├── input.tsx           # Form input with label/error
-│   │   ├── alert.tsx           # Alert/notification banner
-│   │   ├── badge.tsx           # Status badges
-│   │   ├── skeleton.tsx        # Loading skeletons
-│   │   └── file-upload.tsx     # Drag-and-drop file upload
-│   ├── dashboard/              # Dashboard-specific components
-│   │   ├── sidebar.tsx         # Role-aware sidebar nav
-│   │   ├── header.tsx          # Dashboard header
-│   │   └── *-client.tsx        # Client components for interactivity
-│   ├── public/                 # Public page components
-│   ├── providers/              # Context providers (QueryProvider, ThemeProvider)
-│   ├── seo/                    # JSON-LD structured data
-│   ├── pwa/                    # PWA install prompt
-│   └── privacy/                # Privacy consent components
-└── hooks/
-    └── use-sse.ts              # SSE client hook for real-time updates
-```
-
-## Component Patterns
-
-### Server Component (default)
+## Tailwind CSS v4 - Utility-first
 
 ```tsx
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+className="flex items-center justify-center gap-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+```
 
-export default async function ApplicationsPage() {
+## CVA for Component Variants
+
+```typescript
+const buttonVariants = cva("px-4 py-2 rounded-lg font-medium", {
+  variants: {
+    variant: {
+      primary: "bg-blue-600 text-white hover:bg-blue-700",
+      secondary: "bg-gray-200 text-gray-900",
+      danger: "bg-red-600 text-white",
+    },
+  },
+  defaultVariants: { variant: "primary" },
+});
+```
+
+## Page Component Pattern
+
+```typescript
+import { auth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
+
+export default async function Page() {
   const session = await auth();
-  const applications = await prisma.application.findMany({
-    where: { userId: session!.user.id },
-    orderBy: { createdAt: "desc" },
+  if (!session?.user) redirect("/login");
+
+  const data = await prisma.application.findMany({
+    where: { applicantId: session.user.id },
+    include: { documents: true },
   });
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">My Applications</h1>
-      {/* Render data directly — no useState needed */}
+    <div className="p-6">
+      <ClientComponent initialData={data} />
     </div>
   );
 }
 ```
 
-### Client Component (for interactivity)
+## Client Component Pattern
 
-```tsx
+```typescript
 "use client";
-
 import { useState } from "react";
+import { toast } from "sonner";
+
+export function ClientComponent({ initialData }) {
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (formData: FormData) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/endpoint", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) throw new Error("Failed");
+      toast.success("Success!");
+    } catch (error) {
+      toast.error("Error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return <></>;
+}
+```
+
+## Form with React Hook Form + Zod
+
+```typescript
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { applicationSchema } from "@/lib/validations";
 
-const schema = z.object({ businessName: z.string().min(2) });
-type FormData = z.infer<typeof schema>;
-
-export function ApplicationForm() {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({
-    resolver: zodResolver(schema),
+export function Form() {
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(applicationSchema),
   });
-
-  const onSubmit = async (data: FormData) => {
-    const res = await fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    // handle response
-  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input
-        label="Business Name"
-        {...register("businessName")}
-        error={errors.businessName?.message}
-      />
-      <Button type="submit">Submit Application</Button>
+      <div>
+        <label>Business Name</label>
+        <Input {...register("businessName")} />
+        {errors.businessName && <p className="text-red-500">{errors.businessName.message}</p>}
+      </div>
+      <Button type="submit">Submit</Button>
     </form>
   );
 }
 ```
 
-### CVA Button Variant Pattern
+## Responsive Grid
 
 ```tsx
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div>Left</div>
+  <div>Right</div>
+</div>
 
-const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-red-500 text-white hover:bg-red-600",
-        outline: "border border-input bg-background hover:bg-accent",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 px-3 text-sm",
-        lg: "h-12 px-6 text-lg",
-      },
-    },
-    defaultVariants: { variant: "default", size: "default" },
-  },
-);
+<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+  {items.map(item => <Card key={item.id}>{item.name}</Card>)}
+</div>
 ```
 
-## Styling Rules
+## Loading States
 
-1. **Tailwind CSS v4** — use utility classes, no CSS modules
-2. Use `cn()` from `src/lib/utils.ts` (clsx + tailwind-merge) for conditional classes
-3. Use CVA for component variants
-4. Responsive: mobile-first (`sm:`, `md:`, `lg:`)
-5. Dark mode: `dark:` prefix (if theme support enabled)
-6. Spacing scale: `space-y-*`, `gap-*` for consistent rhythm
-7. Colors: Use semantic tokens (`text-primary`, `bg-destructive`) not raw colors
+```typescript
+{loading ? (
+  <Loader2 className="h-8 w-8 animate-spin" />
+) : data.length === 0 ? (
+  <p className="text-gray-500">No data</p>
+) : (
+  <DataTable data={data} />
+)}
+```
 
-## State Management
+## Icons (Lucide React)
 
-- **Server state**: TanStack React Query v5 — `useQuery`, `useMutation`, `useQueryClient`
-- **Client state**: Zustand 5 stores in `src/lib/stores.ts`
-- **Forms**: React Hook Form 7 with Zod resolver — never use uncontrolled `useState` for forms
-- **Real-time**: `useSSE()` hook from `src/hooks/use-sse.ts`
-- **URL state**: `useSearchParams()` for filters, pagination
+```typescript
+import { AlertTriangle, CheckCircle, Loader2, MapPin } from "lucide-react";
+<AlertTriangle className="h-6 w-6 text-yellow-600" />
+```
 
-## Checklist
+## Toast Notifications (sonner)
 
-- [ ] Correct use of `'use client'` directive (only when needed)
-- [ ] Zod schema + React Hook Form for all forms
-- [ ] Loading states (Skeleton components or Suspense boundaries)
-- [ ] Error boundaries for client components
-- [ ] Responsive layout (mobile-first Tailwind)
-- [ ] Accessible: labels, ARIA attributes, keyboard navigation
-- [ ] i18n: use `useTranslations()` for user-facing text
-- [ ] TypeScript strict — no `any` types
-- [ ] Role-aware rendering (check `session.user.role`)
+```typescript
+import { toast } from "sonner";
+toast.success("Success!");
+toast.error("Error occurred");
+```
+
+## Best Practices
+
+1. Server components by default - client only when needed
+2. Fetch in server components - no waterfall fetching
+3. Use controlled inputs with React Hook Form
+4. Show loading/error states always
+5. Keyboard navigation - all elements focusable
+6. Accessibility - labels, alt text, aria
+7. Responsive - mobile-first with Tailwind
+8. No hardcoded data - fetch from API
+9. Use `key` prop on all `.map()` renders
+10. Extract components - break apart >500 lines
+

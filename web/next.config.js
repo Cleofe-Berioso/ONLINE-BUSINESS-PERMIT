@@ -30,6 +30,12 @@ const nextConfig = {
         '@prisma/adapter-pg': 'commonjs @prisma/adapter-pg',
       });
     }
+    // Prevent infinite hot reload loops by excluding large/generated directories
+    config.watchOptions = {
+      poll: 1000,
+      aggregateTimeout: 300,
+      ignored: ['**/.git/**', '**/node_modules/**', '**/.next/**'],
+    };
     return config;
   },
   images: {

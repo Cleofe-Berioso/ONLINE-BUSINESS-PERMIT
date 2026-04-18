@@ -154,3 +154,19 @@ export function sanitizeUser<T extends Record<string, unknown>>(
   const { password: _pw, ...safe } = user;
   return safe as Omit<T, "password">;
 }
+
+/**
+ * Generate QR code as base64 data URL
+ * Used for claim references, permits, etc.
+ */
+export async function generateQrCode(data: string): Promise<string> {
+  const qrcode = await import("qrcode");
+  return qrcode.toDataURL(data, {
+    width: 200,
+    margin: 2,
+    color: {
+      dark: "#000000",
+      light: "#ffffff",
+    },
+  });
+}

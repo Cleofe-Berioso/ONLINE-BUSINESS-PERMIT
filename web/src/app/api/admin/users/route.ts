@@ -14,48 +14,57 @@ const createUserSchema = z.object({
 });
 
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMINISTRATOR") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMINISTRATOR") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search") ?? "";
+    const role = searchParams.get("role") ?? "";
+    const status = searchParams.get("status") ?? "";
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+    const pageSize = 15;
+
+    const where = {
+      ...(search
+        ? {
+            OR: [
+              { email: { contains: search, mode: "insensitive" as const } },
+              { firstName: { contains: search, mode: "insensitive" as const } },
+              { lastName: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+      ...(role ? { role: role as "APPLICANT" | "STAFF" | "REVIEWER" | "ADMINISTRATOR" } : {}),
+      ...(status ? { status: status as "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_VERIFICATION" } : {}),
+    };
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true, email: true, firstName: true, lastName: true,
+          role: true, status: true, lastLoginAt: true, createdAt: true,
+          _count: { select: { applications: true } },
+        },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return NextResponse.json({ users, total, page, pageSize });
+  } catch (error) {
+    captureException(error, { route: "GET /api/admin/users" });
+    console.error("Error fetching users:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 }
+    );
   }
-
-  const { searchParams } = new URL(req.url);
-  const search = searchParams.get("search") ?? "";
-  const role = searchParams.get("role") ?? "";
-  const status = searchParams.get("status") ?? "";
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const pageSize = 15;
-
-  const where = {
-    ...(search
-      ? {
-          OR: [
-            { email: { contains: search, mode: "insensitive" as const } },
-            { firstName: { contains: search, mode: "insensitive" as const } },
-            { lastName: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
-    ...(role ? { role: role as "APPLICANT" | "STAFF" | "REVIEWER" | "ADMINISTRATOR" } : {}),
-    ...(status ? { status: status as "ACTIVE" | "INACTIVE" | "SUSPENDED" | "PENDING_VERIFICATION" } : {}),
-  };
-
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true, email: true, firstName: true, lastName: true,
-        role: true, status: true, lastLoginAt: true, createdAt: true,
-        _count: { select: { applications: true } },
-      },
-    }),
-    prisma.user.count({ where }),
-  ]);
-
-  return NextResponse.json({ users, total, page, pageSize });
 }
 
 export async function POST(request: Request) {

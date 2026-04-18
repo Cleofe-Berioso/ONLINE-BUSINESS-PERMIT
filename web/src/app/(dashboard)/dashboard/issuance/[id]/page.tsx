@@ -15,6 +15,10 @@ interface IssuanceDetail {
   releasedAt: string | null;
   completedAt: string | null;
   staffNotes: string | null;
+  mayorSigningStatus?: string | null;
+  mayorSignedAt?: string | null;
+  mayorSignedBy?: string | null;
+  mayorSigningRemarks?: string | null;
   permit: {
     id: string;
     permitNumber: string;
@@ -61,7 +65,7 @@ export default function IssuanceDetailPage() {
     fetchIssuance();
   }, [fetchIssuance]);
 
-  const handleAction = async (action: "ISSUE" | "RELEASE" | "COMPLETE") => {
+  const handleAction = async (action: "ISSUE" | "RELEASE" | "COMPLETE" | "READY_FOR_MAYOR" | "MAYOR_SIGNED" | "MAYOR_HELD" | "MAYOR_RETURNED") => {
     setActionLoading(true);
     setError("");
     setSuccess("");
@@ -81,7 +85,10 @@ export default function IssuanceDetailPage() {
       }
 
       setSuccess(data.message);
-      setTimeout(() => router.push("/dashboard/issuance"), 2000);
+      setTimeout(() => {
+        fetchIssuance();
+        setStaffNotes("");
+      }, 1000);
     } catch {
       setError("An unexpected error occurred");
     } finally {
@@ -95,8 +102,8 @@ export default function IssuanceDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Permit Issuance</h1>
-          <p className="text-gray-600">Process and issue business permit</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Permit Issuance</h1>
+          <p className="text-[var(--text-secondary)]">Process and issue business permit</p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>
           ← Back
@@ -114,28 +121,28 @@ export default function IssuanceDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <span className="text-sm text-gray-500">Permit Number</span>
+                <span className="text-sm text-[var(--background)]0">Permit Number</span>
                 <p className="font-mono font-medium">{issuance.permit.permitNumber}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Business Name</span>
+                <span className="text-sm text-[var(--background)]0">Business Name</span>
                 <p className="font-medium">{issuance.permit.businessName}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Owner</span>
+                <span className="text-sm text-[var(--background)]0">Owner</span>
                 <p>{issuance.permit.ownerName}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Address</span>
+                <span className="text-sm text-[var(--background)]0">Address</span>
                 <p>{issuance.permit.businessAddress}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-sm text-gray-500">Issue Date</span>
+                  <span className="text-sm text-[var(--background)]0">Issue Date</span>
                   <p>{new Date(issuance.permit.issueDate).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Expiry Date</span>
+                  <span className="text-sm text-[var(--background)]0">Expiry Date</span>
                   <p>{new Date(issuance.permit.expiryDate).toLocaleDateString()}</p>
                 </div>
               </div>
@@ -148,7 +155,7 @@ export default function IssuanceDetailPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <span className="text-sm text-gray-500">Current Status</span>
+                <span className="text-sm text-[var(--background)]0">Current Status</span>
                 <p className="font-medium text-lg capitalize">
                   {issuance.status.toLowerCase().replace("_", " ")}
                 </p>
@@ -195,11 +202,102 @@ export default function IssuanceDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Mayor Signing Workflow */}
+          {issuance.permit.application && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Mayor Signing Workflow</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <span className="text-sm text-[var(--background)]0">Signing Status</span>
+                  <p className="mt-1 font-medium">
+                    {issuance.mayorSigningStatus
+                      ? issuance.mayorSigningStatus.replace(/_/g, " ")
+                      : "Not Started"}
+                  </p>
+                </div>
+
+                {issuance.mayorSignedAt && (
+                  <>
+                    <div>
+                      <span className="text-sm text-[var(--background)]0">Signed By</span>
+                      <p className="mt-1 font-medium">{issuance.mayorSignedBy || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-[var(--background)]0">Signed On</span>
+                      <p className="mt-1 font-medium">
+                        {new Date(issuance.mayorSignedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {issuance.mayorSigningRemarks && (
+                  <div>
+                    <span className="text-sm text-[var(--background)]0">Remarks</span>
+                    <p className="mt-1 text-sm italic">{issuance.mayorSigningRemarks}</p>
+                  </div>
+                )}
+
+                <div className="border-t pt-4 space-y-2">
+                  <p className="text-sm font-medium text-[var(--text-primary)]">Available Actions:</p>
+                  <div className="grid gap-2">
+                    {!issuance.mayorSigningStatus && (
+                      <Button
+                        onClick={() => handleAction("READY_FOR_MAYOR")}
+                        loading={actionLoading}
+                        variant="outline"
+                        className="w-full"
+                        size="sm"
+                      >
+                        Submit to Mayor
+                      </Button>
+                    )}
+                    {issuance.mayorSigningStatus === "READY_FOR_MAYOR" && (
+                      <>
+                        <Button
+                          onClick={() => handleAction("MAYOR_SIGNED")}
+                          loading={actionLoading}
+                          variant="success"
+                          className="w-full"
+                          size="sm"
+                        >
+                          Mark as Signed by Mayor
+                        </Button>
+                        <Button
+                          onClick={() => handleAction("MAYOR_HELD")}
+                          loading={actionLoading}
+                          variant="warning"
+                          className="w-full"
+                          size="sm"
+                        >
+                          Mark as Held by Mayor
+                        </Button>
+                      </>
+                    )}
+                    {issuance.mayorSigningStatus === "MAYOR_HELD" && (
+                      <Button
+                        onClick={() => handleAction("MAYOR_RETURNED")}
+                        loading={actionLoading}
+                        variant="outline"
+                        className="w-full"
+                        size="sm"
+                      >
+                        Mark as Returned by Mayor
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       ) : (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500 mb-4">
+            <p className="text-[var(--background)]0 mb-4">
               Enter the issuance ID to process a permit, or use the issuance list to select one.
             </p>
             <Button onClick={() => router.push("/dashboard/issuance")}>

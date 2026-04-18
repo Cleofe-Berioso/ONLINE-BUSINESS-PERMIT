@@ -13,6 +13,7 @@ interface ShellProps {
     email?: string | null;
     role: Role;
   };
+  userStatus?: string | null;
   children: React.ReactNode;
 }
 
@@ -20,7 +21,11 @@ interface ShellProps {
  * DashboardShell — client wrapper that manages the mobile sidebar open state
  * and wires Zustand UI store for sidebar collapse + notifications.
  */
-export function DashboardShell({ user, children }: ShellProps) {
+export function DashboardShell({
+  user,
+  userStatus,
+  children,
+}: ShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { sidebarCollapsed, toggleSidebarCollapsed } = useUIStore();
 
@@ -28,9 +33,8 @@ export function DashboardShell({ user, children }: ShellProps) {
   useEffect(() => {
     // ensure no SSR mismatch — runs only on client
   }, []);
-
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen bg-[var(--background)] dark:bg-gray-900">
       <DashboardSidebar
         user={user}
         isOpen={sidebarOpen}

@@ -18,7 +18,7 @@ export default function Error({
       <h2 className="text-xl font-semibold">Something went wrong!</h2>
       <button
         onClick={() => reset()}
-        className="mt-4 rounded-md bg-blue-500 px-4 py-2 text-white"
+        className="mt-4 rounded-md bg-[var(--accent-light)]0 px-4 py-2 text-white"
       >
         Try again
       </button>

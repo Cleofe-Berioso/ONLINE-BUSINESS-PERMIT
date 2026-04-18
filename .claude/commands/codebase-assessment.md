@@ -1,123 +1,155 @@
-# Codebase Assessment — OBPS Quality Grading Rubric
+# Codebase Assessment Skill (`/codebase-assessment`)
 
-## Purpose
+**Purpose**: Comprehensive quantitative codebase grading across 6 categories.
 
-Perform a comprehensive quality assessment of the Online Business Permit System codebase, producing a graded report across architecture, code quality, testing, security, performance, and documentation.
+## 6 Assessment Categories
 
-## Usage
+### 1. Security (Weight: 25%)
+**Checks**:
+- Hardcoded secrets (API keys, passwords) - should be 0
+- Missing auth guards on protected routes
+- Input validation with Zod on all forms
+- Rate limiting on auth endpoints
+- Security headers in next.config.js
+- Password hashing with bcryptjs
+- JWT expiration (30 min) set
+- CORS configured appropriately
+
+**Grades**:
+- A: 0 hardcoded secrets, all routes protected, all inputs validated
+- B: 1-2 issues, most routes protected
+- C: 3-5 issues, some validation gaps
+- D: 6+ issues, major gaps
+
+### 2. API & Data Integrity (Weight: 25%)
+**Checks**:
+- All API routes have try-catch
+- All routes validate input with Zod
+- No N+1 queries (Prisma includes used)
+- Transactions for multi-step operations
+- Error responses include proper status codes
+- Pagination implemented (skip/take)
+- Sensitive data sanitized from responses
+- Foreign key constraints in schema
+
+**Grades**:
+- A: All checks pass, no N+1, transactions used
+- B: 90%+ coverage, minor N+1 issues
+- C: 80%+ coverage, some missing validations
+- D: <80% coverage, many gaps
+
+### 3. TypeScript & Code Quality (Weight: 15%)
+**Checks**:
+- npm run typecheck passes (0 errors)
+- No `as any` in API/lib files
+- Components under 500 lines
+- Functions under 100 lines
+- No unused variables/imports
+- Consistent naming conventions
+
+**Grades**:
+- A: 0 TS errors, no any casts, all <500 lines
+- B: 0 TS errors, 1-2 any casts, mostly <500 lines
+- C: <10 TS errors, some large components
+- D: 10+ TS errors, many violations
+
+### 4. Frontend Quality (Weight: 15%)
+**Checks**:
+- Loading states on all async operations
+- Error boundaries (error.tsx, global-error.tsx)
+- SSE cleanup in useEffect
+- `key` prop on all .map() renders
+- Accessibility: labels on inputs
+- Dark mode support implemented
+- Responsive design (mobile-first)
+
+**Grades**:
+- A: All checks pass, fully accessible
+- B: 90%+ coverage, minor a11y issues
+- C: 80%+ coverage, some missing states
+- D: <80%, major UX gaps
+
+### 5. Testing (Weight: 10%)
+**Checks**:
+- Unit test coverage >80% for critical paths
+- E2E tests for core workflows
+- Accessibility tests (axe)
+- Performance tests (k6)
+- Critical API routes tested
+
+**Grades**:
+- A: 80%+ unit, full E2E, a11y, perf tested
+- B: 70%+ unit, most E2E covered
+- C: 60%+ unit, some E2E
+- D: <60%, minimal tests
+
+### 6. Architecture & Patterns (Weight: 10%)
+**Checks**:
+- No circular dependencies
+- Server components by default
+- Database normalization (no duplication)
+- Lib modules don't import components
+- API routes don't import from pages
+- Consistent patterns across codebase
+- No schema drift (migrations current)
+
+**Grades**:
+- A: Clean architecture, patterns consistent
+- B: Minor violations, mostly good
+- C: Several violations, some tech debt
+- D: Major architectural issues
+
+## Overall Grade Calculation
 
 ```
-/codebase-assessment
+Grade = (Security*0.25) + (API/Data*0.25) + (TS/Quality*0.15) +
+        (Frontend*0.15) + (Testing*0.10) + (Architecture*0.10)
 ```
 
-## Grading Scale
-
-- **A (90-100)**: Production-ready, exemplary code
-- **B (80-89)**: Good quality, minor improvements needed
-- **C (70-79)**: Acceptable, several improvements needed
-- **D (60-69)**: Below standard, significant issues
-- **F (<60)**: Critical issues, needs major rework
-
-## Assessment Categories
-
-### 1. Architecture (20%)
-
-| Criteria               | Weight | Check                                      |
-| ---------------------- | ------ | ------------------------------------------ |
-| App Router structure   | 4%     | Route groups, layouts, pages organized     |
-| API route design       | 4%     | RESTful, consistent patterns               |
-| Separation of concerns | 4%     | Server/client components, lib modules      |
-| State management       | 4%     | Zustand for client, React Query for server |
-| Database schema        | 4%     | Normalized, proper relations, indexes      |
-
-### 2. Code Quality (20%)
-
-| Criteria              | Weight | Check                                    |
-| --------------------- | ------ | ---------------------------------------- |
-| TypeScript strictness | 5%     | No `any`, strict mode, proper types      |
-| Naming conventions    | 3%     | Consistent file/function/variable naming |
-| Error handling        | 4%     | try/catch, user-friendly messages        |
-| DRY principle         | 4%     | No duplicate logic, shared utilities     |
-| Code organization     | 4%     | Clean imports, logical file placement    |
-
-### 3. Testing (15%)
-
-| Criteria           | Weight | Check                               |
-| ------------------ | ------ | ----------------------------------- |
-| Unit test coverage | 5%     | Components, utils, validations      |
-| Integration tests  | 3%     | API routes with mocked dependencies |
-| E2E tests          | 4%     | Critical user flows                 |
-| Test quality       | 3%     | Meaningful assertions, edge cases   |
-
-### 4. Security (15%)
-
-| Criteria         | Weight | Check                              |
-| ---------------- | ------ | ---------------------------------- |
-| Authentication   | 4%     | NextAuth properly configured       |
-| Authorization    | 4%     | RBAC enforced on all routes        |
-| Input validation | 4%     | Zod on all inputs, sanitization    |
-| Headers & CSP    | 3%     | Security headers in next.config.js |
-
-### 5. Performance (15%)
-
-| Criteria         | Weight | Check                          |
-| ---------------- | ------ | ------------------------------ |
-| Bundle size      | 4%     | Tree-shaking, dynamic imports  |
-| Database queries | 4%     | Efficient Prisma, no N+1       |
-| Caching          | 4%     | Redis, React Query stale times |
-| Loading states   | 3%     | Skeletons, Suspense boundaries |
-
-### 6. Documentation & DX (15%)
-
-| Criteria             | Weight | Check                             |
-| -------------------- | ------ | --------------------------------- |
-| README / setup guide | 4%     | START_HERE.md completeness        |
-| Code comments        | 3%     | JSDoc on public APIs              |
-| API documentation    | 4%     | Route contracts documented        |
-| Task tracking        | 4%     | tasks.md, MISSING_REQUIREMENTS.md |
-
-## Assessment Commands
-
-```bash
-# Type check
-npx tsc --noEmit 2>&1 | tail -5
-
-# Lint
-npx eslint src/ --max-warnings 0
-
-# Test coverage
-npm test -- --run --coverage
-
-# Bundle analysis
-npm run build 2>&1 | grep -E "Route|Size|First"
-
-# Dependency audit
-npm audit --audit-level moderate
-```
-
-## Output Format
+## Report Format
 
 ```
-## OBPS Codebase Assessment Report
+Codebase Assessment Report
+==========================
 
-### Overall Grade: [A-F] ([score]/100)
+Security: A (95%)
+  ✓ 0 hardcoded secrets
+  ✓ All routes protected with auth
+  ✗ Missing rate limit on /register
 
-| Category | Grade | Score | Notes |
-|----------|-------|-------|-------|
-| Architecture | | /20 | |
-| Code Quality | | /20 | |
-| Testing | | /15 | |
-| Security | | /15 | |
-| Performance | | /15 | |
-| Documentation | | /15 | |
+API & Data Integrity: A (92%)
+  ✓ All routes validated with Zod
+  ✓ Transactions used for multi-step ops
+  ⚠ 2 N+1 queries in /api/applications
 
-### Top Issues
-1. ...
-2. ...
-3. ...
+TypeScript & Quality: A (98%)
+  ✓ 0 TypeScript errors
+  ✓ All components <500 lines
+  ✓ No 'as any' in API files
 
-### Recommendations
-1. ...
-2. ...
-3. ...
+Frontend Quality: B (87%)
+  ✓ Loading states on all async
+  ✓ Error boundaries implemented
+  ✗ Missing SSE cleanup in 1 hook
+
+Testing: B (75%)
+  ✓ 82% unit coverage
+  ✓ E2E tests for core flows
+  ✗ Performance tests not run
+
+Architecture: A (94%)
+  ✓ Clean layer separation
+  ✓ No circular dependencies
+  ⚠ 1 large component >500 lines
+
+OVERALL GRADE: A (91%)
 ```
+
+## Improvement Priorities
+
+1. Address security issues first
+2. Fix critical N+1 queries
+3. Add missing tests
+4. Refactor large components
+5. Improve accessibility
+

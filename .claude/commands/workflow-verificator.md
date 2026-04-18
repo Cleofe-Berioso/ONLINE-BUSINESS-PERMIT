@@ -1,122 +1,85 @@
-# Workflow Verificator — OBPS End-to-End Workflow Validation
+# Workflow Verificator Skill (`/workflow-verificator`)
 
-## Purpose
+**Purpose**: Verify workflow implementations are complete and correct end-to-end.
 
-Verify that complete business workflows function correctly across all layers: UI pages → API routes → Prisma queries → Database state → SSE notifications.
+## Verification Checklist
 
-## Usage
+### API Route Registration
+- Endpoint exists: `src/app/api/[group]/[id]/route.ts`
+- Correct HTTP method: `GET`, `POST`, `PUT`, `DELETE`
+- Auth check: `await auth()` on protected routes
+- Zod validation: `[schema].safeParse(data)`
+- Error handling: try/catch with proper status codes
+- Returns JSON: `NextResponse.json()`
 
-```
-/workflow-verificator <workflow-name-or-description>
-```
+### Page ↔ API Wiring
+- Page component at correct path
+- Calls correct API endpoint
+- Request body matches Zod schema
+- Response type matches props
+- Loading/error states handled
+- Notifications on success/error
 
-## Verification Methodology
+### Data Model Wiring
+- Prisma query includes relations
+- Response includes needed fields
+- No sensitive data (sanitize user)
+- Pagination correct (skip/take)
+- Filters applied correctly
 
-1. **Map the flow** — Identify all files involved (page → form → API → lib → DB)
-2. **Check data contracts** — Zod schemas match Prisma models match API responses
-3. **Verify state transitions** — Status enums flow correctly (e.g., DRAFT → SUBMITTED → UNDER_REVIEW)
-4. **Test authorization** — Each step enforces correct role
-5. **Confirm side effects** — Notifications sent, history logged, SSE broadcast
+### Authentication
+- Session check before DB access
+- Role verified: `session?.user?.role`
+- 401 for unauthorized, 403 for forbidden
+- Middleware blocks non-authenticated
+- Re-authentication works
 
-## Core Workflows to Verify
+### SSE Real-time
+- Event emitted: `broadcast()`
+- Event name matches client listener
+- Client connected: `src/hooks/use-sse.ts`
+- Component subscribes to event
+- Cleanup function prevents leak
+- DevTools shows EventSource
 
-### 1. Application Lifecycle
+### Form Validation
+- Zod schema covers all fields
+- Client matches server validation
+- Error messages shown
+- Required fields block submission
+- Custom validations work
 
-```
-Files:
-  src/app/(dashboard)/dashboard/applications/new/page.tsx
-  src/app/api/applications/route.ts
-  src/app/api/applications/[id]/route.ts
-  src/lib/validations.ts (applicationSchema)
-  prisma/schema.prisma (Application, ApplicationHistory)
+### Database
+- Unique constraints enforced
+- Foreign keys prevent orphaned data
+- Cascading deletes work
+- TTL indexes on time-series
+- No N+1 queries
 
-Flow: DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED
-Roles: APPLICANT creates → STAFF/REVIEWER reviews → REVIEWER approves
-Side effects: ApplicationHistory record, Notification, SSE event
-```
+### Error Handling
+- All errors logged
+- Friendly user messages
+- Proper status codes
+- No stack traces in production
+- Retry logic for transient errors
 
-### 2. Document Verification
+## Verification Commands
 
-```
-Files:
-  src/components/ui/file-upload.tsx
-  src/app/api/documents/upload/route.ts
-  src/app/(dashboard)/dashboard/verify-documents/page.tsx
-  src/app/api/documents/[id]/route.ts
-  src/lib/storage.ts
-
-Flow: Upload → PENDING → VERIFIED/REJECTED
-Roles: APPLICANT uploads → STAFF verifies
-Validation: File type whitelist, magic bytes, size limit
-```
-
-### 3. Review & Approval
-
-```
-Files:
-  src/app/(dashboard)/dashboard/review/page.tsx
-  src/app/(dashboard)/dashboard/review/[id]/page.tsx
-  src/app/api/applications/[id]/route.ts
-  prisma/schema.prisma (ReviewAction)
-
-Flow: View queue → Open detail → Check docs → Approve/Reject/Return
-Roles: REVIEWER only
-Side effects: ReviewAction record, status change, notification to applicant
-```
-
-### 4. Claim Scheduling
-
-```
-Files:
-  src/app/(dashboard)/dashboard/schedule/page.tsx
-  src/app/api/schedules/route.ts
-  src/app/api/schedules/reserve/route.ts
-  prisma/schema.prisma (ClaimSchedule, TimeSlot, SlotReservation)
-
-Flow: Admin creates schedule → Applicant views slots → Reserves → Confirms
-Roles: ADMIN/STAFF creates → APPLICANT reserves
-Concurrency: Temporary hold to prevent double-booking
+```bash
+npm run typecheck
+npm run test:e2e
+npm run db:studio
+npx prisma validate
 ```
 
-### 5. Permit Issuance
+## Common Missing Pieces
 
-```
-Files:
-  src/app/(dashboard)/dashboard/issuance/page.tsx
-  src/app/api/issuance/[id]/route.ts
-  src/lib/pdf.ts
-  prisma/schema.prisma (Permit, PermitIssuance)
+- API exists but component doesn't call it
+- Wrong schema validation
+- Response fields don't match props
+- Missing auth checks
+- SSE event not listened to
+- Client/server validation differs
+- Errors not shown to user
+- Memory leaks in SSE listeners
 
-Flow: Application APPROVED → Generate permit PDF with QR → PREPARED → ISSUED → RELEASED
-Roles: STAFF manages issuance lifecycle
-Side effects: PDF generation, QR code, notification to applicant
-```
-
-### 6. Payment Processing
-
-```
-Files:
-  src/components/dashboard/pay-now-button.tsx
-  src/app/api/payments/route.ts
-  src/app/api/payments/webhook/route.ts
-  src/lib/payments.ts
-
-Flow: Create checkout → Redirect to gateway → Webhook confirmation → Status update
-Roles: APPLICANT pays online, STAFF records OTC
-Verification: Webhook signature, idempotent processing
-```
-
-## Verification Checklist Template
-
-For each workflow, verify:
-
-- [ ] All files exist and export correct functions
-- [ ] Zod schema matches the form fields
-- [ ] API route validates input with Zod
-- [ ] API route checks session and role
-- [ ] Prisma query matches schema model
-- [ ] Status transitions are valid (check enum values)
-- [ ] Error cases return appropriate HTTP status codes
-- [ ] Side effects fire (notifications, history, SSE)
-- [ ] UI handles loading, error, and success states
-- [ ] E2E test exists or can be written

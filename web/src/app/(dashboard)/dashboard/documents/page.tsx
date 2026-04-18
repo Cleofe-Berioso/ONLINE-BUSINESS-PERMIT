@@ -38,15 +38,15 @@ export default async function DocumentsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Documents</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">My Documents</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           View all documents you&apos;ve uploaded across your applications
         </p>
       </div>
 
       {documents.length === 0 ? (
         <EmptyState
-          icon={<Upload className="h-8 w-8 text-gray-400" />}
+          icon={<Upload className="h-8 w-8 text-[var(--text-muted)]" />}
           title="No documents uploaded"
           description="Documents will appear here once you upload them with your applications."
           action={{
@@ -62,12 +62,12 @@ export default async function DocumentsPage() {
                 <div key={doc.id} className="flex items-start gap-3 p-4">
                   <div className="mt-0.5 flex-shrink-0">{getIcon(doc.mimeType)}</div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-gray-800 text-sm">{doc.originalName}</p>
-                    <p className="text-xs text-gray-500">{doc.application.applicationNumber} · {formatSize(doc.fileSize)}</p>
-                    <p className="mt-0.5 text-xs text-gray-500">{doc.documentType.replace(/_/g, " ")} · v{doc.version}</p>
+                    <p className="truncate font-medium text-[var(--text-primary)] text-sm">{doc.originalName}</p>
+                    <p className="text-xs text-[var(--background)]0">{doc.application.applicationNumber} · {formatSize(doc.fileSize)}</p>
+                    <p className="mt-0.5 text-xs text-[var(--background)]0">{doc.documentType.replace(/_/g, " ")} · v{doc.version}</p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <StatusBadge status={doc.status} />
-                      <span className="text-xs text-gray-400">{formatDate(doc.createdAt)}</span>
+                      <span className="text-xs text-[var(--text-muted)]">{formatDate(doc.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -76,7 +76,7 @@ export default async function DocumentsPage() {
             {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
-                <thead className="border-b bg-gray-50 text-xs uppercase text-gray-600">
+                <thead className="border-b bg-[var(--surface-muted)] text-xs uppercase text-[var(--text-secondary)]">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Document</th>
                     <th className="px-4 py-3 font-semibold">Application</th>
@@ -88,21 +88,21 @@ export default async function DocumentsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {documents.map((doc) => (
-                    <tr key={doc.id} className="hover:bg-gray-50">
+                    <tr key={doc.id} className="hover:bg-[var(--surface-muted)]">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           {getIcon(doc.mimeType)}
                           <div>
-                            <p className="font-medium text-gray-700">{doc.originalName}</p>
-                            <p className="text-xs text-gray-400">{formatSize(doc.fileSize)}</p>
+                            <p className="font-medium text-[var(--text-primary)]">{doc.originalName}</p>
+                            <p className="text-xs text-[var(--text-muted)]">{formatSize(doc.fileSize)}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{doc.application.applicationNumber}</td>
-                      <td className="px-4 py-3 text-gray-600">{doc.documentType.replace(/_/g, " ")}</td>
-                      <td className="px-4 py-3 text-gray-600">v{doc.version}</td>
+                      <td className="px-4 py-3 text-[var(--text-secondary)]">{doc.application.applicationNumber}</td>
+                      <td className="px-4 py-3 text-[var(--text-secondary)]">{doc.documentType.replace(/_/g, " ")}</td>
+                      <td className="px-4 py-3 text-[var(--text-secondary)]">v{doc.version}</td>
                       <td className="px-4 py-3"><StatusBadge status={doc.status} /></td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(doc.createdAt)}</td>
+                      <td className="px-4 py-3 text-[var(--background)]0">{formatDate(doc.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>

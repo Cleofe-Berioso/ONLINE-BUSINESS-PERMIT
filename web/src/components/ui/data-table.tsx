@@ -58,9 +58,9 @@ export function DataTable<T extends Record<string, unknown>>({
 
   return (
     <div className="w-full">
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
         <table className="w-full text-left text-sm">
-          <thead className="border-b bg-gray-50 text-xs uppercase text-gray-600">
+          <thead className="border-b bg-[var(--surface-muted)] text-xs uppercase text-gray-600">
             <tr>
               {columns.map((col) => (
                 <th
@@ -87,7 +87,7 @@ export function DataTable<T extends Record<string, unknown>>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-8 text-center text-gray-500"
+                  className="px-4 py-8 text-center text-[var(--text-secondary)]"
                 >
                   {emptyMessage}
                 </td>
@@ -96,13 +96,13 @@ export function DataTable<T extends Record<string, unknown>>({
               paginatedData.map((item, index) => (
                 <tr
                   key={index}
-                  className={`bg-white transition-colors hover:bg-gray-50 ${
+                  className={`bg-white transition-colors hover:bg-[var(--surface-muted)] ${
                     onRowClick ? "cursor-pointer" : ""
                   }`}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className="px-4 py-3 text-gray-700">
+                    <td key={col.key} className="px-4 py-3 text-[var(--text-primary)]">
                       {col.render
                         ? col.render(item)
                         : (item[col.key] as React.ReactNode) ?? "—"}

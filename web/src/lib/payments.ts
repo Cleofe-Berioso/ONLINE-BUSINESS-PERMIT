@@ -290,38 +290,103 @@ export function verifyPayMongoWebhook(payload: string, signature: string): boole
   return computedSignature === signature;
 }
 
-export function calculateFees(applicationType: string, businessType: string): {
+export function calculateFees(params: {
+  applicationType: string;
+  businessType?: string;
+  businessName?: string;
+  lineOfBusiness?: string;
+  grossSales?: number | { toDecimal: () => number } | null;
+  paymentFrequency?: "ANNUAL" | "QUARTERLY" | "MONTHLY";
+}): {
   permitFee: number;
   processingFee: number;
   filingFee: number;
   totalAmount: number;
+  perInstallment: number;
 } {
-  // Fee schedule based on Philippine LGU typical rates
-  const fees: Record<string, { permit: number; processing: number; filing: number }> = {
-    NEW: { permit: 500, processing: 100, filing: 50 },
-    RENEWAL: { permit: 300, processing: 75, filing: 50 },
-  };
+  const {
+    applicationType,
+    businessType = "SOLE_PROPRIETORSHIP",
+    businessName = "",
+    lineOfBusiness = "",
+    grossSales = null,
+    paymentFrequency = "ANNUAL",
+  } = params;
 
-  const typeFees = fees[applicationType] || fees.NEW;
+  // Fixed fees (always added)
+  const processingFee = 100;
+  const filingFee = 50;
 
-  // Business type multipliers
-  const multipliers: Record<string, number> = {
-    SOLE_PROPRIETORSHIP: 1.0,
-    PARTNERSHIP: 1.5,
-    CORPORATION: 2.0,
-    COOPERATIVE: 0.8,
-  };
+  // Determine grossSales as number
+  let salesAmount = 100000; // Default fallback
+  if (grossSales) {
+    if (typeof grossSales === "number") {
+      salesAmount = grossSales;
+    } else if (grossSales.toDecimal) {
+      salesAmount = grossSales.toDecimal();
+    }
+  }
 
-  const multiplier = multipliers[businessType] || 1.0;
+  // =======================================
+  // BRACKET-BASED FEE COMPUTATION (DFD P5.0)
+  // ==========================================
 
-  const permitFee = typeFees.permit * multiplier;
-  const processingFee = typeFees.processing;
-  const filingFee = typeFees.filing;
+  // Fee brackets by gross sales
+  let baseFee: number;
+  if (salesAmount <= 100000) {
+    // Class A
+    baseFee = 500;
+  } else if (salesAmount <= 500000) {
+    // Class B
+    baseFee = 1000;
+  } else if (salesAmount <= 1000000) {
+    // Class C
+    baseFee = 2000;
+  } else {
+    // Class D (> 1,000,000)
+    baseFee = 5000;
+  }
+
+  // LOB category multipliers
+  const lob = (lineOfBusiness || businessType || "").toUpperCase();
+  let lobMultiplier = 1.0;
+
+  if (lob.includes("MANUFACTURING") || lob.includes("FACTORY")) {
+    lobMultiplier = 1.3;
+  } else if (lob.includes("FOOD") || lob.includes("RESTAURANT") || lob.includes("CAFE")) {
+    lobMultiplier = 1.2;
+  } else if (lob.includes("SERVICE") ) {
+    lobMultiplier = 1.1;
+  } else if (lob.includes("RETAIL")) {
+    lobMultiplier = 1.0;
+  }
+
+  let permitFee = baseFee * lobMultiplier;
+
+  // Liquor/Tobacco 25% premium (DFD P5.1)
+  const fullText = `${businessName} ${lineOfBusiness}`.toUpperCase();
+  if (fullText.includes("LIQUOR") || fullText.includes("TOBACCO") || fullText.includes("ALCOHOLIC")) {
+    permitFee *= 1.25; // Add 25% premium
+  }
+
+  // Application type adjustments
+  if (applicationType === "RENEWAL") {
+    permitFee *= 0.7; // RENEWAL gets 30% discount
+  } else if (applicationType === "CLOSURE") {
+    permitFee = 200; // Fixed closure fee
+  }
+
+  const subtotal = permitFee + processingFee + filingFee;
+
+  // Payment frequency divisor (DFD P5.2)
+  const frequencyDivisor =
+    paymentFrequency === "QUARTERLY" ? 4 : paymentFrequency === "MONTHLY" ? 12 : 1;
 
   return {
-    permitFee,
+    permitFee: Math.round(permitFee * 100) / 100,
     processingFee,
     filingFee,
-    totalAmount: permitFee + processingFee + filingFee,
+    totalAmount: Math.round(subtotal * 100) / 100,
+    perInstallment: Math.round((subtotal / frequencyDivisor) * 100) / 100,
   };
 }

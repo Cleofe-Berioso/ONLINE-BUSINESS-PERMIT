@@ -1,92 +1,99 @@
-# Implementation Plan — OBPS Feature Implementation Guide
+# Implementation Plan Skill (`/implementation-plan`)
 
-## Purpose
+**Purpose**: Sprint planning, feature prioritization, and gap analysis.
 
-Create structured implementation plans for new features or modules in the Online Business Permit System, breaking down work into phases with clear deliverables.
+## Reference Documents
 
-## Usage
+- `PROJECT-PLAN.md` - Full project scope
+- `tasks.md` - Task audit and tracker
+- `MISSING_REQUIREMENTS.md` - Dependencies & missing services
 
-```
-/implementation-plan <feature-or-module-description>
-```
+## Current Status
 
-## Planning Template
+**Completed Modules**:
+- User & Access Management (4 roles, auth, 2FA)
+- Permit Application Management (workflow, review)
+- Document Management (upload, verification)
+- Application Tracking (SSE, real-time)
+- Claim Scheduling (slots, reservations)
+- Payment Integration (PayMongo, OTC)
+- Permit Issuance (PDF with QR)
+- Business Location Mapping (Leaflet)
 
-### 1. Requirements Analysis
+**In Progress**: 
+- Admin features
+- Analytics & reporting
+- SMS/Email batch operations
 
-- What user story or requirement does this address?
-- Which user role(s) are involved?
-- Which existing modules are affected?
-- What data models need changes?
+**Not Started**:
+- Renewal application workflow (partial)
+- Government API integrations (mock mode)
+- Performance optimization
+- Security audit
 
-### 2. Technical Design
+## Priority Matrix
 
-- New/modified files (pages, API routes, components, lib)
-- Prisma schema changes (models, enums, relations)
-- State management needs (Zustand, React Query)
-- External integrations (payments, email, SMS, storage)
+### P0 - Critical Path
+- User authentication working end-to-end
+- Application submission workflow
+- Document verification
+- Permit issuance
 
-### 3. Implementation Phases
+### P1 - Core Features
+- Claim scheduling and pickup
+- Payment processing
+- Real-time notifications
+- Business location mapping
 
-```
-Phase 1: Database & Schema
-  - Prisma schema changes
-  - Migration generation & testing
-  - Seed data updates
+### P2 - Admin Features
+- User management
+- Reports & analytics
+- System settings
+- Audit logs
 
-Phase 2: Backend (API Routes)
-  - Route handlers with Zod validation
-  - Business logic in lib modules
-  - Auth/RBAC enforcement
+### P3 - Enhancements
+- SMS notifications
+- Email templates
+- Government API
+- Performance optimization
 
-Phase 3: Frontend (UI)
-  - Server Component pages
-  - Client Components for interactivity
-  - Form handling (React Hook Form + Zod)
+## Sprint Planning
 
-Phase 4: Integration
-  - Wire frontend to API routes
-  - Real-time updates (SSE)
-  - Notifications (email, SMS, in-app)
+**Sprint 1** (2 weeks):
+- Finish auth implementation
+- Complete application CRU (no D)
+- Basic document upload
 
-Phase 5: Testing
-  - Unit tests (Vitest)
-  - E2E tests (Playwright)
-  - Manual QA with all roles
-```
+**Sprint 2** (2 weeks):
+- Document verification workflow
+- Claim scheduling
+- Payment integration
 
-### 4. Acceptance Criteria
+**Sprint 3** (2 weeks):
+- Permit issuance with PDF
+- Real-time notifications
+- Business location mapping
 
-- List specific conditions that must be true for the feature to be complete
-- Include role-based scenarios
-- Include error/edge cases
+**Sprint 4** (2 weeks):
+- Admin user management
+- Analytics & reporting
+- Testing & bug fixes
 
-## Reference: Existing Module Structure
+## Gap Analysis
 
-| Module                    | Status      | Files                                           |
-| ------------------------- | ----------- | ----------------------------------------------- |
-| Auth (login/register/OTP) | Complete    | `(auth)/`, `api/auth/`                          |
-| Application CRUD          | Complete    | `dashboard/applications/`, `api/applications/`  |
-| Document Management       | Complete    | `dashboard/verify-documents/`, `api/documents/` |
-| Review Workflow           | Complete    | `dashboard/review/`, `api/applications/[id]/`   |
-| Claim Scheduling          | In Progress | `dashboard/schedule/`, `api/schedules/`         |
-| Permit Issuance           | In Progress | `dashboard/issuance/`, `api/issuance/`          |
-| Payment Processing        | In Progress | `api/payments/`                                 |
-| Admin Panel               | Partial     | `dashboard/admin/`, `api/admin/`                |
-| Analytics/Reports         | Partial     | `api/analytics/`                                |
-| Real-time (SSE)           | Complete    | `api/events`, `hooks/use-sse.ts`                |
-| Notifications             | In Progress | `api/notifications/`                            |
+| Feature | Status | Blocker | ETC |
+|---------|--------|---------|-----|
+| DTI Verification | Mock | API key | 1 sprint |
+| SMS Notifications | Template ready | API key | 1 sprint |
+| Email Templates | Some | Review | 1 sprint |
+| Performance | Not started | None | 1 sprint |
+| Security audit | Not started | None | 1 sprint |
 
-## Cross-cutting Concerns
+## Key Metrics
 
-Every new feature must address:
+- Feature completion: 85%
+- Test coverage: 75%
+- Performance: On target
+- Security: Audit pending
+- Accessibility: WCAG 2.1 AA
 
-- [ ] Auth check (session + role)
-- [ ] Input validation (Zod)
-- [ ] Error handling (try/catch, user-friendly messages)
-- [ ] Loading states (Skeleton, Suspense)
-- [ ] Mobile responsiveness
-- [ ] i18n (useTranslations)
-- [ ] Accessibility (labels, keyboard nav)
-- [ ] Audit logging (AuditLog model)
-- [ ] Test coverage (unit + E2E)

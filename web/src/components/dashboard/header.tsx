@@ -27,15 +27,15 @@ export function DashboardHeader({ user, onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-4 shadow-sm sm:px-6">
+    <header className="flex h-16 items-center justify-between border-b bg-[var(--surface)] px-4 shadow-sm sm:px-6">
       <div className="flex items-center gap-3">
         {/* Hamburger — visible only on mobile */}
         <button
           onClick={onMenuClick}
-          className="rounded-lg p-2 hover:bg-gray-100 lg:hidden"
+          className="rounded-lg p-2 hover:bg-[var(--surface-muted)] lg:hidden"
           aria-label="Open menu"
         >
-          <Menu className="h-5 w-5 text-gray-600" />
+          <Menu className="h-5 w-5 text-[var(--text-secondary)]" />
         </button>
         <h2 className="text-base font-semibold text-gray-900 sm:text-lg lg:hidden">
           Business Permit System
@@ -44,7 +44,7 @@ export function DashboardHeader({ user, onMenuClick }: HeaderProps) {
         {/* Dark mode toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+          className="rounded-lg p-2 text-gray-500 hover:bg-[var(--surface-muted)] dark:text-gray-400 dark:hover:bg-gray-700"
           aria-label="Toggle dark mode"
         >
           {theme === "dark" ? (
@@ -61,7 +61,7 @@ export function DashboardHeader({ user, onMenuClick }: HeaderProps) {
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-gray-100 sm:px-3"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-[var(--surface-muted)] sm:px-3"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
               {user.firstName[0]}
@@ -85,10 +85,10 @@ export function DashboardHeader({ user, onMenuClick }: HeaderProps) {
                 className="fixed inset-0 z-40"
                 onClick={() => setShowUserMenu(false)}
               />
-              <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border bg-white py-2 shadow-lg">
+              <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border bg-[var(--surface)] py-2 shadow-lg">
                 <a
                   href="/dashboard/profile"
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--surface-muted)]"
                 >
                   <User className="h-4 w-4" />
                   My Profile

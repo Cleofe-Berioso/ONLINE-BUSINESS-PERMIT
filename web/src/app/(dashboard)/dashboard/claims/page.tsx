@@ -111,8 +111,8 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Claims Processing</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Claims Processing</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Verify claim references and release permits to applicants
         </p>
       </div>
@@ -132,7 +132,7 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-blue-600" />
+            <Search className="h-5 w-5 text-[var(--accent)]" />
             Verify Claim Reference
           </CardTitle>
           <CardDescription>
@@ -159,7 +159,7 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
         </CardHeader>
         <CardContent>          {reservations.length === 0 ? (
             <EmptyState
-              icon={<Tag className="h-8 w-8 text-gray-400" />}
+              icon={<Tag className="h-8 w-8 text-[var(--text-muted)]" />}
               title="No claims scheduled for today"
               description="There are no claiming appointments for today."
             />
@@ -171,13 +171,13 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
                   <div key={res.id} className="rounded-lg border p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium text-gray-900">{res.user.firstName} {res.user.lastName}</p>
-                        <p className="text-sm text-gray-600">{res.application.businessName}</p>
-                        <p className="text-xs text-gray-500">{res.application.applicationNumber}</p>
+                        <p className="font-medium text-[var(--text-primary)]">{res.user.firstName} {res.user.lastName}</p>
+                        <p className="text-sm text-[var(--text-secondary)]">{res.application.businessName}</p>
+                        <p className="text-xs text-[var(--background)]0">{res.application.applicationNumber}</p>
                       </div>
                       <StatusBadge status={res.status} />
                     </div>
-                    <p className="mt-2 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-[var(--background)]0">
                       Time: {res.timeSlot.startTime} – {res.timeSlot.endTime}
                       {res.claimId && <span className="ml-2 font-mono">{res.claimId}</span>}
                     </p>
@@ -187,7 +187,7 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
                       </Button>
                     )}
                     {res.status === "COMPLETED" && (
-                      <p className="mt-2 text-sm font-medium text-green-600">✓ Released</p>
+                      <p className="mt-2 text-sm font-medium text-[var(--success)]">✓ Released</p>
                     )}
                   </div>
                 ))}
@@ -195,7 +195,7 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
               {/* Desktop table */}
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b bg-gray-50 text-xs uppercase text-gray-600">
+                  <thead className="border-b bg-[var(--surface-muted)] text-xs uppercase text-[var(--text-secondary)]">
                     <tr>
                       <th className="px-4 py-3">Claim ID</th>
                       <th className="px-4 py-3">Applicant</th>
@@ -207,7 +207,7 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
                   </thead>
                   <tbody className="divide-y">
                     {reservations.map((res) => (
-                      <tr key={res.id} className="hover:bg-gray-50">
+                      <tr key={res.id} className="hover:bg-[var(--surface-muted)]">
                         <td className="px-4 py-3 font-mono text-sm">{res.claimId || "—"}</td>
                         <td className="px-4 py-3">{res.user.firstName} {res.user.lastName}</td>
                         <td className="px-4 py-3">{res.application.businessName}</td>
@@ -220,7 +220,7 @@ export default function ClaimsPage() {  const [reservations, setReservations] = 
                             </Button>
                           )}
                           {res.status === "COMPLETED" && (
-                            <span className="text-sm text-green-600">Released</span>
+                            <span className="text-sm text-[var(--success)]">Released</span>
                           )}
                         </td>
                       </tr>

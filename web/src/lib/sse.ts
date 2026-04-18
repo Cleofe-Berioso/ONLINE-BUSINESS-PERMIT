@@ -9,9 +9,20 @@
 
 export type SSEEventType =
   | 'application_status_changed'
+  | 'application_approved'
+  | 'application_rejected'
+  | 'revision_requested'
   | 'document_verified'
+  | 'document_uploaded'
+  | 'document_rejected'
   | 'claim_scheduled'
+  | 'clearance_initiated'
+  | 'clearance_updated'
   | 'permit_issued'
+  | 'permit_printed'
+  | 'permit_expired'
+  | 'claim_completed'
+  | 'payment_initiated'
   | 'slot_availability_changed'
   | 'notification'
   | 'heartbeat';
@@ -176,6 +187,281 @@ export function broadcastNotification(
       title,
       message,
       actionUrl,
+    }, userId)
+  );
+}
+
+// ============================================================================
+// P2.3: Document Upload & Verification Events
+// ============================================================================
+
+export function broadcastDocumentUploaded(
+  userId: string,
+  documentId: string,
+  documentType: string,
+  documentName: string,
+  applicationId: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('document_uploaded', {
+      documentId,
+      documentType,
+      documentName,
+      applicationId,
+      status: 'UPLOADED',
+    }, userId)
+  );
+}
+
+export function broadcastDocumentRejected(
+  userId: string,
+  documentId: string,
+  documentType: string,
+  rejectionReason: string,
+  applicationId: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('document_rejected', {
+      documentId,
+      documentType,
+      rejectionReason,
+      applicationId,
+      status: 'REJECTED',
+    }, userId)
+  );
+}
+
+// ============================================================================
+// P2.4: Application Review & Approval Events
+// ============================================================================
+
+export function broadcastApplicationApproved(
+  userId: string,
+  applicationId: string,
+  applicationNumber: string,
+  permitNumber?: string,
+  comment?: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('application_approved', {
+      applicationId,
+      applicationNumber,
+      permitNumber,
+      comment,
+      status: 'APPROVED',
+    }, userId)
+  );
+}
+
+export function broadcastApplicationRejected(
+  userId: string,
+  applicationId: string,
+  applicationNumber: string,
+  rejectionReason: string,
+  comment?: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('application_rejected', {
+      applicationId,
+      applicationNumber,
+      rejectionReason,
+      comment,
+      status: 'REJECTED',
+    }, userId)
+  );
+}
+
+export function broadcastRevisionRequested(
+  userId: string,
+  applicationId: string,
+  applicationNumber: string,
+  comment: string,
+  requiredChanges?: string[]
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('revision_requested', {
+      applicationId,
+      applicationNumber,
+      comment,
+      requiredChanges,
+      status: 'REVISION_REQUESTED',
+    }, userId)
+  );
+}
+
+// ============================================================================
+// P3.0: Clearance & Endorsement Events
+// ============================================================================
+
+export function broadcastClearanceInitiated(
+  userId: string,
+  applicationId: string,
+  applicationNumber: string,
+  offices: string[]
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('clearance_initiated', {
+      applicationId,
+      applicationNumber,
+      offices,
+      officeCount: offices.length,
+      status: 'CLEARANCE_INITIATED',
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+export function broadcastClearanceUpdated(
+  userId: string,
+  applicationId: string,
+  officeCode: string,
+  officeName: string,
+  status: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('clearance_updated', {
+      applicationId,
+      officeCode,
+      officeName,
+      status,
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+// ============================================================================
+// Payment Events
+// ============================================================================
+
+export function broadcastPaymentInitiated(
+  userId: string,
+  applicationId: string,
+  details: {
+    referenceNumber: string;
+    amount: number;
+    method: string;
+  }
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('notification', {
+      applicationId,
+      referenceNumber: details.referenceNumber,
+      amount: details.amount,
+      method: details.method,
+      message: `Payment initiated - Reference: ${details.referenceNumber}`,
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+// ============================================================================
+// Permit Issuance Events
+// ============================================================================
+
+export function broadcastPermitIssued(
+  userId: string,
+  permitId: string,
+  permitNumber: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('permit_issued', {
+      permitId,
+      permitNumber,
+      message: `Permit issued: ${permitNumber}`,
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+// ============================================================================
+// Claim Events
+// ============================================================================
+
+export function broadcastClaimReleased(
+  userId: string,
+  claimReferenceId: string,
+  referenceNumber: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('notification', {
+      claimReferenceId,
+      referenceNumber,
+      message: `Permit ready for claim - Reference: ${referenceNumber}`,
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+export function broadcastSlotAvailabilityChanged(scheduleId: string): void {
+  sseBroadcaster.broadcast(
+    createSSEEvent('slot_availability_changed', {
+      scheduleId,
+      message: 'Slot availability has changed',
+      timestamp: new Date().toISOString(),
+    })
+  );
+}
+
+// ============================================================================
+// Phase 5: Permit Issuance Events
+// ============================================================================
+
+export function broadcastPermitPrinted(
+  userId: string,
+  permitNumber: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('permit_printed', {
+      permitNumber,
+      message: `Permit ${permitNumber} has been printed`,
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+export function broadcastPermitExpired(
+  userId: string,
+  permitNumber: string,
+  businessName: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('permit_expired', {
+      permitNumber,
+      businessName,
+      message: `Permit ${permitNumber} (${businessName}) has expired`,
+      timestamp: new Date().toISOString(),
+    }, userId)
+  );
+}
+
+// ============================================================================
+// Phase 6: Claims Events
+// ============================================================================
+
+export function broadcastClaimCompleted(
+  userId: string,
+  applicantId: string,
+  applicationNumber: string
+): void {
+  sseBroadcaster.sendToUser(
+    userId,
+    createSSEEvent('claim_completed', {
+      applicantId,
+      applicationNumber,
+      message: `Claim for application ${applicationNumber} has been completed`,
+      timestamp: new Date().toISOString(),
     }, userId)
   );
 }

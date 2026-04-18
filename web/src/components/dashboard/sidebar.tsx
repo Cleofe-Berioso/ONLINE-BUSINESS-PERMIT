@@ -19,6 +19,8 @@ import {
   ClipboardList,
   ChevronLeft,
   ChevronRight,
+  File,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -37,6 +39,7 @@ interface SidebarProps {
   collapsed?: boolean;
   /** Desktop: callback to toggle collapsed state */
   onToggleCollapse?: () => void;
+  isRenewalEligible?: boolean;
 }
 
 interface NavItem {
@@ -46,36 +49,12 @@ interface NavItem {
   roles: Role[];
 }
 
-const navItems: NavItem[] = [
+// ── APPLICANT ACCOUNT NAVIGATION ──
+const applicantAccountNav: NavItem[] = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <LayoutDashboard className="h-5 w-5" />,
-    roles: ["APPLICANT", "STAFF", "REVIEWER", "ADMINISTRATOR"],
-  },
-  // Applicant
-  {
-    label: "My Applications",
-    href: "/dashboard/applications",
-    icon: <FileText className="h-5 w-5" />,
-    roles: ["APPLICANT"],
-  },
-  {
-    label: "Track Status",
-    href: "/dashboard/tracking",
-    icon: <Clock className="h-5 w-5" />,
-    roles: ["APPLICANT"],
-  },
-  {
-    label: "My Documents",
+    label: "Documents",
     href: "/dashboard/documents",
-    icon: <Upload className="h-5 w-5" />,
-    roles: ["APPLICANT"],
-  },
-  {
-    label: "Schedule Claiming",
-    href: "/dashboard/schedule",
-    icon: <CalendarCheck className="h-5 w-5" />,
+    icon: <File className="h-5 w-5" />,
     roles: ["APPLICANT"],
   },
   {
@@ -127,7 +106,8 @@ const navItems: NavItem[] = [
     href: "/dashboard/admin/reports",
     icon: <BarChart3 className="h-5 w-5" />,
     roles: ["ADMINISTRATOR"],
-  },  {
+  },
+  {
     label: "System Settings",
     href: "/dashboard/admin/settings",
     icon: <Settings className="h-5 w-5" />,
@@ -137,6 +117,12 @@ const navItems: NavItem[] = [
     label: "Audit Logs",
     href: "/dashboard/admin/audit-logs",
     icon: <ClipboardList className="h-5 w-5" />,
+    roles: ["ADMINISTRATOR"],
+  },
+  {
+    label: "Business Locations",
+    href: "/dashboard/admin/locations",
+    icon: <MapPin className="h-5 w-5" />,
     roles: ["ADMINISTRATOR"],
   },
 ];
@@ -153,39 +139,65 @@ function SidebarContent({
   onToggleCollapse?: () => void;
 }) {
   const pathname = usePathname();
-  const filteredItems = navItems.filter((item) => item.roles.includes(user.role));
+  const filteredItems = applicantAccountNav.filter((item) => item.roles.includes(user.role));
+
+  // Map role to display label
+  const roleLabel = {
+    APPLICANT: "Business Owner",
+    STAFF: "BPLO Staff",
+    REVIEWER: "Reviewer",
+    ADMINISTRATOR: "Administrator",
+  }[user.role] || user.role;
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Logo */}
-      <div className={cn(
-        "flex items-center border-b border-gray-200 dark:border-gray-700 py-4",
-        collapsed ? "justify-center px-2" : "justify-between px-6"
-      )}>
-        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-          <Shield className="h-8 w-8 flex-shrink-0 text-blue-600" />
-          {!collapsed && (
-            <div>
-              <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100">Business Permit</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">System</p>
+    <div className="flex h-full flex-col bg-[#1a2035]">
+      <div
+        className={cn(
+          "flex items-center border-b border-white/10 py-4",
+          collapsed ? "justify-center px-2" : "justify-between px-4"
+        )}
+      >
+        {!collapsed && (
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">
+              {user.firstName[0]}
+              {user.lastName[0]}
             </div>
-          )}
-        </div>
-        {/* Close button — only shown in mobile drawer */}
+            <div>
+              <p className="text-sm font-semibold leading-tight text-white">
+                {user.firstName} {user.lastName}
+              </p>
+              <p className="text-[11px] leading-tight text-gray-400">
+                {roleLabel}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {collapsed && (
+          <div
+            title={`${user.firstName} ${user.lastName}`}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white"
+          >
+            {user.firstName[0]}
+            {user.lastName[0]}
+          </div>
+        )}
+
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-[var(--accent-light)] dark:hover:bg-gray-700 lg:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
           </button>
         )}
-        {/* Collapse toggle — only on desktop */}
+
         {onToggleCollapse && !onClose && (
           <button
             onClick={onToggleCollapse}
-            className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:block"
+            className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-[var(--accent-light)] dark:hover:bg-gray-700 lg:block"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
@@ -197,7 +209,6 @@ function SidebarContent({
         )}
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="space-y-1">
           {filteredItems.map((item) => {
@@ -215,8 +226,8 @@ function SidebarContent({
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     collapsed && "justify-center px-2",
                     isActive
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                      ? "bg-[var(--accent-light)] text-[var(--accent)] dark:bg-blue-900/30 dark:text-blue-400"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--text-primary)] dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
                   )}
                 >
                   {item.icon}
@@ -230,14 +241,14 @@ function SidebarContent({
 
       {/* User Info */}
       {!collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div className="border-t border-[var(--border)] dark:border-gray-700 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-[var(--accent)]">
               {user.firstName[0]}
               {user.lastName[0]}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+              <p className="truncate text-sm font-medium text-[var(--text-primary)] dark:text-gray-100">
                 {user.firstName} {user.lastName}
               </p>
               <p className="truncate text-xs text-gray-500 dark:text-gray-400 capitalize">
@@ -248,10 +259,10 @@ function SidebarContent({
         </div>
       )}
       {collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700 px-2 py-4 flex justify-center">
+        <div className="border-t border-[var(--border)] dark:border-gray-700 px-2 py-4 flex justify-center">
           <div
             title={`${user.firstName} ${user.lastName}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-[var(--accent)]"
           >
             {user.firstName[0]}
             {user.lastName[0]}
@@ -265,17 +276,15 @@ function SidebarContent({
 export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCollapse }: SidebarProps) {
   return (
     <>
-      {/* ── Desktop sidebar (always visible on lg+) ── */}
       <aside
         className={cn(
-          "hidden flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 lg:block",
+          "hidden flex-shrink-0 border-r border-[var(--border)] dark:border-gray-700 bg-[var(--surface)] dark:bg-gray-800 transition-all duration-300 lg:block",
           collapsed ? "w-16" : "w-64"
         )}
       >
         <SidebarContent user={user} collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
       </aside>
 
-      {/* ── Mobile drawer overlay ── */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -284,10 +293,9 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
         />
       )}
 
-      {/* ── Mobile drawer panel ── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 flex-shrink-0 border-r border-gray-200 bg-white dark:bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-72 flex-shrink-0 border-r border-[var(--border)] bg-[var(--surface)] dark:bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

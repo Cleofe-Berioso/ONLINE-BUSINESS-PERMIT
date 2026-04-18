@@ -85,16 +85,16 @@ const steps = [
 
 export default function HowToApplyPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[var(--surface-muted)] flex flex-col">
       <PublicNav />
 
       <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 sm:py-12">
         {/* Page Header */}
         <div className="mb-8 sm:mb-10">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2">
             How to Apply for a Business Permit
           </h1>
-          <p className="text-gray-600 text-sm sm:text-base">
+          <p className="text-[var(--text-secondary)] text-sm sm:text-base">
             Follow these simple steps to apply for your business permit online. The entire process can
             be completed from your computer or mobile device.
           </p>
@@ -103,20 +103,20 @@ export default function HowToApplyPage() {
         {/* Steps */}
         <div className="space-y-4 sm:space-y-6">
           {steps.map((step) => (
-            <div key={step.number} className="bg-white rounded-xl shadow-sm border p-5 sm:p-6">
+            <div key={step.number} className="bg-[var(--surface)] rounded-xl shadow-sm border p-5 sm:p-6">
               <div className="flex items-start gap-4">
                 {/* Step Number */}
-                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-full flex items-center justify-center text-lg sm:text-xl font-bold">
+                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-[var(--accent)] text-white rounded-full flex items-center justify-center text-lg sm:text-xl font-bold">
                   {step.number}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1.5">
+                  <h2 className="text-lg sm:text-xl font-semibold text-[var(--text-primary)] mb-1.5">
                     {step.title}
                   </h2>
-                  <p className="text-gray-600 text-sm mb-3">{step.description}</p>
+                  <p className="text-[var(--text-secondary)] text-sm mb-3">{step.description}</p>
                   <ul className="space-y-2">
                     {step.details.map((detail, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <li key={i} className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
                         <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                         <span>{detail}</span>
                       </li>
@@ -137,13 +137,13 @@ export default function HowToApplyPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/register"
-              className="w-full sm:w-auto bg-white text-blue-600 px-6 py-3 rounded-lg font-medium hover:bg-blue-50 transition-colors text-sm sm:text-base text-center"
+              className="w-full sm:w-auto bg-[var(--surface)] text-[var(--accent)] px-6 py-3 rounded-lg font-medium hover:bg-[var(--accent-light)] transition-colors text-sm sm:text-base text-center"
             >
               Create Account
             </Link>
             <Link
               href="/requirements"
-              className="w-full sm:w-auto border border-white text-white px-6 py-3 rounded-lg font-medium hover:bg-white/10 transition-colors text-sm sm:text-base text-center"
+              className="w-full sm:w-auto border border-white text-white px-6 py-3 rounded-lg font-medium hover:bg-[var(--surface)]/10 transition-colors text-sm sm:text-base text-center"
             >
               View Requirements
             </Link>

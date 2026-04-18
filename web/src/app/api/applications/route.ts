@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { applicationSchema } from "@/lib/validations";
 import { generateApplicationNumber } from "@/lib/utils";
 import { captureException } from "@/lib/monitoring";
+import { checkDuplicateApplication, canStartNewApplication } from "@/lib/application-helpers";
 import {
   cacheOrCompute,
   invalidateApplicationCaches,
@@ -72,6 +73,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // Per-context access control: NEW application
+    if (validated.data.type === "NEW") {
+      const dtiSecRegistration = validated.data.dtiSecRegistration;
+      if (!dtiSecRegistration) {
+        return NextResponse.json(
+          { error: "DTI/SEC registration is required for new applications" },
+          { status: 400 }
+        );
+      }
+
+      const newAppEligibility = await canStartNewApplication(
+        session.user.id,
+        dtiSecRegistration
+      );
+      if (!newAppEligibility.isEligible) {
+        return NextResponse.json(
+          {
+            error: "Cannot start new application",
+            message: newAppEligibility.reason,
+            conflictingAppId: newAppEligibility.conflictingAppId,
+            conflictingAppNumber: newAppEligibility.conflictingAppNumber,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Generate application number
     const count = await prisma.application.count();
     const applicationNumber = generateApplicationNumber(count + 1);
@@ -101,6 +129,16 @@ export async function POST(request: Request) {
         capitalInvestment: validated.data.capitalInvestment || null,
         grossSales: validated.data.grossSales || null,
         submittedAt: submitAsDraft ? null : new Date(),
+        // P2.3: Store closure-specific data if applicable
+        additionalData:
+          validated.data.type === "CLOSURE" &&
+          validated.data.closureReason &&
+          validated.data.closureEffectiveDate
+            ? ({
+                closureReason: validated.data.closureReason,
+                closureEffectiveDate: validated.data.closureEffectiveDate,
+              } as any)
+            : null,
       },
     });
 

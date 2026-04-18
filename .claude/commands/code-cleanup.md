@@ -1,129 +1,124 @@
-# Code Cleanup — OBPS TypeScript & Next.js Code Quality
+# Code Cleanup Skill (`/code-cleanup`)
 
-## Purpose
+**Purpose**: Systematic code quality improvements and refactoring.
 
-Enforce consistent code style, naming conventions, and best practices across the Online Business Permit System TypeScript/Next.js codebase.
+## Focus Areas
 
-## Usage
+### 1. Dead Code Removal
+**Find**: Unreachable or unused code
 
+```bash
+grep -r "// {" src/ --include="*.ts" --include="*.tsx"
 ```
-/code-cleanup <file-or-area-to-clean>
+
+**Action**: Delete commented blocks (preserved in git history)
+
+### 2. TODO/FIXME Resolution
+**Find**: Outstanding items
+
+```bash
+grep -r "TODO\|FIXME\|XXX\|HACK" src/
 ```
 
-## TypeScript Conventions
+**Action**: Create issue, implement fix, remove comment
 
-### Naming
+### 3. Naming Convention Fixes
+**Check**:
+- Functions: camelCase
+- Classes: PascalCase
+- Constants: UPPER_SNAKE_CASE
+- Files: kebab-case
 
-| Element            | Convention                    | Example                          |
-| ------------------ | ----------------------------- | -------------------------------- |
-| Files              | kebab-case                    | `application-form.tsx`           |
-| Components         | PascalCase                    | `ApplicationForm`                |
-| Functions          | camelCase                     | `createApplication`              |
-| Hooks              | camelCase with `use` prefix   | `useSSE`                         |
-| Constants          | UPPER_SNAKE_CASE              | `MAX_FILE_SIZE`                  |
-| Types/Interfaces   | PascalCase                    | `ApplicationData`                |
-| Enums (Prisma)     | PascalCase name, UPPER values | `ApplicationStatus.UNDER_REVIEW` |
-| API route handlers | UPPER (HTTP method)           | `GET`, `POST`, `PATCH`, `DELETE` |
+**Command**: `npm run lint`
 
-### Import Order
+### 4. Unused Imports Cleanup
+**Command**: `npm run lint -- --fix` (auto-fixes unused)
 
+### 5. Type Narrowing
+Replace `any` types with proper types
+
+```bash
+grep -r " as any" src/
+grep -r ": any" src/
+```
+
+### 6. Large Component Refactoring
+**Find**: Files >500 lines
+
+```bash
+find src/ -name "*.tsx" -exec wc -l {} + | sort -rn | head
+```
+
+**Action**: Break into smaller components
+
+### 7. Simplification
+**Find**: Over-engineered patterns
+- Simplify boolean logic
+- Reduce nesting
+- Extract reusable functions
+- Use destructuring
+
+## Cleanup Workflow
+
+```bash
+# 1. Run linter
+npm run lint
+
+# 2. Auto-fix
+npm run lint -- --fix
+
+# 3. Manual review
+nano src/[file]
+
+# 4. Type check
+npm run typecheck
+
+# 5. Test
+npm test
+npm run test:e2e
+```
+
+## Refactoring Patterns
+
+### Before
 ```typescript
-// 1. External packages
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-
-// 2. Internal libraries
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { logger } from "@/lib/logger";
-
-// 3. Components
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-
-// 4. Types (type-only imports)
-import type { Application, User } from "@prisma/client";
-```
-
-### Type Patterns
-
-```typescript
-// Prefer type-only imports for types
-import type { Application } from "@prisma/client";
-
-// Use Zod inference for form types
-const schema = z.object({ name: z.string() });
-type FormData = z.infer<typeof schema>;
-
-// Use Prisma-generated types for DB models
-// Don't manually recreate interfaces that Prisma provides
-
-// Use discriminated unions for state
-type AsyncState<T> =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "success"; data: T }
-  | { status: "error"; error: Error };
-```
-
-## Next.js Patterns
-
-### Server Components (default)
-
-```typescript
-// No 'use client' → Server Component
-// Can: use async/await, access Prisma directly, read session
-// Cannot: use hooks, event handlers, browser APIs
-export default async function Page() {
-  const data = await prisma.application.findMany();
-  return <div>{/* render data */}</div>;
+export function ApplicationForm({ app }: any) {
+  // 200 lines of logic
+  // Multiple renders
+  // Nested conditions
 }
 ```
 
-### Client Components (when needed)
-
+### After
 ```typescript
-"use client"; // MUST be first line
+// Extract validation
+function validateApplication(app: Application): string[] {
+  return errors;
+}
 
-// Needed for: hooks, event handlers, browser APIs, forms
-// Keep as small as possible — extract to *-client.tsx
-```
+// Extract form handling
+function useApplicationForm(initialApp: Application) {
+  return { formData, errors, handleChange };
+}
 
-### Error Handling
-
-```typescript
-// API Routes: always try/catch
-try {
-  // operation
-} catch (error) {
-  if (error instanceof z.ZodError) {
-    return NextResponse.json({ error: error.errors }, { status: 400 });
-  }
-  logger.error("Operation failed:", error);
-  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+// Extracted component
+export function ApplicationForm({ initialApp }: Props) {
+  const { formData, errors, handleChange } = useApplicationForm(initialApp);
+  // 50 lines
 }
 ```
 
-## Anti-Patterns to Fix
+## Commit Message
 
-| Bad                  | Good                     | Why                  |
-| -------------------- | ------------------------ | -------------------- |
-| `any` type           | Proper type or `unknown` | Type safety          |
-| `console.log`        | `logger.info/warn/error` | Structured logging   |
-| `// @ts-ignore`      | Fix the type error       | Tech debt            |
-| Hardcoded strings    | i18n or constants        | Maintainability      |
-| `useState` for forms | React Hook Form          | Validation           |
-| Inline SQL           | Prisma methods           | Injection prevention |
-| `var`                | `const` / `let`          | Scoping              |
-| Nested ternaries     | Early returns / switch   | Readability          |
+```
+refactor: improve code quality and maintainability
 
-## Checklist
+- Remove dead code from [files]
+- Simplify complex logic in [function]
+- Extract [component] from [parent]
+- Rename [variable] to [newName] for clarity
+- Fix linting issues
 
-- [ ] No `any` types
-- [ ] No `console.log` (use logger)
-- [ ] No `@ts-ignore` or `@ts-expect-error`
-- [ ] Consistent naming conventions
-- [ ] Imports ordered correctly
-- [ ] No unused variables or imports
-- [ ] Error handling in all async operations
-- [ ] `'use client'` only where needed
+Closes #[issue]
+```
+

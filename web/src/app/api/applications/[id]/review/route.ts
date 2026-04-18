@@ -37,7 +37,13 @@ export async function POST(
 
     const application = await prisma.application.findUnique({
       where: { id },
-      include: { applicant: true, previousPermit: true },
+      include: {
+        applicant: true,
+        previousPermit: true,
+        documents: {
+          where: { status: { not: "REJECTED" } },
+        },
+      },
     });
 
     if (!application) {
@@ -45,6 +51,20 @@ export async function POST(
         { error: "Application not found" },
         { status: 404 }
       );
+    }
+
+    // Validate minimum document requirements before approval
+    if (action === "APPROVE") {
+      const minDocsRequired = application.type === "NEW" ? 2 : 1;
+      if (application.documents.length < minDocsRequired) {
+        return NextResponse.json(
+          {
+            error: "Cannot approve application",
+            message: `${application.type} applications require at least ${minDocsRequired} document(s). Current: ${application.documents.length}`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Determine new status
@@ -91,9 +111,9 @@ export async function POST(
           `Application ${action.toLowerCase().replace("_", " ")} by reviewer`,
         changedBy: session.user.id,
       },
-    });    // If approved, auto-generate permit
+    });    // If approved, handle permit creation/closure based on application type
     if (action === "APPROVE") {
-      // For renewals: mark the previous permit as RENEWED
+      // For RENEWAL: mark the previous permit as RENEWED
       if (application.type === "RENEWAL" && application.previousPermitId) {
         await prisma.permit.update({
           where: { id: application.previousPermitId },
@@ -101,45 +121,73 @@ export async function POST(
         });
       }
 
-      const permitCount = await prisma.permit.count();
-      const permitNumber = generatePermitNumber(permitCount + 1);
+      // For CLOSURE: mark the referenced permit as CLOSED, no new permit created
+      if (application.type === "CLOSURE") {
+        if (application.previousPermitId) {
+          await prisma.permit.update({
+            where: { id: application.previousPermitId },
+            data: { status: "CLOSED" },
+          });
+        }
+        // Create a closure reference for tracking
+        await prisma.claimReference.create({
+          data: {
+            referenceNumber: generateClaimReference(),
+            applicationId: id,
+            generatedBy: application.applicantId,
+            applicantName: `${application.applicant.firstName} ${application.applicant.lastName}`,
+            businessName: application.businessName,
+            applicationStatus: "APPROVED",
+            status: "GENERATED",
+          },
+        });
+      } else {
+        // For NEW/RENEWAL: create a new active permit
+        const permitCount = await prisma.permit.count();
+        const permitNumber = generatePermitNumber(permitCount + 1);
 
-      const permit = await prisma.permit.create({
-        data: {
-          permitNumber,
-          applicationId: id,
-          businessName: application.businessName,
-          businessAddress: application.businessAddress,
-          ownerName: `${application.applicant.firstName} ${application.applicant.lastName}`,
-          issueDate: new Date(),
-          expiryDate: new Date(
-            new Date().setFullYear(new Date().getFullYear() + 1)
-          ),
-          status: "ACTIVE",
-        },
-      });
+        const permit = await prisma.permit.create({
+          data: {
+            permitNumber,
+            applicationId: id,
+            businessName: application.businessName,
+            businessAddress: application.businessAddress,
+            ownerName: `${application.applicant.firstName} ${application.applicant.lastName}`,
+            issueDate: new Date(),
+            expiryDate: new Date(
+              new Date().setFullYear(new Date().getFullYear() + 1)
+            ),
+            status: "ACTIVE",
+          },
+        });
 
-      // Create permit issuance record
-      await prisma.permitIssuance.create({
-        data: {
-          permitId: permit.id,
-          issuedById: session.user.id,
-          status: "PREPARED",
-        },
-      });
+        // Create permit issuance record with Mayor signing status based on type
+        await prisma.permitIssuance.create({
+          data: {
+            permitId: permit.id,
+            issuedById: session.user.id,
+            status: "PREPARED",
+            // P7.2: For NEW/RENEWAL, mark as pending Mayor signing; for local tests may skip
+            mayorSigningStatus:
+              application.type === "NEW" || application.type === "RENEWAL"
+                ? "PENDING"
+                : "NOT_REQUIRED",
+          },
+        });
 
-      // Generate claim reference
-      await prisma.claimReference.create({
-        data: {
-          referenceNumber: generateClaimReference(),
-          applicationId: id,
-          generatedBy: application.applicantId,
-          applicantName: `${application.applicant.firstName} ${application.applicant.lastName}`,
-          businessName: application.businessName,
-          applicationStatus: "APPROVED",
-          status: "GENERATED",
-        },
-      });
+        // Generate claim reference
+        await prisma.claimReference.create({
+          data: {
+            referenceNumber: generateClaimReference(),
+            applicationId: id,
+            generatedBy: application.applicantId,
+            applicantName: `${application.applicant.firstName} ${application.applicant.lastName}`,
+            businessName: application.businessName,
+            applicationStatus: "APPROVED",
+            status: "GENERATED",
+          },
+        });
+      }
     }    // Log activity
     await prisma.activityLog.create({
       data: {

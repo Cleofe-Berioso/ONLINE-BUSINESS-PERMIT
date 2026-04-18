@@ -27,8 +27,13 @@ function loadEnv(envPath: string): Record<string, string> {
 
 const envFile = path.join(__dirname, ".env");
 const env = loadEnv(envFile);
-const databaseUrl = env["DATABASE_URL"] || process.env.DATABASE_URL;
-const directUrl = env["DIRECT_URL"] || process.env.DIRECT_URL;
+
+// Set environment variables so Prisma can access them
+process.env.DATABASE_URL = env["DATABASE_URL"] || process.env.DATABASE_URL;
+process.env.DIRECT_URL = env["DIRECT_URL"] || process.env.DIRECT_URL || process.env.DATABASE_URL;
+
+const databaseUrl = process.env.DATABASE_URL;
+const directUrl = process.env.DIRECT_URL;
 
 if (!databaseUrl) {
   throw new Error(
@@ -36,19 +41,9 @@ if (!databaseUrl) {
   );
 }
 
-if (!directUrl) {
-  throw new Error(
-    `DIRECT_URL is not set. Please add it to: ${envFile}`
-  );
-}
-
 export default defineConfig({
   schema: path.join(__dirname, "prisma", "schema.prisma"),
   migrations: {
     seed: "node prisma/seed.js",
-  },
-  datasource: {
-    url: databaseUrl,
-    directUrl: directUrl,
   },
 });

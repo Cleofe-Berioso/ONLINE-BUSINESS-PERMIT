@@ -1,110 +1,176 @@
-# Accessibility Auditor — OBPS WCAG 2.1 AA Compliance
+# Accessibility Auditor Skill (`/accessibility-auditor`)
 
-## Purpose
+**Purpose**: WCAG 2.1 AA compliance auditing.
 
-Audit and fix accessibility issues in the Online Business Permit System to ensure WCAG 2.1 Level AA compliance, focusing on form accessibility, keyboard navigation, screen readers, and color contrast.
+## WCAG 2.1 AA Audit Areas
 
-## Usage
-
-```
-/accessibility-auditor <page-or-component-to-audit>
-```
-
-## Tools
-
-- **axe-core/playwright**: Automated a11y testing in E2E (`e2e/accessibility.spec.ts`)
-- **Lighthouse**: Chrome DevTools accessibility audit
-- **Browser DevTools**: Tab order, ARIA inspector
-
-## Key Audit Areas
-
-### 1. Forms (Critical for Permit System)
-
-- All `<input>` have associated `<label>` elements
-- Error messages linked via `aria-describedby`
-- Required fields marked with `aria-required="true"`
-- Form validation errors announced to screen readers
-- File upload has clear instructions and status feedback
-
-```tsx
-// Pattern in src/components/ui/input.tsx
-<label htmlFor={id}>{label}</label>
-<input id={id} aria-describedby={error ? `${id}-error` : undefined} aria-invalid={!!error} />
-{error && <p id={`${id}-error`} role="alert">{error}</p>}
-```
-
-### 2. Navigation
-
-- Skip-to-main-content link
-- Keyboard-navigable sidebar (`src/components/dashboard/sidebar.tsx`)
-- Focus management on route changes
-- Logical tab order (no tabindex > 0)
-- Visible focus indicators (Tailwind: `focus-visible:ring-2`)
-
-### 3. Status & Notifications
-
-- Application status changes announced via `aria-live="polite"`
-- Toast notifications have `role="alert"`
-- Loading states communicated (`aria-busy="true"`)
-- Progress indicators labeled (`aria-label="Loading applications"`)
-
-### 4. Color & Contrast
-
-- Minimum contrast ratio 4.5:1 for normal text
-- 3:1 for large text (18px+ or 14px+ bold)
-- Status badges don't rely on color alone (include text/icons)
-- Focus rings visible against all backgrounds
-
-### 5. Interactive Elements
-
-- All buttons have accessible names
-- Icon-only buttons have `aria-label`
-- Modals trap focus and have `aria-modal="true"`
-- Dropdown menus support arrow key navigation
-- Data tables have proper `<th>` with `scope`
-
-### 6. Documents & Images
-
-- `next/image` has `alt` text for meaningful images
-- Decorative images have `alt=""`
-- PDF permit has text layer (not image-only)
-- File upload drag zone has keyboard alternative
-
-## Automated Testing
-
-```typescript
-// e2e/accessibility.spec.ts pattern
-import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
-
-test("login page has no a11y violations", async ({ page }) => {
-  await page.goto("/login");
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa"])
-    .analyze();
-  expect(results.violations).toEqual([]);
-});
-```
-
-## Test Commands
+### 1. Color Contrast (4.5:1 for text)
+**Check**: All text has sufficient contrast
 
 ```bash
-# Run a11y E2E tests
-npx playwright test e2e/accessibility.spec.ts
-
-# Run all E2E (includes a11y)
-npx playwright test
+# Use Axe or DevTools Accessibility tab
 ```
 
-## WCAG 2.1 AA Checklist
+Colors used:
+- Text: #1F2937 (gray-900) on #FFFFFF (white) → 15.3:1 ✓
+- Secondary: #6B7280 (gray-500) on white → 5.1:1 ✓
 
-- [ ] **1.1.1** Non-text Content — alt text on images
-- [ ] **1.3.1** Info and Relationships — semantic HTML, ARIA
-- [ ] **1.4.3** Contrast Minimum — 4.5:1 ratio
-- [ ] **2.1.1** Keyboard — all interactive elements keyboard accessible
-- [ ] **2.4.1** Bypass Blocks — skip navigation link
-- [ ] **2.4.3** Focus Order — logical tab sequence
-- [ ] **2.4.7** Focus Visible — visible focus indicators
-- [ ] **3.3.1** Error Identification — form errors identified
-- [ ] **3.3.2** Labels or Instructions — all inputs labeled
-- [ ] **4.1.2** Name, Role, Value — ARIA attributes correct
+### 2. Keyboard Navigation
+**Check**: All interactive elements focusable with Tab
+
+```typescript
+// All buttons, inputs, links should have:
+<button tabIndex={0}>
+  Click me
+</button>
+```
+
+**Test**: F12 → Accessibility tab → Keyboard navigation
+
+### 3. Screen Reader Support
+**Check**: ARIA labels on icons and form inputs
+
+```typescript
+<input
+  aria-label="Search applications"
+  placeholder="Search..."
+/>
+
+<button aria-label="Close modal">
+  <X className="h-4 w-4" />
+</button>
+```
+
+### 4. Form Accessibility
+**Check**: Labels associated with inputs
+
+```typescript
+<label htmlFor="businessName">Business Name</label>
+<input id="businessName" type="text" />
+
+// Error messages referenced
+<input
+  aria-describedby="businessName-error"
+/>
+<p id="businessName-error" role="alert">Required</p>
+```
+
+### 5. Focus Management
+**Check**: Focus visible and logical order
+
+```typescript
+// On modal open, focus first input
+const modalRef = useRef<HTMLDivElement>(null);
+useEffect(() => {
+  modalRef.current?.querySelector('input')?.focus();
+}, [open]);
+```
+
+### 6. Landmark Regions
+**Check**: Page has semantic structure
+
+```typescript
+<header role="banner">Navigation</header>
+<main role="main">Content</main>
+<footer role="contentinfo">Footer</footer>
+<nav role="navigation">Sidebar</nav>
+```
+
+### 7. Image Alt Text
+**Check**: All images have descriptive alt text
+
+```typescript
+<img
+  src="/permit.pdf"
+  alt="Approved business permit with QR code"
+/>
+
+// Decorative images
+<img src="/separator.png" alt="" aria-hidden />
+```
+
+### 8. Text Alternatives
+**Check**: Icons have labels or titles
+
+```typescript
+<CheckCircle
+  className="h-4 w-4"
+  aria-label="Verified"
+  title="Verified"
+/>
+```
+
+## Audit Tools
+
+### 1. Axe DevTools
+Browser extension: axe DevTools
+Automated scanning for WCAG violations
+
+### 2. Playwright Tests
+```typescript
+// e2e/accessibility.spec.ts
+import { injectAxe, checkA11y } from "axe-playwright";
+
+await checkA11y(page, null);
+```
+
+### 3. WAVE
+WebAIM: https://wave.webaim.org/
+Visual feedback on accessibility issues
+
+### 4. Lighthouse
+DevTools → Lighthouse tab
+Run accessibility audit
+
+## Common Issues & Fixes
+
+| Issue | Fix |
+|-------|-----|
+| Low contrast | Increase font weight, darken text |
+| Missing label | Add htmlFor + id pairing |
+| No alt text | Describe image content |
+| Keyboard trap | Add escape key handler |
+| Focus not visible | Add focus-visible styles |
+| Missing landmark | Use semantic HTML or role= |
+| Icon without label | Add aria-label or title |
+| Form errors not announced | Use role="alert" |
+
+## Testing Checklist
+
+- [ ] All inputs have labels (visual + programmatic)
+- [ ] All images have alt text
+- [ ] Color contrast ≥ 4.5:1
+- [ ] Keyboard navigation works (Tab through all)
+- [ ] Focus visible on all elements
+- [ ] No keyboard traps
+- [ ] Screen reader works (NVDA / JAWS)
+- [ ] Form errors announced
+- [ ] Page landmarks semantic
+
+## Audit Report
+
+```
+Accessibility Audit Report
+==========================
+
+WCAG 2.1 AA Compliance: 92%
+
+Contrast Ratios: ✓
+  ✓ All text ≥ 4.5:1
+
+Keyboard Navigation: ✓
+  ✓ All interactive elements focusable
+  ✓ Logical Tab order
+
+Screen Reader: ✓
+  ✓ ARIA labels present
+  ✓ Form associations correct
+
+Issues Found: 3
+  ⚠ Modal: Focus not returned to trigger
+  ⚠ Table: Column headers not marked <th>
+  ⚠ Icon: Missing aria-label
+
+Recommended: Add focus management to modal
+```
+

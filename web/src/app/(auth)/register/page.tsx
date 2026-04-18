@@ -60,27 +60,27 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[var(--accent-light)] to-[var(--background)] px-4 py-12">
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <Shield className="h-10 w-10 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">
+            <Shield className="h-10 w-10 text-[var(--accent)]" />
+            <span className="text-2xl font-bold text-[var(--text-primary)]">
               Business Permit System
             </span>
           </Link>
         </div>        {/* Form Card */}
-        <div className="rounded-2xl bg-white p-6 sm:p-8 shadow-xl">
-          <h2 className="text-2xl font-bold text-gray-900">
+        <div className="rounded-2xl bg-[var(--surface)] p-6 sm:p-8 shadow-xl">
+          <h2 className="text-2xl font-bold text-[var(--text-primary)]">
             Create your account
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Register to apply for a business permit online
           </p>
 
           {error && (
-            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            <div className="mt-4 rounded-lg bg-[var(--danger-light)] p-3 text-sm text-[var(--danger)]">
               {error}
             </div>
           )}
@@ -90,7 +90,7 @@ export default function RegisterPage() {
               <div>
                 <label
                   htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-[var(--text-primary)]"
                 >
                   First Name *
                 </label>
@@ -101,14 +101,14 @@ export default function RegisterPage() {
                   required
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="mt-1 block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   placeholder="Juan"
                 />
               </div>
               <div>
                 <label
                   htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-[var(--text-primary)]"
                 >
                   Last Name *
                 </label>
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                   required
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="mt-1 block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   placeholder="Dela Cruz"
                 />
               </div>
@@ -128,7 +128,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="middleName"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[var(--text-primary)]"
               >
                 Middle Name (Optional)
               </label>
@@ -138,7 +138,7 @@ export default function RegisterPage() {
                 type="text"
                 value={formData.middleName}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1 block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder="Santos"
               />
             </div>
@@ -146,7 +146,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[var(--text-primary)]"
               >
                 Email Address *
               </label>
@@ -157,7 +157,7 @@ export default function RegisterPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1 block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder="juan@email.com"
               />
             </div>
@@ -165,7 +165,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="phone"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[var(--text-primary)]"
               >
                 Phone Number (Optional)
               </label>
@@ -175,7 +175,7 @@ export default function RegisterPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1 block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder="09171234567"
               />
             </div>
@@ -183,7 +183,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[var(--text-primary)]"
               >
                 Password *
               </label>
@@ -195,13 +195,13 @@ export default function RegisterPage() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 pr-10 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                   placeholder="Min. 8 chars, upper, lower, number, special"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -210,7 +210,7 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-[var(--background)]0">
                 Must include uppercase, lowercase, number, and special character
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[var(--text-primary)]"
               >
                 Confirm Password *
               </label>
@@ -229,7 +229,7 @@ export default function RegisterPage() {
                 required
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="mt-1 block w-full rounded-lg border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-gray-400 focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
                 placeholder="••••••••"
               />
             </div>
@@ -238,20 +238,20 @@ export default function RegisterPage() {
               <input
                 type="checkbox"
                 required
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="mt-1 h-4 w-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
               />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-[var(--text-secondary)]">
                 I agree to the{" "}
                 <Link
                   href="/terms"
-                  className="font-medium text-blue-600 hover:text-blue-700"
+                  className="font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
                 >
                   Terms of Service
                 </Link>{" "}
                 and{" "}
                 <Link
                   href="/privacy"
-                  className="font-medium text-blue-600 hover:text-blue-700"
+                  className="font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
                 >
                   Privacy Policy
                 </Link>
@@ -262,17 +262,17 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-medium text-blue-600 hover:text-blue-700"
+              className="font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
             >
               Sign in
             </Link>

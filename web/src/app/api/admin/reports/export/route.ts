@@ -19,7 +19,7 @@ function toCsv(rows: Record<string, unknown>[]): string {
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMINISTRATOR") {
+  if (!session?.user || !['ADMINISTRATOR', 'REVIEWER'].includes(session.user.role!)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -161,8 +161,44 @@ export async function GET(request: Request) {
       }))
     );
     filename = "payments-report.csv";
+  } else if (type === "claims") {
+    const rows = await prisma.slotReservation.findMany({
+      where: dateFilter,
+      orderBy: { createdAt: "desc" },
+      include: {
+        application: {
+          select: {
+            applicationNumber: true,
+            businessName: true,
+            applicant: { select: { email: true, firstName: true, lastName: true } }
+          }
+        },
+        timeSlot: {
+          select: {
+            startTime: true,
+            endTime: true,
+            schedule: { select: { date: true } }
+          }
+        }
+      },
+    });
+    csv = toCsv(
+      rows.map((r) => ({
+        "Reservation ID": r.id,
+        "Application #": r.application.applicationNumber,
+        "Business Name": r.application.businessName,
+        "Applicant Name": `${r.application.applicant?.firstName} ${r.application.applicant?.lastName}`,
+        "Applicant Email": r.application.applicant?.email ?? "",
+        "Schedule Date": r.timeSlot.schedule.date?.toISOString() ?? "",
+        "Time Slot": `${r.timeSlot.startTime} - ${r.timeSlot.endTime}`,
+        "Status": r.status,
+        "Confirmed At": r.confirmedAt?.toISOString() ?? "",
+        "Reserved At": r.createdAt.toISOString(),
+      }))
+    );
+    filename = "claims-report.csv";
   } else {
-    return NextResponse.json({ error: "Invalid report type. Use: applications, users, permits, payments, audit" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid report type. Use: applications, users, permits, payments, claims, audit" }, { status: 400 });
   }
 
   return new NextResponse(csv, {

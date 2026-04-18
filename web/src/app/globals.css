@@ -1,1 +1,151 @@
 @import "tailwindcss";
+
+/* ============================================
+   Eye-Friendly Light Theme Color System
+   Soft whites, warm neutrals, high contrast
+   ============================================ */
+
+@layer base {
+  :root {
+    /* Backgrounds & Surfaces */
+    --background: #F8F7F4;           /* warm off-white, easy on eyes */
+    --surface: #FFFFFF;               /* cards, modals */
+    --surface-muted: #F1EFE9;        /* table rows, sidebar bg, input bg */
+
+    /* Text Colors */
+    --text-primary: #1A1814;         /* near-black, not pure black */
+    --text-secondary: #6B6560;       /* labels, captions, helper text */
+    --text-muted: #9E9892;           /* placeholders, disabled */
+
+    /* Borders & Dividers */
+    --border: #E2DDD6;               /* subtle warm gray borders */
+
+    /* Accent Colors */
+    --accent: #2563EB;               /* primary blue */
+    --accent-hover: #1D4ED8;         /* darker blue on hover */
+    --accent-light: #EFF6FF;         /* light blue for badges, highlights */
+
+    /* Status Colors */
+    --success: #16A34A;              /* green */
+    --success-light: #F0FDF4;        /* light green bg */
+    --warning: #D97706;              /* amber */
+    --warning-light: #FFFBEB;        /* light amber bg */
+    --danger: #DC2626;               /* red */
+    --danger-light: #FEF2F2;         /* light red bg */
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ============================================
+     Global Base Styles
+     ============================================ */
+
+  html {
+    background-color: var(--background);
+    color: var(--text-primary);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    font-family: inherit;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Remove any dark mode defaults */
+  body.dark {
+    background-color: var(--background);
+    color: var(--text-primary);
+  }
+
+  /* ============================================
+     Typography
+     ============================================ */
+
+  p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  small, .text-sm {
+    font-size: 12px;
+  }
+
+  /* Never use text smaller than 11px */
+  .text-xs {
+    font-size: 11px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  h1 { font-size: 28px; }
+  h2 { font-size: 24px; }
+  h3 { font-size: 20px; }
+  h4 { font-size: 16px; }
+  h5 { font-size: 14px; }
+  h6 { font-size: 12px; }
+
+  /* ============================================
+     Link Styles
+     ============================================ */
+
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--accent-hover);
+  }
+
+  /* ============================================
+     Focus States (for accessibility)
+     ============================================ */
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ============================================
+     Form Defaults
+     ============================================ */
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+    font-size: 14px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* ============================================
+     Remove Sonner Dark Mode
+     ============================================ */
+
+  .sonner-toaster {
+    --background: var(--surface);
+    --foreground: var(--text-primary);
+    --border: var(--border);
+  }
+}

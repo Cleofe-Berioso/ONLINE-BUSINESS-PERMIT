@@ -1,139 +1,169 @@
-# Full System Validation — OBPS Complete System Health Check
+# Full System Validation Skill (`/full-system-validation`)
 
-## Purpose
+**Purpose**: Cross-cutting validation ensuring routes, APIs, components are wired correctly.
 
-Run a comprehensive validation of the entire Online Business Permit System — database connectivity, auth flow, all API routes, UI pages, file storage, payments, and external integrations.
+## 7 Validation Phases
 
-## Usage
-
-```
-/full-system-validation
-```
-
-## Validation Steps
-
-### Step 1: Environment Check
+### 1. API Route Registration
+**Check**: All routes export correct HTTP methods
 
 ```bash
-# Verify .env.local exists and has required variables
-node -e "
-  const required = ['DATABASE_URL', 'AUTH_SECRET', 'AUTH_URL'];
-  const missing = required.filter(k => !process.env[k]);
-  console.log(missing.length ? 'Missing: ' + missing.join(', ') : 'All required vars set');
-"
+# List all routes
+find src/app/api -name "route.ts" -exec grep -l "export async function" {} \;
+
+# Verify each has method
+grep "export async function GET\|POST\|PUT\|DELETE" src/app/api/*/route.ts
 ```
 
-### Step 2: Database Connectivity
+Expected: 18 route groups × 1-3 methods each
+
+### 2. Page ↔ API Wiring
+**Check**: Every form component calls correct endpoint
 
 ```bash
-npx prisma db pull --print    # Can connect and read schema
-npx prisma migrate status     # Migrations in sync
-node web/check-db.js           # Custom connectivity check
+# Find all fetch calls
+grep -r "fetch.*api" src/components --include="*.tsx"
+
+# Cross-check against API routes
+ls src/app/api/*/route.ts
 ```
 
-### Step 3: Docker Services
+### 3. Component ↔ Data Wiring
+**Check**: No hardcoded mock data in production
 
 ```bash
-docker-compose ps               # All containers running
-docker-compose logs --tail=20   # No crash loops
+# Search for mock data
+grep -r "mockData\|TEST_\|FAKE_" src/components --include="*.tsx"
 ```
 
-Expected services: `postgres`, `redis`, `minio`, `app`
+Should return 0 results in components (only in tests)
 
-### Step 4: Build Verification
+### 4. Type Consistency
+**Check**: Frontend types match Prisma models
 
 ```bash
-cd web
-npx tsc --noEmit              # Type check passes
-npm run build                  # Production build succeeds
-npm run lint                   # Lint passes
+# Verify no type mismatches
+npm run typecheck
 ```
 
-### Step 5: Unit Tests
+Must return 0 errors
+
+### 5. SSE Event Wiring
+**Check**: Events broadcast and listened correctly
 
 ```bash
-cd web
-npm test -- --run              # All Vitest tests pass
+# Find broadcast calls
+grep -r "broadcast(" src/
+
+# Find SSE listeners
+grep -r "addEventListener.*message" src/
+grep -r "subscribe.*events" src/
 ```
 
-### Step 6: Auth Flow Validation
+Each broadcast should have matching listeners
 
-Verify each step:
-
-1. Register → POST `/api/auth/register` → returns 201
-2. Verify OTP → POST `/api/auth/verify-otp` → returns 200
-3. Login → POST `/api/auth/callback/credentials` → returns session
-4. Session → GET `auth()` returns user with role
-5. Protected route → unauthorized user gets 401
-
-### Step 7: API Route Smoke Test
-
-| Route                       | Method | Expected         |
-| --------------------------- | ------ | ---------------- |
-| `/api/auth/register`        | POST   | 201 or 400       |
-| `/api/applications`         | GET    | 200 (with auth)  |
-| `/api/applications`         | POST   | 201 (with auth)  |
-| `/api/documents/upload`     | POST   | 201 (with auth)  |
-| `/api/payments`             | POST   | 201 (with auth)  |
-| `/api/schedules`            | GET    | 200 (with auth)  |
-| `/api/admin/users`          | GET    | 200 (ADMIN only) |
-| `/api/analytics`            | GET    | 200 (ADMIN only) |
-| `/api/events`               | GET    | SSE stream       |
-| `/api/public/verify-permit` | GET    | 200 (no auth)    |
-
-### Step 8: Page Load Verification
-
-| Page            | Route                         | Auth Required   |
-| --------------- | ----------------------------- | --------------- |
-| Landing         | `/`                           | No              |
-| Login           | `/login`                      | No              |
-| Register        | `/register`                   | No              |
-| Dashboard       | `/dashboard`                  | Yes             |
-| New Application | `/dashboard/applications/new` | Yes (APPLICANT) |
-| Review Queue    | `/dashboard/review`           | Yes (REVIEWER)  |
-| Admin Users     | `/dashboard/admin/users`      | Yes (ADMIN)     |
-| Track (Public)  | `/track`                      | No              |
-| Verify Permit   | `/verify-permit`              | No              |
-| FAQs            | `/faqs`                       | No              |
-
-### Step 9: Storage Validation
+### 6. Authentication Flow
+**Check**: All protected routes require auth
 
 ```bash
-# Check MinIO/S3 connectivity
-node -e "
-  const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3');
-  const client = new S3Client({ endpoint: process.env.S3_ENDPOINT });
-  client.send(new ListBucketsCommand({})).then(r => console.log('Buckets:', r.Buckets));
-"
+# Find protected routes
+grep -r "protected.*route" src/app/api --include="*.md"
+
+# Check each has auth guard
+grep -A5 "export async function GET" src/app/api/*/route.ts | grep "await auth()"
 ```
 
-### Step 10: E2E Tests
+All non-public routes should check `await auth()`
+
+### 7. Validation Coverage
+**Check**: All form inputs validated server-side
 
 ```bash
-cd web
-npx playwright test            # All E2E tests pass
+# Find all POST/PUT handlers
+grep -r "export async function POST\|PUT" src/app/api
+
+# Check each validates input
+grep -B5 -A10 "export async function POST" src/app/api/*/route.ts | grep "Schema\|schema"
 ```
 
-## Health Score
+All POST/PUT should call `schema.safeParse(body)`
 
-| Component  | Weight | Pass Criteria                    |
-| ---------- | ------ | -------------------------------- |
-| Database   | 20%    | Connected, migrations current    |
-| Auth       | 20%    | Login/register/session works     |
-| API Routes | 20%    | All return expected status codes |
-| UI Pages   | 15%    | All load without errors          |
-| Build      | 15%    | TypeScript + build + lint clean  |
-| Tests      | 10%    | Unit + E2E pass                  |
+## Validation Checklist
 
-## Quick Commands
+### API Routes
+- [ ] All 18 route groups have correct methods
+- [ ] All protected routes check auth
+- [ ] All mutations validate with Zod
+- [ ] All responses return proper status codes
+- [ ] Error handling consistent
+
+### Pages & Components
+- [ ] Page components fetch in server
+- [ ] Client components call correct API
+- [ ] Forms use correct Zod schemas
+- [ ] Loading states visible
+- [ ] Errors shown with toast/alert
+
+### Database
+- [ ] All queries use Prisma
+- [ ] Relations fetched with include:
+- [ ] Transactions for multi-step ops
+- [ ] Sensitive data sanitized
+- [ ] Migrations current
+
+### Real-time
+- [ ] SSE events broadcast on changes
+- [ ] Component listeners subscribed
+- [ ] Cleanup functions prevent leaks
+- [ ] Data updates immediately
+
+### Types
+- [ ] npm run typecheck passes (0 errors)
+- [ ] No `as any` in API/lib
+- [ ] Component props typed
+- [ ] Response types match schemas
+
+## Validation Commands
 
 ```bash
-# Full validation (quick)
-npm run build && npm test -- --run && npx playwright test
+# Full system check
+npm run typecheck
+npm run lint
+npm run test:e2e
+npx prisma validate
 
-# Database only
-npx prisma migrate status && npx prisma studio
-
-# Docker health
-docker-compose ps && docker-compose logs --tail=5
+# Quick checks
+grep -r "fetch(" src/components
+grep -r "export async function" src/app/api
+grep -r "SafeParse\|safeParse" src/app/api
 ```
+
+## Report Format
+
+```
+Full System Validation Report
+=============================
+
+API Routes: 18/18 ✓
+  - 7 auth routes with GET,POST,DELETE
+  - 9 application routes with GET,POST,PUT
+  - 2 payment routes with POST
+  
+Auth Guards: 15/15 ✓
+  - All protected routes check session
+  - All enforce role-based access
+  
+Data Validation: 23/23 ✓
+  - All POST/PUT validate with Zod
+  - All validation schemas exist
+  
+Type System: 0 errors ✓
+  - npm run typecheck passes
+  
+SSE Wiring: 12/12 ✓
+  - 12 events broadcast correctly
+  - All component listeners connected
+
+OVERALL: PASS ✓
+```
+

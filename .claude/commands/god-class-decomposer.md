@@ -1,146 +1,177 @@
-# God Class Decomposer — OBPS Large Module Refactoring
+# God Class Decomposer Skill (`/god-class-decomposer`)
 
-## Purpose
+**Purpose**: Break apart large components/modules into focused units.
 
-Identify and break down overly large or complex modules in the Online Business Permit System into smaller, focused, testable units.
+## Identifying God Classes
 
-## Usage
+**Signs**:
+- >500 lines of code
+- Handles multiple concerns
+- Multiple useState hooks (>5)
+- Deep nesting (>3 levels)
+- Many imports (>20)
 
-```
-/god-class-decomposer <file-path-or-module-name>
-```
-
-## Detection Criteria
-
-A module needs decomposition if it has:
-
-- **> 300 lines** of code
-- **> 5 exported functions** with different responsibilities
-- **Multiple concerns** (e.g., auth + validation + email in one file)
-- **Many dependencies** imported (> 10 imports)
-- **Low testability** — hard to mock or test in isolation
-
-## Common Candidates in OBPS
-
-### 1. `src/lib/validations.ts`
-
-If it grows beyond 500 lines, split into:
-
-```
-src/lib/validations/
-├── auth.ts          # registerSchema, loginSchema, otpSchema
-├── application.ts   # applicationSchema, reviewSchema
-├── document.ts      # documentUploadSchema
-├── payment.ts       # paymentSchema
-├── schedule.ts      # scheduleSchema, reservationSchema
-└── index.ts         # Re-export all schemas
+**Find**:
+```bash
+find src/ -name "*.tsx" -o -name "*.ts" | xargs wc -l | sort -rn | head
 ```
 
-### 2. `src/lib/permissions.ts`
+## Decomposition Strategies
 
-If RBAC rules grow complex, split by role:
-
-```
-src/lib/permissions/
-├── applicant.ts     # Applicant abilities
-├── staff.ts         # Staff abilities
-├── reviewer.ts      # Reviewer abilities
-├── admin.ts         # Administrator abilities
-└── index.ts         # defineAbilityFor(role) router
-```
-
-### 3. Large Page Components
-
-If a dashboard page exceeds 200 lines, extract:
-
-```
-// Before: one large page.tsx with everything
-// After:
-page.tsx                    # Server Component — data fetching only
-application-list.tsx        # Client Component — interactive table
-application-filters.tsx     # Client Component — search/filter
-application-actions.tsx     # Client Component — buttons/modals
-```
-
-### 4. Large API Routes
-
-If a route handler > 100 lines, extract business logic:
-
-```
-// Before: all logic in route.ts
-// After:
-route.ts                        # Thin handler — validate, call service, respond
-src/lib/services/application.ts  # Business logic — testable without HTTP
-```
-
-## Decomposition Process
-
-1. **Map responsibilities** — List every function and what it does
-2. **Group by concern** — Auth, validation, business logic, data access
-3. **Extract to modules** — One concern per file
-4. **Create barrel export** — `index.ts` re-exports for backward compatibility
-5. **Update imports** — Find all usages and update import paths
-6. **Verify** — Run `npx tsc --noEmit` and `npm test`
-
-## Refactoring Patterns
-
-### Extract Service Layer
-
+### 1. Extract Hook
 ```typescript
-// src/lib/services/application.ts
-export async function submitApplication(
-  userId: string,
-  data: ApplicationInput,
-) {
-  const application = await prisma.application.update({
-    where: { id: data.id, userId },
-    data: { status: "SUBMITTED", submittedAt: new Date() },
-  });
-  await prisma.applicationHistory.create({
-    data: {
-      applicationId: application.id,
-      status: "SUBMITTED",
-      changedById: userId,
-    },
-  });
-  await notifyReviewers(application);
-  return application;
+// Before: Component with complex logic
+function ApplicationForm() {
+  const [status, setStatus] = useState("");
+  const [errors, setErrors] = useState({});
+  // ... validation logic
+  // ... submission logic
+  // ... 150 lines
 }
 
-// src/app/api/applications/[id]/submit/route.ts
-import { submitApplication } from "@/lib/services/application";
+// After: Custom hook
+function useApplicationForm() {
+  const [status, setStatus] = useState("");
+  const [errors, setErrors] = useState({});
+  // logic
+  return { status, errors, handleSubmit };
+}
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } },
-) {
-  const session = await auth();
-  // validate, then:
-  const result = await submitApplication(session!.user.id, { id: params.id });
-  return NextResponse.json({ data: result });
+function ApplicationForm() {
+  const { status, errors, handleSubmit } = useApplicationForm();
+  return <form onSubmit={handleSubmit}>...</form>;
 }
 ```
 
-### Extract Hook from Component
-
+### 2. Extract Component
 ```typescript
-// Before: all logic in component
-// After: custom hook
-function useApplicationForm(applicationId: string) {
-  const form = useForm<ApplicationData>({ resolver: zodResolver(schema) });
-  const mutation = useMutation({ mutationFn: submitApplication });
-  // ... logic
-  return { form, mutation, isSubmitting: mutation.isPending };
+// Before: Large component with sub-sections
+function Dashboard() {
+  return (
+    <div>
+      <ApplicationStats />
+      <ApplicationList /> {/* 200 lines */}
+      <PendingDocuments /> {/* 100 lines */}
+    </div>
+  );
+}
+
+// After: Separate components
+function Dashboard() {
+  return (
+    <div>
+      <ApplicationStats />
+      <ApplicationListSection />
+      <PendingDocumentsSection />
+    </div>
+  );
 }
 ```
 
-## Checklist
+### 3. Extract Utility Module
+```typescript
+// Before: Logic in component
+function ReviewPage() {
+  const checkEligibility = (app) => {
+    // 50 lines of business logic
+  };
+}
 
-- [ ] Module identified as too large (>300 lines or >5 concerns)
-- [ ] Responsibilities mapped and grouped
-- [ ] New files created with single responsibility
-- [ ] Barrel exports maintain backward compatibility
-- [ ] All imports updated
-- [ ] TypeScript compiles clean
-- [ ] Tests still pass
-- [ ] No circular dependencies introduced
+// After: Library module
+// src/lib/eligibility.ts
+export function checkEligibility(app) { }
+
+// Component
+function ReviewPage() {
+  const eligible = checkEligibility(app);
+}
+```
+
+## Refactoring Example
+
+### Before (600+ lines)
+```typescript
+export function AdminPanel() {
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  // ... 30 more lines of state
+  
+  const handleCreate = async () => { /* 30 lines */ };
+  const handleUpdate = async () => { /* 40 lines */ };
+  const handleDelete = async () => { /* 20 lines */ };
+  const handleSearch = () => { /* 30 lines */ };
+  
+  return (
+    <div>
+      <SearchBar /> {/* inline */}
+      <UserTable /> {/* inline */}
+      <UserForm /> {/* inline */}
+      <DeleteModal /> {/* inline */}
+    </div>
+  );
+}
+```
+
+### After (modular, <150 lines per file)
+```typescript
+// src/hooks/useUserManagement.ts
+export function useUserManagement() {
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  
+  const createUser = async (data) => { };
+  const updateUser = async (data) => { };
+  const deleteUser = async (id) => { };
+  
+  return { users, selectedUser, createUser, updateUser, deleteUser };
+}
+
+// src/components/admin/user-list.tsx
+export function UserList({ users, onSelect }) {
+  return <table>{/* 50 lines */}</table>;
+}
+
+// src/components/admin/user-form.tsx
+export function UserForm({ user, onSave }) {
+  return <form>{/* 80 lines */}</form>;
+}
+
+// src/components/admin/admin-panel.tsx
+export function AdminPanel() {
+  const { users, selectedUser, createUser, updateUser, deleteUser } = 
+    useUserManagement();
+  
+  return (
+    <div>
+      <SearchBar />
+      <UserList users={users} onSelect={setSelectedUser} />
+      <UserForm user={selectedUser} onSave={updateUser} />
+    </div>
+  );
+}
+```
+
+## Decomposition Checklist
+
+- [ ] Identify multiple concerns
+- [ ] Extract hooks for state logic
+- [ ] Extract components for rendering
+- [ ] Move business logic to lib/
+- [ ] Test each extracted piece
+- [ ] Verify types and props
+
+## Commit Structure
+
+```
+refactor: decompose God Class pattern
+
+- Extract useApplicationForm hook (state + validation)
+- Extract ApplicationFormUI component (rendering)
+- Extract application-helpers lib (business logic)
+- Remove 250+ lines from ApplicationForm component
+
+Closes #123
+```
+

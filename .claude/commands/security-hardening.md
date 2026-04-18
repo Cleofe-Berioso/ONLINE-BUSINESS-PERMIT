@@ -1,151 +1,102 @@
-# Security Hardening — OBPS Web Application Security
+# Security Hardening Skill (`/security-hardening`)
 
-## Purpose
+**Purpose**: Security audit and hardening following OWASP Top 10.
 
-Audit and harden the security posture of the Online Business Permit System. Covers authentication, authorization, input validation, CSP headers, rate limiting, and OWASP Top 10 mitigations.
+## Audit Areas
 
-## Usage
+### 1. Authentication & Secrets
+- NextAuth v5 configured with Credentials provider
+- JWT: `maxAge: 30 * 60` (30 minutes)
+- `NEXTAUTH_SECRET` set in .env
+- No hardcoded API keys
+- Password hashing: bcryptjs
+- 2FA: TOTP with backup codes
+- Account lockout: 5 failed attempts
 
-```
-/security-hardening <area-or-concern-to-audit>
-```
+**Check**: `grep -r "PASSWORD\|API_KEY\|SECRET" src/` (should be none in code)
 
-## Security Architecture
+### 2. Input Validation
+- All forms use Zod schemas
+- File uploads validated with magic bytes
+- Virus scanning with ClamAV
+- SQL injection prevented with Prisma
+- XSS prevented with React sanitization
 
-### Authentication (NextAuth v5)
+**Check**: Every `req.json()` followed by `schema.safeParse()`
 
-- **Provider**: Credentials (email + password)
-- **Strategy**: JWT (30-minute session, auto-refresh)
-- **Password**: bcrypt hashing (salt rounds: 12)
-- **2FA**: TOTP via otplib (Google Authenticator compatible) — `src/lib/two-factor.ts`
-- **Account lockout**: Track failed attempts, lock after threshold
-- **OTP Verification**: Time-limited tokens in VerificationToken model
+### 3. Headers & CSP
+- Content-Security-Policy set
+- X-Frame-Options: DENY
+- X-Content-Type-Options: nosniff
+- Strict-Transport-Security: HSTS
+- Referrer-Policy: strict-no-referrer
 
-### Authorization (CASL.js)
+**See**: `next.config.js` security headers section
 
-- **RBAC**: 4 roles (APPLICANT, STAFF, REVIEWER, ADMINISTRATOR)
-- **Config**: `src/lib/permissions.ts` — defineAbilityFor(role)
-- **Enforcement**: Check `ability.can(action, subject)` in API routes
-- **Middleware**: `src/middleware.ts` — Edge-safe route protection
+### 4. Rate Limiting
+- Auth routes: 10 per minute
+- OTP routes: 5 per 15 minutes
+- API routes: 100 per minute (authenticated)
+- Implemented in `src/middleware.ts`
 
-### Files to Audit
+### 5. Data Privacy
+- User passwords sanitized from responses
+- Sensitive fields excluded with Prisma `select:`
+- Activity logs for audit trail
+- Data export endpoint (GDPR compliance)
+- API responses don't leak user IDs of other users
 
-| File                     | Security Function                          |
-| ------------------------ | ------------------------------------------ |
-| `src/middleware.ts`      | Route protection, rate limit headers, RBAC |
-| `src/lib/auth.ts`        | NextAuth config, callbacks, session        |
-| `src/lib/auth.config.ts` | Edge-safe provider config                  |
-| `src/lib/permissions.ts` | CASL ability definitions                   |
-| `src/lib/rate-limit.ts`  | Sliding window rate limiter                |
-| `src/lib/sanitize.ts`    | Input sanitization (XSS prevention)        |
-| `src/lib/validations.ts` | Zod schemas for all inputs                 |
-| `web/next.config.js`     | Security headers, CSP                      |
-
-### Security Headers (next.config.js)
-
-```
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
-Referrer-Policy: strict-origin-when-cross-origin
-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; ...
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-Permissions-Policy: camera=(), microphone=(), geolocation=()
-```
-
-## OWASP Top 10 Checklist
-
-### A01: Broken Access Control
-
-- [ ] Every API route checks `auth()` session
-- [ ] Role-based checks with CASL `ability.can()`
-- [ ] Users can only access their own resources (`where: { userId }`)
-- [ ] Admin routes protected at middleware level
-- [ ] No direct object reference without ownership check
-
-### A02: Cryptographic Failures
-
-- [ ] Passwords hashed with bcrypt (12 rounds)
-- [ ] AUTH_SECRET is strong and rotated
-- [ ] Database connection via SSL in production
-- [ ] Sensitive data not logged
-
-### A03: Injection
-
-- [ ] Prisma parameterized queries (no raw SQL)
-- [ ] Zod validation on all inputs
-- [ ] Input sanitization via `sanitize.ts`
-- [ ] No `eval()` or template string injection
-
-### A04: Insecure Design
-
-- [ ] Multi-step application requires all previous steps
-- [ ] Payment verification via webhooks (not client-side)
-- [ ] Document verification by staff (not auto-approved)
-
-### A05: Security Misconfiguration
-
-- [ ] `.env.local` not in version control
-- [ ] Docker containers run as non-root
-- [ ] Error messages don't leak stack traces in production
-- [ ] Prisma Studio disabled in production
-
-### A06: Vulnerable Components
-
-- [ ] `npm audit` clean or all issues triaged
-- [ ] Dependencies pinned to known-good versions
-- [ ] Regular update cycle
-
-### A07: Authentication Failures
-
-- [ ] Account lockout after failed attempts
-- [ ] Password complexity enforced (Zod schema)
-- [ ] OTP expiration enforced
-- [ ] Session timeout (30 minutes)
-
-### A08: Data Integrity Failures
-
-- [ ] PayMongo webhook signature verification
-- [ ] CSRF protection via NextAuth
-- [ ] File upload: magic bytes validation, type whitelisting
-
-### A09: Logging & Monitoring
-
-- [ ] Winston logger captures auth events
-- [ ] AuditLog model tracks data mutations
-- [ ] Sentry integration for error tracking (optional)
-- [ ] Prometheus metrics endpoint (`/api/metrics`)
-
-### A10: SSRF
-
-- [ ] Government API calls use allowlisted URLs only
-- [ ] File uploads validated server-side, not fetched by URL
-
-## Rate Limiting
-
-```
-Login: 5 attempts per 15 minutes per IP
-Registration: 3 per hour per IP
-API general: 100 requests per minute per user
-File upload: 10 per hour per user
-Payment: 5 per hour per user
+**Pattern**:
+```typescript
+const user = await prisma.user.findUnique({
+  where: { id: userId },
+  select: { id: true, email: true, firstName: true } // exclude password
+});
 ```
 
-## Audit Commands
+### 6. Database Security
+- Cascading deletes prevent orphaned data
+- Unique constraints prevent duplicates
+- Foreign keys reference enforcement
+- Parameterized queries (Prisma)
+- No direct SQL queries
+
+### 7. Payment Security
+- PayMongo HMAC-SHA256 signature verification
+- Webhook idempotency with WebhookLog
+- Test API key in dev, production key in prod
+- No payment processing logs with sensitive data
+
+### 8. File Upload Security
+- Magic bytes validation (not just extension)
+- File size limits (10 MB max)
+- Virus scanning before storage
+- Presigned URLs with 15-min expiry
+- No direct file path exposure
+
+## Hardening Checklist
+
+- [ ] No console.log exposing data
+- [ ] All API errors sanitized
+- [ ] SQL injection prevented (use Prisma)
+- [ ] XSS prevented (React escaping)
+- [ ] CSRF tokens on forms
+- [ ] Rate limiting on auth
+- [ ] Headers set correctly
+- [ ] Secrets in .env not code
+- [ ] Database doesn't expose passwords
+- [ ] File uploads validated
+
+## Commands
 
 ```bash
-# Dependency audit
-npm audit
+# Check env usage
+grep -r "process.env\." src/ | grep -v ".env"
 
-# Type safety check
-npx tsc --noEmit
+# Find SQL injection risks
+grep -r "prisma.$queryRaw\|sql\`" src/
 
-# Lint security rules
-npx eslint . --max-warnings 0
-
-# OWASP ZAP scan
-pwsh tests/security/run-zap-scan.ps1
-
-# Check for secrets in code
-git log --all --diff-filter=A -- '*.env*'
+# Check hardcoded secrets
+grep -r "password\|secret\|token\|key" src/ | grep "=.*['\"]"
 ```
+

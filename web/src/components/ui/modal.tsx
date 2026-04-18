@@ -61,16 +61,16 @@ export function Modal({
     >
       <div
         className={cn(
-          "w-full rounded-xl bg-white shadow-xl",
+          "w-full rounded-2xl bg-[var(--surface)] shadow-[var(--shadow-md)]",
           sizeClasses[size]
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
             {description && (
-              <p className="mt-1 text-sm text-gray-500">{description}</p>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">{description}</p>
             )}
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -83,7 +83,7 @@ export function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
+          <div className="flex items-center justify-end gap-3 border-t border-[var(--border)] px-6 py-4">
             {footer}
           </div>
         )}
