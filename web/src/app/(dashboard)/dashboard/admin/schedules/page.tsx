@@ -130,8 +130,8 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
   return (
     <div>      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Manage Schedules</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">Manage Schedules</h1>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Configure claiming dates and time slots for permit collection
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-[var(--text-primary)]">
                     Time Slots
                   </label>
                   <Button variant="outline" size="sm" onClick={addSlot}>
@@ -193,7 +193,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                         }
                         className="w-32 min-w-0"
                       />
-                      <span className="text-gray-400">to</span>
+                      <span className="text-[var(--text-muted)]">to</span>
                       <Input
                         type="time"
                         value={slot.endTime}
@@ -212,7 +212,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                           placeholder="Cap"
                           className="w-20 min-w-0"
                         />
-                        <span className="text-xs text-gray-400 whitespace-nowrap">slots</span>
+                        <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">slots</span>
                         {slots.length > 1 && (
                           <Button
                             variant="ghost"
@@ -242,7 +242,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
       {/* Existing Schedules */}
       {schedules.length === 0 ? (
         <EmptyState
-          icon={<CalendarCheck className="h-8 w-8 text-gray-400" />}
+          icon={<CalendarCheck className="h-8 w-8 text-[var(--text-muted)]" />}
           title="No schedules created"
           description="Create claiming schedules for applicants to book time slots."
           action={{ label: "Create Schedule", onClick: () => setShowForm(true) }}
@@ -264,7 +264,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
               <Card key={schedule.id}>
                 <CardContent className="p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-[var(--text-primary)]">
                       {date.toLocaleDateString("en-PH", {
                         weekday: "short",
                         month: "long",
@@ -273,19 +273,19 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                       })}
                     </h3>
                     {schedule.isBlocked && (
-                      <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-[var(--danger)]">
                         Blocked
                       </span>
                     )}
                   </div>
 
-                  <div className="mb-3 text-sm text-gray-600">
+                  <div className="mb-3 text-sm text-[var(--text-secondary)]">
                     {totalBooked}/{totalSlots} slots booked
                   </div>
 
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--border)]">
                     <div
-                      className="h-full rounded-full bg-blue-600"
+                      className="h-full rounded-full bg-[var(--accent)]"
                       style={{
                         width: `${totalSlots > 0 ? (totalBooked / totalSlots) * 100 : 0}%`,
                       }}
@@ -296,7 +296,7 @@ export default function AdminSchedulesPage() {  const [schedules, setSchedules] 
                     {schedule.timeSlots.map((slot) => (
                       <li
                         key={slot.id}
-                        className="flex items-center justify-between text-xs text-gray-500"
+                        className="flex items-center justify-between text-xs text-[var(--background)]0"
                       >
                         <span>
                           {slot.startTime} – {slot.endTime}

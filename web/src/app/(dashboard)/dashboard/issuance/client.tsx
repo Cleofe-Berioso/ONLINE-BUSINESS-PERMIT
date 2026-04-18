@@ -118,11 +118,11 @@ export function IssuanceClient({ permits }: IssuanceClientProps) {
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
       {/* Search Bar */}
-      <div className="border-b border-gray-200 p-6">
+      <div className="border-b border-[var(--border)] p-6">
         <div className="relative">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-3 h-5 w-5 text-[var(--text-muted)]" />
           <Input
             type="text"
             placeholder="Search by permit number, business name, or owner..."
@@ -136,7 +136,7 @@ export function IssuanceClient({ permits }: IssuanceClientProps) {
       {/* Table */}
       {filteredPermits.length === 0 ? (
         <div className="p-8 text-center">
-          <p className="text-gray-500">
+          <p className="text-[var(--background)]0">
             {searchTerm
               ? "No permits found matching your search."
               : "No permits issued yet."}
@@ -150,17 +150,17 @@ export function IssuanceClient({ permits }: IssuanceClientProps) {
               <div key={permit.id} className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <p className="font-semibold text-blue-600 text-sm">
+                    <p className="font-semibold text-[var(--accent)] text-sm">
                       {permit.permitNumber}
                     </p>
-                    <p className="mt-1 font-medium text-gray-900">
+                    <p className="mt-1 font-medium text-[var(--text-primary)]">
                       {permit.businessName}
                     </p>
-                    <p className="text-sm text-gray-500">{permit.ownerName}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-sm text-[var(--background)]0">{permit.ownerName}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
                       Ref: {permit.application.applicationNumber}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-[var(--text-muted)]">
                       {formatDate(permit.issueDate)} – {formatDate(permit.expiryDate)}
                     </p>
                   </div>
@@ -202,7 +202,7 @@ export function IssuanceClient({ permits }: IssuanceClientProps) {
           {/* Desktop Table */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
-              <thead className="border-b bg-gray-50 text-xs uppercase text-gray-600">
+              <thead className="border-b bg-[var(--surface-muted)] text-xs uppercase text-[var(--text-secondary)]">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Permit Number</th>
                   <th className="px-6 py-4 font-semibold">Business Name</th>
@@ -216,19 +216,19 @@ export function IssuanceClient({ permits }: IssuanceClientProps) {
               </thead>
               <tbody className="divide-y">
                 {filteredPermits.map((permit) => (
-                  <tr key={permit.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-blue-600">
+                  <tr key={permit.id} className="hover:bg-[var(--surface-muted)]">
+                    <td className="px-6 py-4 font-medium text-[var(--accent)]">
                       {permit.permitNumber}
                     </td>
                     <td className="px-6 py-4">{permit.businessName}</td>
                     <td className="px-6 py-4">{permit.ownerName}</td>
-                    <td className="px-6 py-4 text-gray-500">
+                    <td className="px-6 py-4 text-[var(--background)]0">
                       {permit.application.applicationNumber}
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
+                    <td className="px-6 py-4 text-[var(--background)]0">
                       {formatDate(permit.issueDate)}
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
+                    <td className="px-6 py-4 text-[var(--background)]0">
                       {formatDate(permit.expiryDate)}
                     </td>
                     <td className="px-6 py-4">
@@ -274,8 +274,8 @@ export function IssuanceClient({ permits }: IssuanceClientProps) {
 
       {/* Footer with count */}
       {filteredPermits.length > 0 && (
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
-          <p className="text-sm text-gray-600">
+        <div className="border-t border-[var(--border)] bg-[var(--surface-muted)] px-6 py-4">
+          <p className="text-sm text-[var(--text-secondary)]">
             Showing {filteredPermits.length} of {permits.length} permits
           </p>
         </div>

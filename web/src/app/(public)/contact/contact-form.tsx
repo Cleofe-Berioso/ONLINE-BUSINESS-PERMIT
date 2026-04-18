@@ -31,12 +31,12 @@ export function ContactForm() {
     return (
       <div className="text-center py-8">
         <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-7 h-7 text-[var(--success)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Message Sent!</h3>
-        <p className="text-sm text-gray-600">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Message Sent!</h3>
+        <p className="text-sm text-[var(--text-secondary)]">
           Thank you for reaching out. We&apos;ll get back to you within 24–48 hours.
         </p>
       </div>
@@ -46,44 +46,44 @@ export function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-[var(--danger-light)] border border-red-200 px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Full Name</label>
           <input
             type="text"
             name="name"
             required
             value={form.name}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] focus:outline-none"
             placeholder="Juan Dela Cruz"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Email</label>
           <input
             type="email"
             name="email"
             required
             value={form.email}
             onChange={handleChange}
-            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] focus:outline-none"
             placeholder="juan@example.com"
           />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Subject</label>
         <select
           name="subject"
           required
           value={form.subject}
           onChange={handleChange}
-          className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white"
+          className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] focus:outline-none bg-[var(--surface)]"
         >
           <option value="">Select a subject…</option>
           <option value="Application Inquiry">Application Inquiry</option>
@@ -94,21 +94,21 @@ export function ContactForm() {
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Message</label>
         <textarea
           name="message"
           rows={5}
           required
           value={form.message}
           onChange={handleChange}
-          className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none resize-none"
+          className="w-full border rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-[var(--accent)] focus:outline-none resize-none"
           placeholder="How can we help you?"
         />
       </div>
       <button
         type="submit"
         disabled={loading}
-        className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full sm:w-auto bg-[var(--accent)] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[var(--accent-hover)] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Sending…" : "Send Message"}
       </button>

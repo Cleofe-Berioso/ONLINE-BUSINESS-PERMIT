@@ -78,20 +78,20 @@ export default function ClosureApplicationPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Close Your Business</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Close Your Business</h1>
+        <p className="mt-2 text-[var(--text-secondary)]">
           Initiate the permit closure process for your business.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
         <div className="space-y-6">
           {/* Select Permit */}
           <div>
-            <label htmlFor="permit" className="block text-sm font-medium text-gray-900">
-              Select Permit to Close <span className="text-red-600">*</span>
+            <label htmlFor="permit" className="block text-sm font-medium text-[var(--text-primary)]">
+              Select Permit to Close <span className="text-[var(--danger)]">*</span>
             </label>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-[var(--background)]0">
               Choose the active permit you wish to close.
             </p>
             <select
@@ -99,7 +99,7 @@ export default function ClosureApplicationPage() {
               value={selectedPermitId}
               onChange={(e) => setSelectedPermitId(e.target.value)}
               disabled={permitsLoading}
-              className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 disabled:bg-gray-50 disabled:text-gray-400"
+              className="mt-2 block w-full rounded-lg border border-[var(--border)] px-4 py-2 text-[var(--text-primary)] disabled:bg-[var(--surface-muted)] disabled:text-[var(--text-muted)]"
             >
               <option value="">
                 {permitsLoading ? "Loading permits..." : "Select a permit"}
@@ -115,7 +115,7 @@ export default function ClosureApplicationPage() {
             {selectedPermitId && permits?.permits && (() => {
               const selectedPermit = permits.permits.find((p: any) => p.id === selectedPermitId);
               return selectedPermit && !selectedPermit.isEligible ? (
-                <div className="mt-3 rounded-lg bg-red-50 p-3 border border-red-200">
+                <div className="mt-3 rounded-lg bg-[var(--danger-light)] p-3 border border-red-200">
                   <p className="text-sm text-red-800">
                     <span className="font-medium">Cannot close:</span> {selectedPermit.reason}
                   </p>
@@ -126,10 +126,10 @@ export default function ClosureApplicationPage() {
 
           {/* Closure Reason */}
           <div>
-            <label htmlFor="reason" className="block text-sm font-medium text-gray-900">
-              Reason for Closure <span className="text-red-600">*</span>
+            <label htmlFor="reason" className="block text-sm font-medium text-[var(--text-primary)]">
+              Reason for Closure <span className="text-[var(--danger)]">*</span>
             </label>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-[var(--background)]0">
               Explain why you are closing the business.
             </p>
             <textarea
@@ -138,16 +138,16 @@ export default function ClosureApplicationPage() {
               onChange={(e) => setClosureReason(e.target.value)}
               placeholder="e.g., Retirement, relocation, business sold, etc."
               rows={4}
-              className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-400"
+              className="mt-2 block w-full rounded-lg border border-[var(--border)] px-4 py-2 text-[var(--text-primary)] placeholder-gray-400"
             />
           </div>
 
           {/* Closure Effective Date */}
           <div>
-            <label htmlFor="date" className="block text-sm font-medium text-gray-900">
-              Effective Closure Date <span className="text-red-600">*</span>
+            <label htmlFor="date" className="block text-sm font-medium text-[var(--text-primary)]">
+              Effective Closure Date <span className="text-[var(--danger)]">*</span>
             </label>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-[var(--background)]0">
               Date when the business will officially close.
             </p>
             <input
@@ -155,12 +155,12 @@ export default function ClosureApplicationPage() {
               type="date"
               value={closureEffectiveDate}
               onChange={(e) => setClosureEffectiveDate(e.target.value)}
-              className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900"
+              className="mt-2 block w-full rounded-lg border border-[var(--border)] px-4 py-2 text-[var(--text-primary)]"
             />
           </div>
 
           {/* What to Expect */}
-          <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+          <div className="rounded-lg bg-[var(--accent-light)] p-4 border border-blue-200">
             <p className="font-medium text-blue-900 mb-3">What Happens Next</p>
             <ul className="space-y-2 text-sm text-blue-900">
               <li className="flex gap-3">
@@ -188,7 +188,7 @@ export default function ClosureApplicationPage() {
           <button
             type="submit"
             disabled={submitMutation.isPending || !selectedPermitId || !closureReason || !closureEffectiveDate}
-            className="flex items-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 font-medium text-white hover:bg-red-700 disabled:bg-gray-300 disabled:text-gray-500"
+            className="flex items-center gap-2 rounded-lg bg-[var(--danger)] px-6 py-2.5 font-medium text-white hover:bg-red-700 disabled:bg-[var(--border)] disabled:text-[var(--background)]0"
           >
             {submitMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             Submit Closure Application
@@ -196,7 +196,7 @@ export default function ClosureApplicationPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-lg border border-gray-300 px-6 py-2.5 font-medium text-gray-900 hover:bg-gray-50"
+            className="rounded-lg border border-[var(--border)] px-6 py-2.5 font-medium text-[var(--text-primary)] hover:bg-[var(--surface-muted)]"
           >
             Cancel
           </button>

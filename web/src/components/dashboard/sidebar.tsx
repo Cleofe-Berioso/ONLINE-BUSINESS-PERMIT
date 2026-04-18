@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   File,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -118,6 +119,12 @@ const applicantAccountNav: NavItem[] = [
     icon: <ClipboardList className="h-5 w-5" />,
     roles: ["ADMINISTRATOR"],
   },
+  {
+    label: "Business Locations",
+    href: "/dashboard/admin/locations",
+    icon: <MapPin className="h-5 w-5" />,
+    roles: ["ADMINISTRATOR"],
+  },
 ];
 
 function SidebarContent({
@@ -180,7 +187,7 @@ function SidebarContent({
         {onClose && (
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-[var(--accent-light)] dark:hover:bg-gray-700 lg:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -190,7 +197,7 @@ function SidebarContent({
         {onToggleCollapse && !onClose && (
           <button
             onClick={onToggleCollapse}
-            className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 lg:block"
+            className="hidden rounded-lg p-1.5 text-gray-500 hover:bg-[var(--accent-light)] dark:hover:bg-gray-700 lg:block"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
@@ -219,8 +226,8 @@ function SidebarContent({
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     collapsed && "justify-center px-2",
                     isActive
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+                      ? "bg-[var(--accent-light)] text-[var(--accent)] dark:bg-blue-900/30 dark:text-blue-400"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--accent-light)] hover:text-[var(--text-primary)] dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
                   )}
                 >
                   {item.icon}
@@ -234,14 +241,14 @@ function SidebarContent({
 
       {/* User Info */}
       {!collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+        <div className="border-t border-[var(--border)] dark:border-gray-700 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-[var(--accent)]">
               {user.firstName[0]}
               {user.lastName[0]}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+              <p className="truncate text-sm font-medium text-[var(--text-primary)] dark:text-gray-100">
                 {user.firstName} {user.lastName}
               </p>
               <p className="truncate text-xs text-gray-500 dark:text-gray-400 capitalize">
@@ -252,10 +259,10 @@ function SidebarContent({
         </div>
       )}
       {collapsed && (
-        <div className="border-t border-gray-200 dark:border-gray-700 px-2 py-4 flex justify-center">
+        <div className="border-t border-[var(--border)] dark:border-gray-700 px-2 py-4 flex justify-center">
           <div
             title={`${user.firstName} ${user.lastName}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-[var(--accent)]"
           >
             {user.firstName[0]}
             {user.lastName[0]}
@@ -271,7 +278,7 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
     <>
       <aside
         className={cn(
-          "hidden flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 lg:block",
+          "hidden flex-shrink-0 border-r border-[var(--border)] dark:border-gray-700 bg-[var(--surface)] dark:bg-gray-800 transition-all duration-300 lg:block",
           collapsed ? "w-16" : "w-64"
         )}
       >
@@ -288,7 +295,7 @@ export function DashboardSidebar({ user, isOpen, onClose, collapsed, onToggleCol
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 flex-shrink-0 border-r border-gray-200 bg-white dark:bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed inset-y-0 left-0 z-50 w-72 flex-shrink-0 border-r border-[var(--border)] bg-[var(--surface)] dark:bg-gray-800 shadow-xl transition-transform duration-300 ease-in-out lg:hidden",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

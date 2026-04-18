@@ -127,14 +127,14 @@ export default function RenewalFormPage() {
     <div className="mx-auto max-w-2xl">
       <button
         onClick={() => router.back()}
-        className="mb-6 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+        className="mb-6 flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
       >
         <ArrowLeft className="h-4 w-4" /> Back to Permits
       </button>
 
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Renew Business Permit</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Renew Business Permit</h1>
+        <p className="mt-2 text-[var(--text-secondary)]">
           Complete the renewal form for {permit.businessName}
         </p>
       </div>
@@ -153,15 +153,15 @@ export default function RenewalFormPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <label className="block text-sm text-gray-600">Permit Number</label>
+              <label className="block text-sm text-[var(--text-secondary)]">Permit Number</label>
               <p className="mt-1 font-mono font-medium">{permit.permitNumber}</p>
             </div>
             <div>
-              <label className="block text-sm text-gray-600">Business Name</label>
+              <label className="block text-sm text-[var(--text-secondary)]">Business Name</label>
               <p className="mt-1 font-medium">{permit.businessName}</p>
             </div>
             <div>
-              <label className="block text-sm text-gray-600">Expiry Date</label>
+              <label className="block text-sm text-[var(--text-secondary)]">Expiry Date</label>
               <p className="mt-1 font-medium">{new Date(permit.expiryDate).toLocaleDateString()}</p>
             </div>
           </CardContent>
@@ -174,14 +174,14 @@ export default function RenewalFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label htmlFor="grossSales" className="block text-sm font-medium text-gray-900">
-                Annual Gross Sales / Income <span className="text-red-600">*</span>
+              <label htmlFor="grossSales" className="block text-sm font-medium text-[var(--text-primary)]">
+                Annual Gross Sales / Income <span className="text-[var(--danger)]">*</span>
               </label>
-              <p className="mt-1 text-sm text-gray-600">
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 Enter your annual gross sales for the previous fiscal year
               </p>
               <div className="mt-2 flex items-center">
-                <span className="text-gray-600 mr-2">₱</span>
+                <span className="text-[var(--text-secondary)] mr-2">₱</span>
                 <Input
                   id="grossSales"
                   type="number"
@@ -195,7 +195,7 @@ export default function RenewalFormPage() {
               </div>
             </div>
 
-            <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-900">
+            <div className="rounded-lg bg-[var(--accent-light)] p-4 text-sm text-blue-900">
               <p className="font-medium mb-3"><strong>Required Documents and Clearances</strong></p>
               <div className="space-y-3">
                 <div>

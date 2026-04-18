@@ -66,14 +66,12 @@ export async function POST(request: Request) {
     const documents = [];
     const errors = [];
     const VALID_DOCUMENT_TYPES = [
-      "DTI_SEC_REGISTRATION",
+      "PROOF_OF_REGISTRATION",
+      "PROOF_OF_OWNERSHIP",
+      "LOCATION_PLAN",
+      "FSIC",
+      "AFFIDAVIT",
       "BARANGAY_CLEARANCE",
-      "ZONING_CLEARANCE",
-      "FIRE_SAFETY_CERTIFICATE",
-      "SANITARY_PERMIT",
-      "COMMUNITY_TAX_CERTIFICATE",
-      "VALID_ID",
-      "LEASE_CONTRACT",
       "OTHER",
     ];
 
@@ -139,7 +137,7 @@ export async function POST(request: Request) {
           mimeType: file.type,
           fileSize: buffer.length,
           filePath: storagePath,
-          documentType, // Use provided type, not inferred
+          documentType: (documentType as any) || "OTHER", // Cast to DocumentType enum
           status: "UPLOADED",
         },
       });

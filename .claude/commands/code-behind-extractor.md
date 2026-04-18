@@ -1,143 +1,142 @@
-# Code-Behind Extractor — OBPS Component Logic Extraction
+# Code-Behind Extractor Skill (`/code-behind-extractor`)
 
-## Purpose
-
-Extract business logic, data fetching, and state management from React components into reusable hooks, services, and utilities. Keeps components focused on rendering.
-
-## Usage
-
-```
-/code-behind-extractor <component-file-path>
-```
+**Purpose**: Extract inline business logic from page components into lib modules.
 
 ## Extraction Patterns
 
-### 1. Extract to Custom Hook
-
-**When**: Component has complex state logic, effects, or data fetching
+### 1. Data Fetching Logic
+**Before**: Server component fetching in page
 
 ```typescript
-// Before: all logic in component
-'use client';
-export function ApplicationList() {
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({});
-
-  useEffect(() => {
-    fetch('/api/applications?' + new URLSearchParams(filters))
-      .then(res => res.json())
-      .then(data => { setApplications(data); setLoading(false); });
-  }, [filters]);
-
-  // 50 more lines of logic...
-  return <div>{/* render */}</div>;
-}
-
-// After: hook extracted
-// hooks/use-applications.ts
-export function useApplications(filters: Filters) {
-  return useQuery({
-    queryKey: ['applications', filters],
-    queryFn: () => fetch('/api/applications?' + new URLSearchParams(filters)).then(r => r.json()),
+// app/dashboard/applications/page.tsx
+export default async function Page() {
+  const apps = await prisma.application.findMany({
+    where: { applicantId: userID },
+    include: { documents: true, clearances: true },
   });
-}
-
-// components/application-list.tsx
-'use client';
-export function ApplicationList() {
-  const [filters, setFilters] = useState({});
-  const { data: applications, isLoading } = useApplications(filters);
-  return <div>{/* render — much simpler */}</div>;
+  return <ApplicationsClient apps={apps} />;
 }
 ```
 
-### 2. Extract to Server Component
-
-**When**: Component only displays data with no interactivity
-
+**After**: Extract to lib
 ```typescript
-// Before: client component fetching data
-'use client';
-export function ApplicationDetails({ id }: { id: string }) {
-  const [data, setData] = useState(null);
-  useEffect(() => { fetch(`/api/applications/${id}`).then(/*...*/); }, [id]);
-  return <div>{/* render data */}</div>;
+// lib/application-queries.ts
+export async function getUserApplications(userId: string) {
+  return await prisma.application.findMany({
+    where: { applicantId: userId },
+    include: { documents: true, clearances: true },
+  });
 }
 
-// After: server component (no 'use client')
-export default async function ApplicationDetails({ id }: { id: string }) {
-  const application = await prisma.application.findUnique({ where: { id } });
-  return <div>{/* render directly — no loading state needed */}</div>;
+// page.tsx
+import { getUserApplications } from "@/lib/application-queries";
+
+export default async function Page() {
+  const apps = await getUserApplications(sessionUser.id);
+  return <ApplicationsClient apps={apps} />;
 }
 ```
 
-### 3. Extract to Service Module
-
-**When**: Business logic is reused across API routes or components
-
-```typescript
-// Before: logic duplicated in multiple API routes
-// api/applications/route.ts has fee calculation
-// api/payments/route.ts has same fee calculation
-
-// After: shared service
-// src/lib/services/fee-calculator.ts
-export function calculatePermitFee(
-  applicationType: ApplicationType,
-  businessSize: string,
-): number {
-  const baseFee = applicationType === "NEW" ? 500 : 300;
-  const sizeFactor = { SMALL: 1, MEDIUM: 1.5, LARGE: 2 }[businessSize] ?? 1;
-  return baseFee * sizeFactor;
-}
-```
-
-### 4. Extract Form Logic to Schema + Hook
-
-**When**: Form has complex validation and submission logic
+### 2. Form Logic
+**Before**: Form handling inline
 
 ```typescript
-// Before: all in one component
-// After:
-// 1. Schema in validations.ts
-export const applicationSchema = z.object({ businessName: z.string().min(2) });
-
-// 2. Custom hook
-export function useApplicationForm(applicationId?: string) {
-  const form = useForm<z.infer<typeof applicationSchema>>({
-    resolver: zodResolver(applicationSchema),
-  });
-  const mutation = useMutation({
-    mutationFn: (data) => fetch('/api/applications', { method: 'POST', body: JSON.stringify(data) }),
-  });
-  return { form, mutation };
-}
-
-// 3. Clean component
 export function ApplicationForm() {
-  const { form, mutation } = useApplicationForm();
-  return <form onSubmit={form.handleSubmit(mutation.mutate)}>{/* fields */}</form>;
+  const [formData, setFormData] = useState({});
+  const [errors, setErrors] = useState({});
+  
+  const handleSubmit = async (e) => {
+    // 50 lines of form logic
+  };
+  
+  return <form onSubmit={handleSubmit}>...</form>;
 }
 ```
 
-## Decision Matrix
+**After**: Extract hook
+```typescript
+// hooks/useApplicationForm.ts
+export function useApplicationForm(initialData?) {
+  const [formData, setFormData] = useState(initialData);
+  const [errors, setErrors] = useState({});
+  
+  const handleSubmit = async (e) => {
+    // Form logic
+  };
+  
+  return { formData, errors, handleSubmit };
+}
 
-| Condition               | Extract To                               |
-| ----------------------- | ---------------------------------------- |
-| Complex state + effects | Custom hook (`hooks/use-*.ts`)           |
-| Data display only       | Server Component (remove `'use client'`) |
-| Reused business logic   | Service module (`lib/services/*.ts`)     |
-| Form validation         | Zod schema + hook                        |
-| API call pattern        | React Query hook                         |
-| Utility function        | `lib/utils.ts` or dedicated util file    |
+// Component: 20 lines
+export function ApplicationForm() {
+  const { formData, errors, handleSubmit } = useApplicationForm();
+  return <form onSubmit={handleSubmit}>...</form>;
+}
+```
 
-## Checklist
+### 3. Business Logic
+**Before**: Logic in component
 
-- [ ] Component is < 150 lines after extraction
-- [ ] Extracted hook/service is independently testable
-- [ ] No prop drilling — use hooks or context
-- [ ] Server Components used where possible
-- [ ] `'use client'` only on interactive components
-- [ ] TypeScript types exported for reuse
-- [ ] Imports updated everywhere
+```typescript
+function ReviewApplicationPage({ app }) {
+  const checkEligibility = () => {
+    if (!app.documents.some(d => d.verified)) return false;
+    if (app.clearances.some(c => c.status === "PENDING")) return false;
+    // ... 20 more lines
+    return true;
+  };
+  
+  return <div>{checkEligibility() && <ApproveButton />}</div>;
+}
+```
+
+**After**: Extract lib
+```typescript
+// lib/eligibility.ts
+export function checkApplicationEligibility(app: Application): boolean {
+  if (!app.documents.some(d => d.verified)) return false;
+  if (app.clearances.some(c => c.status === "PENDING")) return false;
+  // ... logic
+  return true;
+}
+
+// Component
+import { checkApplicationEligibility } from "@/lib/eligibility";
+
+function ReviewApplicationPage({ app }) {
+  return (
+    <div>
+      {checkApplicationEligibility(app) && <ApproveButton />}
+    </div>
+  );
+}
+```
+
+## Extraction Targets
+
+| Type | From | To |
+|------|------|-----|
+| Server queries | page.tsx | lib/queries.ts |
+| Client forms | component.tsx | hooks/useForm.ts |
+| Business rules | component.tsx | lib/business.ts |
+| Helpers | component.tsx | lib/utils.ts |
+| Validation | component.tsx | lib/validations.ts |
+
+## Refactoring Checklist
+
+- [ ] Identify repeated logic
+- [ ] Move to appropriate lib module
+- [ ] Export function from lib
+- [ ] Import and use in component
+- [ ] Test extracted function
+- [ ] Verify component still works
+- [ ] Remove old logic from component
+
+## Benefits
+
+- Components stay <200 lines
+- Logic reusable across components
+- Easier to test
+- Cleaner component code
+- Functions are composable
+

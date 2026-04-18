@@ -59,17 +59,26 @@ export async function POST(
       },
     });
 
-    // Broadcast real-time event to the document owner
+    // Broadcast real-time event to the document owner (non-blocking)
     const applicantId = document.application.applicantId;
-    broadcastDocumentVerified(applicantId, id, document.originalName, status);
-    broadcastNotification(
-      applicantId,
-      status === "VERIFIED" ? "Document Verified" : "Document Rejected",
-      status === "VERIFIED"
-        ? `Your document "${document.originalName}" has been verified.`
-        : `Your document "${document.originalName}" was rejected. Please re-upload.`,
-      "/dashboard/documents"
-    );
+    try {
+      broadcastDocumentVerified(applicantId, id, document.originalName, status);
+    } catch (error) {
+      console.error("Failed to broadcast document verified event:", error);
+    }
+
+    try {
+      broadcastNotification(
+        applicantId,
+        status === "VERIFIED" ? "Document Verified" : "Document Rejected",
+        status === "VERIFIED"
+          ? `Your document "${document.originalName}" has been verified.`
+          : `Your document "${document.originalName}" was rejected. Please re-upload.`,
+        "/dashboard/documents"
+      );
+    } catch (error) {
+      console.error("Failed to broadcast document notification:", error);
+    }
 
     return NextResponse.json({ document: updated });  } catch (error) {
     captureException(error, { route: 'POST /api/documents/[id]/verify' });

@@ -10,14 +10,14 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[var(--surface-muted)] flex flex-col">
       <PublicNav />
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 sm:py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-        <p className="text-sm text-gray-500 mb-8">Last updated: March 1, 2026</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2">Terms of Service</h1>
+        <p className="text-sm text-[var(--text-secondary)] mb-8">Last updated: March 1, 2026</p>
 
-        <div className="bg-white rounded-xl shadow-sm border p-8 prose prose-gray max-w-none">
+        <div className="bg-[var(--surface)] rounded-xl shadow-sm border p-8 prose prose-gray max-w-none">
           <h2>1. Acceptance of Terms</h2>
           <p>
             By accessing and using the Online Business Permit System, you agree to be bound by these Terms of Service.

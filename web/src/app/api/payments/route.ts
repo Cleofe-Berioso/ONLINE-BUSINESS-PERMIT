@@ -80,11 +80,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate fee based on application type and business type
-    const feeInfo = calculateFees(
-      application.type || "NEW",
-      application.businessType || "RETAIL"
-    );
+    // Calculate fee based on application type and business type (DFD P5.0)
+    const feeInfo = calculateFees({
+      applicationType: application.type || "NEW",
+      businessType: application.businessType || undefined,
+      businessName: application.businessName,
+      lineOfBusiness: application.lineOfBusiness || undefined,
+      grossSales: application.grossSales ? { toDecimal: () => application.grossSales!.toNumber() } : null,
+      paymentFrequency: "ANNUAL",
+    });
 
     if (!feeInfo || feeInfo.totalAmount <= 0) {
       return NextResponse.json(

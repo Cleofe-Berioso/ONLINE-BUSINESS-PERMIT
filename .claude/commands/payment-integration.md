@@ -1,145 +1,121 @@
-# Payment Integration — OBPS PayMongo & Payment Processing
+# Payment Integration Skill (`/payment-integration`)
 
-## Purpose
+**Purpose**: PayMongo payment gateway (GCash, Maya, Bank, OTC, Cash).
 
-Implement, debug, and maintain payment processing flows for the Online Business Permit System using PayMongo (GCash, Maya, bank transfer) and OTC cash recording.
+## Payment Methods
 
-## Usage
+### 1. GCash (PayMongo)
+Gateway: PayMongo e-wallet
+Flow: Create checkout → Pay on PayMongo → Webhook confirmation
 
-```
-/payment-integration <description-of-payment-task>
-```
+### 2. Maya (PayMongo)
+Gateway: PayMongo Maya wallet
+Flow: Same as GCash
 
-## Context
+### 3. Bank Transfer
+Manual: User transfers to bank account
+Status: Marked PAID when receipt uploaded
 
-- **Gateway**: PayMongo API v1 (`src/lib/payments.ts`)
-- **Methods**: GCash, Maya (PayMaya), Bank Transfer, Cash/OTC
-- **Webhook**: `/api/payments/webhook/route.ts` — signature-verified
-- **Model**: Payment (in `prisma/schema.prisma`)
-- **Status Flow**: PENDING → PAID | FAILED | EXPIRED | REFUNDED
+### 4. OTC (Over-the-Counter)
+Manual: User pays at bank counter
+Status: Marked PAID when receipt uploaded
 
-## Payment Architecture
-
-```
-Applicant → [Pay Now Button] → POST /api/payments
-  → PayMongo.createCheckout() → Redirect to GCash/Maya
-  → User completes payment on gateway
-  → PayMongo sends webhook → POST /api/payments/webhook
-  → Verify signature → Update Payment.status = PAID
-  → Update Application → Send notification (SSE + email)
-
-Staff → [Record OTC] → POST /api/payments (method: CASH)
-  → Create Payment record (status: PAID)
-  → Update Application → Log in AuditLog
-```
-
-## Key Files
-
-| File                                          | Purpose                                                 |
-| --------------------------------------------- | ------------------------------------------------------- |
-| `src/lib/payments.ts`                         | PayMongo client wrapper (createCheckout, verifyWebhook) |
-| `src/app/api/payments/route.ts`               | Create payment, list payments                           |
-| `src/app/api/payments/webhook/route.ts`       | Handle PayMongo webhook events                          |
-| `src/app/api/payments/[id]/route.ts`          | Get payment details, refund                             |
-| `src/components/dashboard/pay-now-button.tsx` | Client payment trigger                                  |
+### 5. Cash
+Manual: User pays at BPLO office
+Status: Marked PAID by STAFF
 
 ## PayMongo Integration
 
-### Create Checkout Session
+**File**: `src/lib/payments.ts`
+**API Docs**: https://developers.paymongo.com
+
+### Create Payment
 
 ```typescript
-import { createCheckoutSession } from "@/lib/payments";
+import { createGCashPayment } from "@/lib/payments";
 
-const checkout = await createCheckoutSession({
-  amount: application.totalFee * 100, // PayMongo uses centavos
-  currency: "PHP",
-  description: `Business Permit - ${application.businessName}`,
-  paymentMethodTypes: ["gcash", "paymaya", "bank_transfer"],
-  metadata: {
-    applicationId: application.id,
-    userId: session.user.id,
-  },
-  successUrl: `${process.env.AUTH_URL}/dashboard/applications/${application.id}?payment=success`,
-  cancelUrl: `${process.env.AUTH_URL}/dashboard/applications/${application.id}?payment=cancelled`,
-});
+const payment = await createGCashPayment(
+  applicationId,
+  new Decimal("2500.00"),
+  returnUrl
+);
+// Returns: { checkoutUrl: "https://checkout.paymongo.com/..." }
 ```
 
 ### Webhook Handler
 
+File: `src/app/api/payments/webhook/route.ts`
+
 ```typescript
-export async function POST(request: NextRequest) {
-  const rawBody = await request.text();
-  const signature = request.headers.get("paymongo-signature");
-
-  // Verify webhook signature
-  const event = verifyWebhookSignature(rawBody, signature!);
-
-  if (event.type === "checkout_session.payment.paid") {
-    const { applicationId, userId } = event.data.attributes.metadata;
-
-    await prisma.$transaction(async (tx) => {
-      await tx.payment.update({
-        where: { checkoutSessionId: event.data.id },
-        data: { status: "PAID", paidAt: new Date() },
-      });
-      // Update application status if needed
-    });
-  }
-
-  return NextResponse.json({ received: true });
-}
+// PayMongo sends: { data: { id, status, amount } }
+// Verify signature with HMAC-SHA256
+// Update Payment status: PAID / FAILED
+// Broadcast SSE: 'payment_status_changed'
 ```
 
-## Payment Enums
+### Status Transitions
 
+```
+PENDING → PROCESSING (user pays)
+       → PAID (webhook received)
+       → FAILED (payment rejected)
+       → REFUNDED (manual refund)
+       → CANCELLED (user cancelled)
+```
+
+## Database
+
+**Model**: `Payment`
 ```prisma
-enum PaymentMethod {
-  GCASH
-  MAYA
-  BANK_TRANSFER
-  CASH
-  OTHER
-}
-
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
-  EXPIRED
-}
+id          String
+applicationId String
+amount      Decimal(12,2)
+method      PaymentMethod
+status      PaymentStatus
+referenceNumber String
+webhook_received DateTime?
 ```
 
-## Environment Variables
-
+**WebhookLog**: Track all webhook events for idempotency
+```prisma
+id          String
+externalId  String  @unique
+status      String
+processed   Boolean @default(false)
 ```
-PAYMONGO_SECRET_KEY=sk_test_...    # PayMongo secret key
-PAYMONGO_PUBLIC_KEY=pk_test_...    # PayMongo public key
-PAYMONGO_WEBHOOK_SECRET=whsk_...   # Webhook signing secret
+
+## Testing
+
+**Local**: Use PayMongo test API key + test cards
+- Card: 4242 4242 4242 4242
+- CVV: Any 3 digits
+- Expiry: Any future date
+
+**Commands**:
+```bash
+# Get PayMongo test key
+echo $PAYMONGO_SECRET_KEY
+
+# Create test payment
+curl -X POST http://localhost:3000/api/payments \
+  -d '{ "applicationId": "...", "amount": 2500, "method": "GCASH" }'
 ```
 
-## Testing Payments
+## Error Handling
 
-1. Use PayMongo **test mode** keys (`sk_test_*`, `pk_test_*`)
-2. Use test card numbers / test GCash numbers from PayMongo docs
-3. For webhook testing locally: use ngrok (`UPDATE-NGROK-URL.bat`)
-4. Test OTC recording as STAFF role
+- Network error → Retry with exponential backoff
+- Invalid payload → Return 400 with error message
+- Duplicate webhook → Check WebhookLog, ignore
+- Payment failed → Update status, notify user
 
-## Fee Calculation
+## Monitoring
 
-- Fees defined in SystemSetting model or hardcoded per application type
-- NEW application: Base fee + document processing fee
-- RENEWAL: Reduced base fee
-- Late renewal: Penalty surcharge
+**Logs**:
+```typescript
+console.error(`Payment ${paymentId} webhook processing failed:`, error);
+```
 
-## Checklist
+**Alerts**: Check Payment table for FAILED status
 
-- [ ] PayMongo API keys in `.env.local`
-- [ ] Webhook endpoint registered in PayMongo dashboard
-- [ ] Webhook signature verification implemented
-- [ ] Amount in centavos (multiply by 100)
-- [ ] Idempotency: webhook can be received multiple times safely
-- [ ] Payment status updates are transactional with application updates
-- [ ] OTC payment requires STAFF or ADMINISTRATOR role
-- [ ] Receipt generation after successful payment
-- [ ] Audit log entry for all payment operations
+**Reports**: `/api/admin/reports/analytics` includes payment metrics
+

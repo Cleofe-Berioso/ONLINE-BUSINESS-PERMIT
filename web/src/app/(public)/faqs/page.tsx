@@ -116,16 +116,16 @@ const faqs = [
 
 export default function FaqsPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[var(--surface-muted)] flex flex-col">
       <PublicNav />
 
       <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 sm:py-12">
         {/* Page Header */}
         <div className="mb-8 sm:mb-10">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2">
             Frequently Asked Questions
           </h1>
-          <p className="text-gray-600 text-sm sm:text-base">
+          <p className="text-[var(--text-secondary)] text-sm sm:text-base">
             Find answers to common questions about the Online Business Permit System.
           </p>
         </div>
@@ -134,17 +134,17 @@ export default function FaqsPage() {
         <FaqsClient faqs={faqs} />
 
         {/* Contact CTA */}
-        <div className="mt-10 bg-white rounded-xl border p-6 text-center">
+        <div className="mt-10 bg-[var(--surface)] rounded-xl border p-6 text-center">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <MessageCircle className="h-6 w-6 text-blue-600" />
+            <MessageCircle className="h-6 w-6 text-[var(--accent)]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Still have questions?</h3>
-          <p className="text-gray-600 text-sm mb-5">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Still have questions?</h3>
+          <p className="text-[var(--text-secondary)] text-sm mb-5">
             Our support team is ready to assist you during business hours.
           </p>
           <Link
             href="/contact"
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+            className="inline-flex items-center gap-2 bg-[var(--accent)] text-white px-6 py-3 rounded-lg font-medium hover:bg-[var(--accent-hover)] transition-colors text-sm"
           >
             Contact Support
           </Link>

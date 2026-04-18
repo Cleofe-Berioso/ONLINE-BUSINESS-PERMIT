@@ -59,7 +59,7 @@ export default function RenewalPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
       </div>
     );
   }
@@ -68,8 +68,8 @@ export default function RenewalPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Renew Your Permit</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Renew Your Permit</h1>
+          <p className="mt-2 text-[var(--text-secondary)]">
             Manage permit renewals for your business.
           </p>
         </div>
@@ -92,8 +92,8 @@ export default function RenewalPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Renew Your Permit</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Renew Your Permit</h1>
+        <p className="mt-2 text-[var(--text-secondary)]">
           Select a permit below to start the renewal process.
         </p>
       </div>
@@ -102,12 +102,12 @@ export default function RenewalPage() {
         {permits.map((permit) => (
           <div
             key={permit.permitId}
-            className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-[var(--text-primary)]">
                     {permit.businessName}
                   </h3>
                   {permit.isEligible && (
@@ -117,12 +117,12 @@ export default function RenewalPage() {
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">
                   Permit: <span className="font-mono font-medium">{permit.permitNumber}</span>
                 </p>
 
                 {permit.renewalWindowInfo && (
-                  <div className="mt-3 space-y-1 text-sm text-gray-600">
+                  <div className="mt-3 space-y-1 text-sm text-[var(--text-secondary)]">
                     <p>
                       Expires: <span className="font-medium">
                         {new Date(permit.renewalWindowInfo.expirerOn).toLocaleDateString()}
@@ -154,7 +154,7 @@ export default function RenewalPage() {
               <button
                 onClick={() => handleStartRenewal(permit.permitId)}
                 disabled={!permit.isEligible || submittingPermitId === permit.permitId}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500"
+                className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-white hover:bg-[var(--accent-hover)] disabled:bg-[var(--border)] disabled:text-[var(--background)]0"
               >
                 {submittingPermitId === permit.permitId && (
                   <Loader2 className="h-4 w-4 animate-spin" />

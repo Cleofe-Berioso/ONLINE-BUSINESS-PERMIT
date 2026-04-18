@@ -82,8 +82,8 @@ export default function NewApplicationPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">New Business Permit Application</h1>
-        <p className="text-gray-600">Fill out the form below to apply for a business permit</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">New Business Permit Application</h1>
+        <p className="text-[var(--text-secondary)]">Fill out the form below to apply for a business permit</p>
       </div>
 
       {error && (
@@ -310,7 +310,7 @@ export default function NewApplicationPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-6 border-blue-200 bg-blue-50">
+        <Card className="mb-6 border-blue-200 bg-[var(--accent-light)]">
           <CardHeader>
             <CardTitle className="text-blue-900">Required Documents</CardTitle>
           </CardHeader>

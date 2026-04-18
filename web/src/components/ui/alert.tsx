@@ -11,28 +11,28 @@ interface AlertProps {
 
 const variantConfig = {
   info: {
-    bg: "bg-blue-50 border-blue-200",
-    icon: <Info className="h-5 w-5 text-blue-600" />,
-    title: "text-blue-800",
-    text: "text-blue-700",
+    bg: "bg-[var(--accent-light)] border-l-4 border-[var(--accent)]",
+    icon: <Info className="h-5 w-5 text-[var(--accent)]" />,
+    title: "text-[var(--accent)]",
+    text: "text-[var(--text-primary)]",
   },
   success: {
-    bg: "bg-green-50 border-green-200",
-    icon: <CheckCircle className="h-5 w-5 text-green-600" />,
-    title: "text-green-800",
-    text: "text-green-700",
+    bg: "bg-[var(--success-light)] border-l-4 border-[var(--success)]",
+    icon: <CheckCircle className="h-5 w-5 text-[var(--success)]" />,
+    title: "text-[var(--success)]",
+    text: "text-[var(--text-primary)]",
   },
   warning: {
-    bg: "bg-yellow-50 border-yellow-200",
-    icon: <AlertTriangle className="h-5 w-5 text-yellow-600" />,
-    title: "text-yellow-800",
-    text: "text-yellow-700",
+    bg: "bg-[var(--warning-light)] border-l-4 border-[var(--warning)]",
+    icon: <AlertTriangle className="h-5 w-5 text-[var(--warning)]" />,
+    title: "text-[var(--warning)]",
+    text: "text-[var(--text-primary)]",
   },
   error: {
-    bg: "bg-red-50 border-red-200",
-    icon: <AlertCircle className="h-5 w-5 text-red-600" />,
-    title: "text-red-800",
-    text: "text-red-700",
+    bg: "bg-[var(--danger-light)] border-l-4 border-[var(--danger)]",
+    icon: <AlertCircle className="h-5 w-5 text-[var(--danger)]" />,
+    title: "text-[var(--danger)]",
+    text: "text-[var(--text-primary)]",
   },
 };
 

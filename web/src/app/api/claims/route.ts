@@ -202,23 +202,31 @@ export async function POST(request: Request) {
       },
     });
 
-    // Send email with reference number and QR code
-    await sendClaimReleaseEmail(
-      reservation.application.applicant.email,
-      {
-        businessName: reservation.application.businessName,
-        permitNumber: reservation.application.permit.permitNumber,
-        referenceNumber,
-        qrCode,
-      }
-    );
+    // Send email with reference number and QR code (non-blocking)
+    try {
+      await sendClaimReleaseEmail(
+        reservation.application.applicant.email,
+        {
+          businessName: reservation.application.businessName,
+          permitNumber: reservation.application.permit.permitNumber,
+          referenceNumber,
+          qrCode,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to send claim release email:", error);
+    }
 
-    // Broadcast SSE event
-    await broadcastClaimReleased(
-      reservation.application.applicantId,
-      result.id,
-      referenceNumber
-    );
+    // Broadcast SSE event (non-blocking)
+    try {
+      await broadcastClaimReleased(
+        reservation.application.applicantId,
+        result.id,
+        referenceNumber
+      );
+    } catch (error) {
+      console.error("Failed to broadcast claim released event:", error);
+    }
 
     return NextResponse.json(
       {

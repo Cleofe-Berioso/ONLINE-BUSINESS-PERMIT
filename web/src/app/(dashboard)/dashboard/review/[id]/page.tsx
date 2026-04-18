@@ -120,15 +120,15 @@ export default function ReviewDetailPage() {
     <div className="mx-auto max-w-4xl">
       <button
         onClick={() => router.back()}
-        className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+        className="mb-4 flex items-center gap-1 text-sm text-[var(--background)]0 hover:text-[var(--text-primary)]"
       >
         <ArrowLeft className="h-4 w-4" /> Back to Reviews
       </button>      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 sm:text-2xl break-words">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl break-words">
             Review: {application.applicationNumber}
           </h1>
-          <p className="mt-1 text-sm text-gray-500">{application.businessName}</p>
+          <p className="mt-1 text-sm text-[var(--background)]0">{application.businessName}</p>
         </div>
         <div className="flex-shrink-0">
           <StatusBadge status={application.status} />
@@ -154,32 +154,32 @@ export default function ReviewDetailPage() {
             <CardContent>
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-gray-500">Applicant</dt>
-                  <dd className="font-medium text-gray-900">
+                  <dt className="text-[var(--background)]0">Applicant</dt>
+                  <dd className="font-medium text-[var(--text-primary)]">
                     {application.applicant.firstName} {application.applicant.lastName}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Email</dt>
-                  <dd className="font-medium text-gray-900">
+                  <dt className="text-[var(--background)]0">Email</dt>
+                  <dd className="font-medium text-[var(--text-primary)]">
                     {application.applicant.email}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Business Name</dt>
-                  <dd className="font-medium text-gray-900">
+                  <dt className="text-[var(--background)]0">Business Name</dt>
+                  <dd className="font-medium text-[var(--text-primary)]">
                     {application.businessName}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Business Type</dt>
-                  <dd className="font-medium text-gray-900">
+                  <dt className="text-[var(--background)]0">Business Type</dt>
+                  <dd className="font-medium text-[var(--text-primary)]">
                     {application.businessType}
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="text-gray-500">Address</dt>
-                  <dd className="font-medium text-gray-900">
+                  <dt className="text-[var(--background)]0">Address</dt>
+                  <dd className="font-medium text-[var(--text-primary)]">
                     {[
                       application.businessAddress,
                       application.businessBarangay,
@@ -192,16 +192,16 @@ export default function ReviewDetailPage() {
                 </div>
                 {application.tinNumber && (
                   <div>
-                    <dt className="text-gray-500">TIN</dt>
-                    <dd className="font-medium text-gray-900">
+                    <dt className="text-[var(--background)]0">TIN</dt>
+                    <dd className="font-medium text-[var(--text-primary)]">
                       {application.tinNumber}
                     </dd>
                   </div>
                 )}
                 {application.dtiSecRegistration && (
                   <div>
-                    <dt className="text-gray-500">DTI/SEC Reg.</dt>
-                    <dd className="font-medium text-gray-900">
+                    <dt className="text-[var(--background)]0">DTI/SEC Reg.</dt>
+                    <dd className="font-medium text-[var(--text-primary)]">
                       {application.dtiSecRegistration}
                     </dd>
                   </div>
@@ -217,7 +217,7 @@ export default function ReviewDetailPage() {
             </CardHeader>
             <CardContent>
               {application.documents.length === 0 ? (
-                <p className="text-sm text-gray-500">No documents uploaded.</p>
+                <p className="text-sm text-[var(--background)]0">No documents uploaded.</p>
               ) : (
                 <ul className="divide-y">                  {application.documents.map((doc) => (
                     <li
@@ -225,12 +225,12 @@ export default function ReviewDetailPage() {
                       className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <FileText className="h-5 w-5 text-[var(--text-muted)] flex-shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-700 truncate">
+                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">
                             {doc.originalName}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-[var(--background)]0">
                             {doc.documentType.replace(/_/g, " ")} · v{doc.version}
                           </p>
                         </div>

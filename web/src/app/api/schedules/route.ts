@@ -210,19 +210,27 @@ export async function POST(request: Request) {
       },
     });
 
-    // Send confirmation email
-    await sendScheduleConfirmationEmail(
-      application.applicant.email,
-      {
-        businessName: application.businessName,
-        confirmationNumber: reservation.reservation.id.substring(0, 8).toUpperCase(),
-        scheduleDate: reservation.timeSlot.schedule.date,
-        timeSlot: `${reservation.timeSlot.startTime} - ${reservation.timeSlot.endTime}`,
-      }
-    );
+    // Send confirmation email (non-blocking)
+    try {
+      await sendScheduleConfirmationEmail(
+        application.applicant.email,
+        {
+          businessName: application.businessName,
+          confirmationNumber: reservation.reservation.id.substring(0, 8).toUpperCase(),
+          scheduleDate: reservation.timeSlot.schedule.date,
+          timeSlot: `${reservation.timeSlot.startTime} - ${reservation.timeSlot.endTime}`,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to send schedule confirmation email:", error);
+    }
 
-    // Broadcast slot availability changed
-    await broadcastSlotAvailabilityChanged(reservation.timeSlot.scheduleId);
+    // Broadcast slot availability changed (non-blocking)
+    try {
+      await broadcastSlotAvailabilityChanged(reservation.timeSlot.scheduleId);
+    } catch (error) {
+      console.error("Failed to broadcast slot availability changed:", error);
+    }
 
     return NextResponse.json(
       {
@@ -377,21 +385,29 @@ export async function PUT(request: Request) {
       },
     });
 
-    // Send rescheduling email
-    await sendScheduleConfirmationEmail(
-      reservation.application.applicant.email,
-      {
-        businessName: reservation.application.businessName,
-        confirmationNumber: updatedReservation.reservation.id
-          .substring(0, 8)
-          .toUpperCase(),
-        scheduleDate: updatedReservation.newSlot.schedule.date,
-        timeSlot: `${updatedReservation.newSlot.startTime} - ${updatedReservation.newSlot.endTime}`,
-      }
-    );
+    // Send rescheduling email (non-blocking)
+    try {
+      await sendScheduleConfirmationEmail(
+        reservation.application.applicant.email,
+        {
+          businessName: reservation.application.businessName,
+          confirmationNumber: updatedReservation.reservation.id
+            .substring(0, 8)
+            .toUpperCase(),
+          scheduleDate: updatedReservation.newSlot.schedule.date,
+          timeSlot: `${updatedReservation.newSlot.startTime} - ${updatedReservation.newSlot.endTime}`,
+        }
+      );
+    } catch (error) {
+      console.error("Failed to send reschedule confirmation email:", error);
+    }
 
-    // Broadcast slot availability changed
-    await broadcastSlotAvailabilityChanged(updatedReservation.newSlot.scheduleId);
+    // Broadcast slot availability changed (non-blocking)
+    try {
+      await broadcastSlotAvailabilityChanged(updatedReservation.newSlot.scheduleId);
+    } catch (error) {
+      console.error("Failed to broadcast slot availability changed:", error);
+    }
 
     return NextResponse.json({
       reservation: {

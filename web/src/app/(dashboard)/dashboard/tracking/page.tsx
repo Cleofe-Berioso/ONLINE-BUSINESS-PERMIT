@@ -22,15 +22,15 @@ export default async function TrackingPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Track Applications</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Track Applications</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Monitor the real-time status of your permit applications
         </p>
       </div>
 
       {applications.length === 0 ? (
         <EmptyState
-          icon={<Search className="h-8 w-8 text-gray-400" />}
+          icon={<Search className="h-8 w-8 text-[var(--text-muted)]" />}
           title="No applications to track"
           description="Submit an application first to start tracking its progress."
           action={{ label: "New Application", href: "/dashboard/applications/new" }}

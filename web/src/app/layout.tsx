@@ -59,14 +59,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#1e40af" />
+        <meta name="theme-color" content="#2563EB" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <GovernmentServiceSchema />
         <OrganizationSchema />
         <WebApplicationSchema />
       </head>
-      <body className="min-h-screen bg-gray-50 font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <body className="min-h-screen bg-[var(--background)] font-sans antialiased">
+        <ThemeProvider forcedColorScheme="light">
           <QueryProvider>{children}</QueryProvider>
           <CookieConsent />
           <ServiceWorkerRegistration />

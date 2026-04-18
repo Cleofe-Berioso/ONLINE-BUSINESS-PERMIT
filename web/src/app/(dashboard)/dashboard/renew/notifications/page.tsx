@@ -11,8 +11,8 @@ export default async function NotificationsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Notifications</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Manage your notification preferences and view recent updates
         </p>
       </div>

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { broadcastNotification, sseBroadcaster, createSSEEvent } from "@/lib/sse";
 import { captureException } from "@/lib/monitoring";
+import { issuanceUpdateSchema } from "@/lib/validations";
 
 export async function POST(
   request: Request,
@@ -20,7 +21,19 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json();
-    const { action, staffNotes } = body;    const issuance = await prisma.permitIssuance.findUnique({
+
+    // Validate request body against schema
+    const validation = issuanceUpdateSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: validation.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { action, staffNotes, mayorSignedBy, remarks } = validation.data;
+
+    const issuance = await prisma.permitIssuance.findUnique({
       where: { id },
       include: {
         permit: {
@@ -150,25 +163,34 @@ export async function POST(
       },
     });
 
-    // Broadcast real-time permit_issued event to the applicant when permit is ISSUED
+    // Broadcast real-time permit_issued event to the applicant when permit is ISSUED (non-blocking)
     if (action === "ISSUE" || action === "RELEASE") {
       const applicantId = issuance.permit.application.applicantId;
-      sseBroadcaster.sendToUser(
-        applicantId,
-        createSSEEvent("permit_issued", {
-          issuanceId: id,
-          permitNumber: issuance.permit.permitNumber,
-          action,
-        }, applicantId)
-      );
-      broadcastNotification(
-        applicantId,
-        action === "ISSUE" ? "Permit Ready for Claiming" : "Permit Released",
-        action === "ISSUE"
-          ? `Your permit #${issuance.permit.permitNumber} is ready. Please schedule your claiming appointment.`
-          : `Your permit #${issuance.permit.permitNumber} has been released.`,
-        "/dashboard/claim-reference"
-      );
+      try {
+        sseBroadcaster.sendToUser(
+          applicantId,
+          createSSEEvent("permit_issued", {
+            issuanceId: id,
+            permitNumber: issuance.permit.permitNumber,
+            action,
+          }, applicantId)
+        );
+      } catch (error) {
+        console.error("Failed to broadcast permit issued event:", error);
+      }
+
+      try {
+        broadcastNotification(
+          applicantId,
+          action === "ISSUE" ? "Permit Ready for Claiming" : "Permit Released",
+          action === "ISSUE"
+            ? `Your permit #${issuance.permit.permitNumber} is ready. Please schedule your claiming appointment.`
+            : `Your permit #${issuance.permit.permitNumber} has been released.`,
+          "/dashboard/claim-reference"
+        );
+      } catch (error) {
+        console.error("Failed to broadcast issuance notification:", error);
+      }
     }
 
     return NextResponse.json({

@@ -80,8 +80,8 @@ export default function ProfilePage() {
       ) : (
       <>
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">My Profile</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Manage your account information and security settings
         </p>
       </div>
@@ -102,7 +102,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <User className="h-5 w-5 text-blue-600" />
+              <User className="h-5 w-5 text-[var(--accent)]" />
               <CardTitle>Personal Information</CardTitle>
             </div>
           </CardHeader>
@@ -159,7 +159,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-green-600" />
+              <Shield className="h-5 w-5 text-[var(--success)]" />
               <div>
                 <CardTitle>Security</CardTitle>
                 <CardDescription>
@@ -171,10 +171,10 @@ export default function ProfilePage() {
           <CardContent>
             <div className="space-y-4">              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-3">
-                  <Key className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                  <Key className="h-5 w-5 text-[var(--text-muted)] flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-gray-900">Password</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-[var(--text-primary)]">Password</p>
+                    <p className="text-sm text-[var(--background)]0">
                       Change your account password
                     </p>
                   </div>
@@ -186,12 +186,12 @@ export default function ProfilePage() {
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                  <Shield className="h-5 w-5 text-[var(--text-muted)] flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-[var(--text-primary)]">
                       Two-Factor Authentication
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-[var(--background)]0">
                       {profile.twoFactorEnabled
                         ? "2FA is enabled on your account"
                         : "Add an extra layer of security"}
@@ -209,8 +209,8 @@ export default function ProfilePage() {
 
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <p className="font-medium text-gray-900">Role</p>
-                  <p className="text-sm capitalize text-gray-500">
+                  <p className="font-medium text-[var(--text-primary)]">Role</p>
+                  <p className="text-sm capitalize text-[var(--background)]0">
                     {profile.role?.toLowerCase().replace("_", " ")}
                   </p>
                 </div>

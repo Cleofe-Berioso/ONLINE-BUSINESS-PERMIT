@@ -1,6 +1,32 @@
 import { z } from "zod";
 
 // ============================================================================
+// Enum Exports (from Prisma schema)
+// ============================================================================
+
+export const ClosureReasonEnum = z.enum([
+  "RETIREMENT",
+  "RELOCATION",
+  "SOLD_TRANSFERRED",
+  "LIQUIDATION",
+  "CALAMITY",
+  "OTHER",
+]);
+
+export const DocumentTypeEnum = z.enum([
+  "PROOF_OF_REGISTRATION",
+  "PROOF_OF_OWNERSHIP",
+  "LOCATION_PLAN",
+  "FSIC",
+  "AFFIDAVIT",
+  "BARANGAY_CLEARANCE",
+  "OTHER",
+]);
+
+export type ClosureReason = z.infer<typeof ClosureReasonEnum>;
+export type DocumentType = z.infer<typeof DocumentTypeEnum>;
+
+// ============================================================================
 // User Validations
 // ============================================================================
 
@@ -480,9 +506,7 @@ export const applicationSubmitSchema = applicationStep1Schema
 
 export const documentUploadSchema = z.object({
   applicationId: z.string().min(1, "Application ID is required"),
-  documentType: z
-    .string()
-    .min(1, "Document type is required"),
+  documentType: DocumentTypeEnum,
   // files validated on client with FormData
 });
 
@@ -563,6 +587,38 @@ export const analyticsQuerySchema = z.object({
   to: z.string().datetime().optional(),
 });
 
+export const businessLocationSchema = z.object({
+  applicationId: z.string().cuid("Invalid application ID"),
+  latitude: z
+    .number()
+    .min(10.3569, "Latitude outside EB Magalona area")
+    .max(10.4569, "Latitude outside EB Magalona area"),
+  longitude: z
+    .number()
+    .min(122.9201, "Longitude outside EB Magalona area")
+    .max(123.0201, "Longitude outside EB Magalona area"),
+  label: z.string().max(100).optional().nullable(),
+  businessType: z.string().max(100).optional().nullable(),
+  markerColor: z.string().default("blue"),
+});
+
+// Permit Issuance Update Actions (Mayor Signing, Release, etc.)
+export const issuanceUpdateSchema = z.object({
+  action: z.enum([
+    "READY_FOR_MAYOR",
+    "MAYOR_SIGNED",
+    "MAYOR_HELD",
+    "MAYOR_RETURNED",
+    "ISSUE",
+    "RELEASE",
+    "COMPLETE",
+    "CANCEL",
+  ]),
+  staffNotes: z.string().max(500).optional().nullable(),
+  mayorSignedBy: z.string().max(100).optional(), // Required if action is MAYOR_SIGNED
+  remarks: z.string().max(500).optional(), // For MAYOR_HELD, MAYOR_RETURNED
+});
+
 // ============================================================================
 export type PermitApplicationStep1Input = z.infer<typeof permitApplicationStep1Schema>;
 export type PermitApplicationStep2Input = z.infer<typeof permitApplicationStep2Schema>;
@@ -584,3 +640,4 @@ export type VerifyPermitInput = z.infer<typeof verifyPermitSchema>;
 export type RescheduleInput = z.infer<typeof rescheduleSchema>;
 export type ReportExportInput = z.infer<typeof reportExportSchema>;
 export type AnalyticsQueryInput = z.infer<typeof analyticsQuerySchema>;
+export type IssuanceUpdateInput = z.infer<typeof issuanceUpdateSchema>;

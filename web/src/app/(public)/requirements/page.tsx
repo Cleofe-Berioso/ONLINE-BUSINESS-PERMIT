@@ -54,16 +54,16 @@ const requirements = [
 
 export default function RequirementsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--surface-muted)]">
       <PublicNav />
 
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
             Documentary Requirements
           </h1>
-          <p className="mt-2 text-sm text-gray-600 sm:text-base">
+          <p className="mt-2 text-sm text-[var(--text-secondary)] sm:text-base">
             Please prepare the following documents before submitting your
             application. All uploads must be clear, legible, PDF/JPEG/PNG format
             (max 10 MB each).
@@ -75,26 +75,26 @@ export default function RequirementsPage() {
           {requirements.map((section) => (
             <div
               key={section.category}
-              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm sm:p-6"
             >
-              <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-gray-900 sm:text-lg">
-                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-blue-600" />
+              <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] sm:text-lg">
+                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[var(--accent)]" />
                 {section.category}
               </h2>
               <ol className="space-y-3">
                 {section.items.map((item, i) => (
                   <li
                     key={i}
-                    className="flex items-start gap-3 rounded-xl bg-gray-50 p-3"
+                    className="flex items-start gap-3 rounded-xl bg-[var(--surface-muted)] p-3"
                   >
-                    <span className="mt-0.5 flex-shrink-0 text-sm font-bold text-blue-600">
+                    <span className="mt-0.5 flex-shrink-0 text-sm font-bold text-[var(--accent)]">
                       {i + 1}.
                     </span>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
                         {item.name}
                       </p>
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
                         {item.description}
                       </p>
                     </div>
@@ -106,9 +106,9 @@ export default function RequirementsPage() {
         </div>
 
         {/* Reminders */}
-        <div className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-5 sm:p-6">
+        <div className="mt-8 rounded-2xl border border-blue-200 bg-[var(--accent-light)] p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="h-5 w-5 flex-shrink-0 text-blue-600" />
+            <AlertCircle className="h-5 w-5 flex-shrink-0 text-[var(--accent)]" />
             <h3 className="font-semibold text-blue-900">Important Reminders</h3>
           </div>
           <ul className="space-y-1.5 text-sm text-blue-800">
@@ -120,7 +120,7 @@ export default function RequirementsPage() {
               "Incomplete documents may delay your application",
             ].map((item) => (
               <li key={item} className="flex items-start gap-2">
-                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-blue-500" />
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[var(--accent-light)]0" />
                 {item}
               </li>
             ))}
@@ -131,14 +131,14 @@ export default function RequirementsPage() {
         <div className="mt-10 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center">
           <Link
             href="/register"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-semibold text-white hover:bg-[var(--accent-hover)] sm:w-auto"
           >
             Start Your Application
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             href="/how-to-apply"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-muted)] sm:w-auto"
           >
             How to Apply
           </Link>

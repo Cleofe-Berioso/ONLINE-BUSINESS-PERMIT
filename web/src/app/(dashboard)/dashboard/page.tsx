@@ -108,10 +108,10 @@ export default async function DashboardPage() {
     <div>
       {/* Welcome Banner */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
           Welcome back, {firstName}!
         </h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           {role === "APPLICANT"
             ? "Manage your business permit applications and track their status."
             : role === "STAFF"
@@ -125,34 +125,34 @@ export default async function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          icon={<FileText className="h-6 w-6 text-blue-600" />}
+          icon={<FileText className="h-6 w-6 text-[var(--accent)]" />}
           label="Total Applications"
           value={totalApplications.toString()}
-          bgColor="bg-blue-50"
+          bgColor="bg-[var(--accent-light)]"
         />
         <StatCard
-          icon={<Clock className="h-6 w-6 text-yellow-600" />}
+          icon={<Clock className="h-6 w-6 text-[var(--warning)]" />}
           label="Under Review"
           value={underReview.toString()}
-          bgColor="bg-yellow-50"
+          bgColor="bg-[var(--warning-light)]"
         />
         <StatCard
-          icon={<CheckCircle className="h-6 w-6 text-green-600" />}
+          icon={<CheckCircle className="h-6 w-6 text-[var(--success)]" />}
           label="Approved"
           value={approved.toString()}
-          bgColor="bg-green-50"
+          bgColor="bg-[var(--success-light)]"
         />
         <StatCard
-          icon={<XCircle className="h-6 w-6 text-red-600" />}
+          icon={<XCircle className="h-6 w-6 text-[var(--danger)]" />}
           label="Rejected"
           value={rejected.toString()}
-          bgColor="bg-red-50"
+          bgColor="bg-[var(--danger-light)]"
         />
       </div>
 
       {/* Quick Actions */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Quick Actions</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {role === "APPLICANT" && (
             <>
@@ -249,12 +249,12 @@ function StatCard({
   value: string;
   bgColor: string;
 }) {  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-6 shadow-sm">
       <div className="flex items-center gap-3 sm:gap-4">
         <div className={`rounded-lg ${bgColor} p-2.5 sm:p-3`}>{icon}</div>
         <div>
-          <p className="text-xs sm:text-sm text-gray-600">{label}</p>
-          <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)]">{label}</p>
+          <p className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">{value}</p>
         </div>
       </div>
     </div>
@@ -275,16 +275,16 @@ function QuickAction({
   return (
     <a
       href={href}
-      className="group flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
+      className="group flex items-start gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
     >
-      <div className="rounded-lg bg-blue-50 p-2 text-blue-600 group-hover:bg-blue-100">
+      <div className="rounded-lg bg-[var(--accent-light)] p-2 text-[var(--accent)] group-hover:bg-blue-100">
         {icon}
       </div>
       <div>
-        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600">
+        <h3 className="font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent)]">
           {title}
         </h3>
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
+        <p className="mt-1 text-sm text-[var(--background)]0">{description}</p>
       </div>
     </a>
   );

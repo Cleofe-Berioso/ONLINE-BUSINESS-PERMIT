@@ -11,8 +11,8 @@ export default async function HistoryPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Renewal History</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Renewal History</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           View your past renewals and renewal status
         </p>
       </div>

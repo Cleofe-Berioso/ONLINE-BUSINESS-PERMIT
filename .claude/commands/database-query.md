@@ -1,162 +1,171 @@
-# Database Query — OBPS Prisma & PostgreSQL Operations
+# Database Query Skill (`/database-query`)
 
-## Purpose
+**Purpose**: Generate Prisma queries, manage PostgreSQL operations, and handle schema migrations.
 
-Write, optimize, and debug Prisma queries, migrations, and schema changes for the Online Business Permit System's PostgreSQL 16 database.
+## Database Schema (17 Models)
 
-## Usage
+**User & Access**: `User`, `Session`, `OtpToken`, `ActivityLog`
+**Applications**: `Application`, `ApplicationHistory`, `ReviewAction`, `Clearance`, `ClearanceOffice`
+**Documents**: `Document`
+**Scheduling**: `ClaimSchedule`, `TimeSlot`, `SlotReservation`, `CheckInRecord`
+**Claims**: `ClaimReference`
+**Permits**: `Permit`, `PermitIssuance`
+**Financial**: `Payment`, `WebhookLog`
+**System**: `BusinessLocation`, `SystemSetting`
 
-```
-/database-query <description-of-data-operation>
-```
+## Key Models & Relations
 
-## Context
+### Application Model
+- Fields: `id`, `applicantId`, `businessName`, `applicationNumber`, `type` (NEW/RENEWAL/CLOSURE)
+- Status: DRAFT, SUBMITTED, ENDORSED, UNDER_REVIEW, APPROVED, REJECTED
+- Relations: applicant (User), documents (Document[]), clearances (Clearance[]), permit (Permit)
 
-- **ORM**: Prisma 7 with `@prisma/adapter-pg` (PrismaPg driver adapter)
-- **Database**: PostgreSQL 16 (via Docker or hosted)
-- **Schema**: `web/prisma/schema.prisma` (~500 lines, 16 models, 11 enums)
-- **Client**: `src/lib/prisma.ts` — singleton instance with `$extends`
-- **Config**: `web/prisma.config.ts` — Prisma config with PrismaPg adapter
+### Document Model
+- Fields: `id`, `applicationId`, `fileName`, `url`, `status` (UPLOADED/PENDING_VERIFICATION/VERIFIED/REJECTED)
+- Relations: application (Application)
 
-## Schema Overview
+### Payment Model
+- Fields: `id`, `applicationId`, `amount`, `method` (GCASH/MAYA/BANK/OTC/CASH)
+- Status: PENDING, PROCESSING, PAID, FAILED, REFUNDED, CANCELLED
+- Relations: application (Application)
 
-### Core Models
+### ClaimSchedule & TimeSlot
+- Schedule has many TimeSlots
+- Slots have many SlotReservations
+- Users reserve slots for claim pickup
 
-| Model              | Key Fields                                         | Relations                                     |
-| ------------------ | -------------------------------------------------- | --------------------------------------------- |
-| User               | id, email, role (enum), status, password           | applications, documents, notifications        |
-| Application        | id, userId, status (enum), businessName, type      | documents, payments, history, reviews, permit |
-| ApplicationHistory | id, applicationId, status, changedBy               | application, user                             |
-| Document           | id, applicationId, type (enum), status, filePath   | application, user                             |
-| Payment            | id, applicationId, amount, method (enum), status   | application                                   |
-| Permit             | id, applicationId, permitNumber, qrCode, expiresAt | application                                   |
-| PermitIssuance     | id, permitId, status (enum)                        | permit                                        |
+## Common Queries
 
-### Scheduling Models
-
-| Model           | Key Fields                                   |
-| --------------- | -------------------------------------------- |
-| ClaimSchedule   | id, date, maxSlots                           |
-| TimeSlot        | id, scheduleId, startTime, endTime, capacity |
-| SlotReservation | id, slotId, userId, status                   |
-| ClaimReference  | id, applicationId, referenceNumber, status   |
-
-### System Models
-
-| Model             | Key Fields                                    |
-| ----------------- | --------------------------------------------- |
-| ReviewAction      | id, applicationId, reviewerId, action, notes  |
-| SystemSetting     | id, key, value, description                   |
-| Notification      | id, userId, type, title, message, read        |
-| AuditLog          | id, userId, action, entity, entityId, details |
-| VerificationToken | id, identifier, token, expires, used          |
-
-### Key Enums
-
-- `UserRole`: APPLICANT, STAFF, REVIEWER, ADMINISTRATOR
-- `UserStatus`: ACTIVE, INACTIVE, SUSPENDED, PENDING
-- `ApplicationStatus`: DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, CANCELLED
-- `ApplicationType`: NEW, RENEWAL
-- `DocumentType`: DTI, BIR, SEC, BARANGAY_CLEARANCE, ZONING, FIRE_SAFETY, LEASE, CEDULA, ID_PHOTO, OTHER
-- `DocumentStatus`: PENDING, VERIFIED, REJECTED
-- `PaymentMethod`: GCASH, MAYA, BANK_TRANSFER, CASH, OTHER
-- `PaymentStatus`: PENDING, PAID, FAILED, REFUNDED, EXPIRED
-- `IssuanceStatus`: PREPARED, ISSUED, RELEASED, COMPLETED
-
-## Common Query Patterns
-
-### Pagination with cursor
-
+### Find Applications
 ```typescript
-const applications = await prisma.application.findMany({
-  where: { userId: session.user.id, status: { not: "DRAFT" } },
+const apps = await prisma.application.findMany({
+  where: { applicantId: userId, status: "SUBMITTED" },
+  include: {
+    applicant: { select: { firstName: true, lastName: true, email: true } },
+    documents: true,
+    clearances: true,
+    permit: true,
+  },
   orderBy: { createdAt: "desc" },
-  take: limit + 1,
-  cursor: cursor ? { id: cursor } : undefined,
-  include: { documents: true, payments: true },
+  take: 10,
 });
 ```
 
-### Aggregate queries
+### Create Payment
+```typescript
+const payment = await prisma.payment.create({
+  data: {
+    applicationId: appId,
+    amount: new Decimal("2500.00"),
+    method: "GCASH",
+    referenceNumber: generateRefNumber(),
+  },
+});
+```
 
+### Update Application Status
+```typescript
+await prisma.$transaction([
+  prisma.application.update({
+    where: { id: appId },
+    data: { status: "APPROVED" },
+  }),
+  prisma.applicationHistory.create({
+    data: { applicationId: appId, fromStatus: "UNDER_REVIEW", toStatus: "APPROVED" },
+  }),
+]);
+```
+
+### Aggregate Analytics
 ```typescript
 const stats = await prisma.application.groupBy({
   by: ["status"],
-  _count: { id: true },
-  where: { createdAt: { gte: startDate } },
+  _count: true,
+  where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
 });
 ```
 
-### Transaction for multi-model write
-
+## Transactions
 ```typescript
 const result = await prisma.$transaction(async (tx) => {
-  const application = await tx.application.update({
-    where: { id },
-    data: { status: "APPROVED" },
-  });
-  await tx.applicationHistory.create({
-    data: { applicationId: id, status: "APPROVED", changedById: reviewerId },
-  });
-  const permit = await tx.permit.create({
-    data: {
-      applicationId: id,
-      permitNumber: generatePermitNumber(),
-      expiresAt: oneYearFromNow,
-    },
-  });
-  return { application, permit };
+  const app = await tx.application.update({ where: { id: appId }, data: { status: "APPROVED" } });
+  const permit = await tx.permit.create({ data: { applicationId: appId, validUntil: futureDate } });
+  await tx.payment.update({ where: { id: paymentId }, data: { status: "PAID" } });
+  return { app, permit };
 });
 ```
 
-### Optimistic concurrency
+## Data Types
 
+**Decimal**: Use for money fields
 ```typescript
-const updated = await prisma.slotReservation.updateMany({
-  where: { id: reservationId, status: "PENDING" }, // ensure status hasn't changed
-  data: { status: "CONFIRMED" },
-});
-if (updated.count === 0) throw new Error("Slot already claimed");
+amount: Decimal(12, 2)  // 99,999,999.99
 ```
 
-## Migration Commands
+**DateTime**: Timestamps
+```typescript
+createdAt: DateTime @default(now())
+updatedAt: DateTime @updatedAt
+```
+
+**Enums**: Constrained values
+```typescript
+status: ApplicationStatus  // DRAFT | SUBMITTED | APPROVED | REJECTED
+```
+
+## Indexes
+- `@@index([applicationId])` - Common lookups
+- `@@unique([applicationNumber])` - Uniqueness
+- `@@index([status, createdAt])` - Analytics queries
+- `@@index([userId, createdAt])` - User-scoped data
+
+## Migrations
 
 ```bash
-# Generate migration from schema changes
-npx prisma migrate dev --name <migration-name>
+# Create migration
+npx prisma migrate dev --name add_business_type
 
-# Apply migrations in production
+# Apply migrations (production)
 npx prisma migrate deploy
 
 # Reset database (dev only)
 npx prisma migrate reset
 
-# Generate Prisma client
-npx prisma generate
-
-# Seed database
-npx prisma db seed
-
-# Open Prisma Studio
-npx prisma studio
+# Validate schema
+npx prisma validate
 ```
 
-## Performance Guidelines
+## N+1 Prevention
+❌ Bad: Finding users without includes
+```typescript
+const apps = await prisma.application.findMany();
+apps.forEach(app => console.log(app.applicant)); // N+1!
+```
 
-1. Always use `select` or `include` — never fetch entire models when only a few fields are needed
-2. Add database indexes for frequently filtered/sorted columns
-3. Use `prisma.$transaction()` for atomic multi-model operations
-4. Leverage Redis caching (`src/lib/cache.ts`) for frequently read, rarely written data
-5. Use cursor-based pagination for large datasets (not offset)
-6. Use `@@index` in schema for composite query patterns
-7. Monitor with `prisma.$on('query')` in development
+✅ Good: Use include or select
+```typescript
+const apps = await prisma.application.findMany({
+  include: { applicant: true },
+});
+```
 
-## Checklist
+## Pagination
+```typescript
+const page = 1;
+const take = 15;
+const skip = (page - 1) * take;
 
-- [ ] Schema change reflected in `prisma/schema.prisma`
-- [ ] Migration generated and tested (`npx prisma migrate dev`)
-- [ ] Proper `select`/`include` to avoid over-fetching
-- [ ] Transactions for multi-model writes
-- [ ] Error handling for unique constraint violations
-- [ ] Indexes for query patterns that do full-table scans
-- [ ] Seed data updated in `prisma/seed.js` if needed
+const [items, total] = await Promise.all([
+  prisma.application.findMany({ skip, take, orderBy: { createdAt: "desc" } }),
+  prisma.application.count(),
+]);
+```
+
+## Performance Tips
+1. Always use `include:` to fetch relations in single query
+2. Use `select:` to limit returned fields
+3. Add indexes on frequently filtered columns
+4. Use `take:` for pagination instead of loading all
+5. Cache read-heavy queries with Redis
+6. Use transactions for consistency
+

@@ -1,158 +1,167 @@
-# Memory Leak Detector — OBPS Client & Server Leak Prevention
+# Memory Leak Detector Skill (`/memory-leak-detector`)
 
-## Purpose
-
-Detect and fix memory leaks in the Online Business Permit System — React component leaks, SSE connection leaks, Zustand store leaks, Prisma connection exhaustion, and server-side accumulation.
-
-## Usage
-
-```
-/memory-leak-detector <area-or-symptom>
-```
+**Purpose**: Detect and prevent memory leaks in the Next.js application.
 
 ## Common Leak Sources
 
-### 1. SSE (Server-Sent Events) Leaks
-
-**Risk**: `useSSE` hook not cleaning up EventSource connections
-
+### 1. SSE Listeners Not Cleaned Up
+**Problem**:
 ```typescript
-// ✅ Correct pattern in src/hooks/use-sse.ts
 useEffect(() => {
   const eventSource = new EventSource("/api/events");
-  eventSource.onmessage = handleMessage;
+  eventSource.addEventListener("message", handler);
+  // Missing cleanup!
+}, []);
+```
 
+**Fix**:
+```typescript
+useEffect(() => {
+  const eventSource = new EventSource("/api/events");
+  eventSource.addEventListener("message", handler);
+  
   return () => {
-    eventSource.close(); // MUST close on unmount
+    eventSource.close();
   };
 }, []);
 ```
 
-**Check**: Does the SSE hook clean up on component unmount?
-
-### 2. React useEffect Cleanup
-
-**Risk**: Subscriptions, intervals, or event listeners not cleaned up
-
+### 2. Timers & Intervals Without Cleanup
+**Problem**:
 ```typescript
-// ❌ Leak: interval never cleared
 useEffect(() => {
-  setInterval(fetchStatus, 5000);
-}, []);
+  const timer = setInterval(() => {
+    // Updates
+  }, 5000);
+}, [dependency]);
+```
 
-// ✅ Fixed: clear on unmount
+**Fix**:
+```typescript
 useEffect(() => {
-  const id = setInterval(fetchStatus, 5000);
-  return () => clearInterval(id);
-}, []);
+  const timer = setInterval(() => {
+    // Updates
+  }, 5000);
+  
+  return () => clearInterval(timer);
+}, [dependency]);
 ```
 
 ### 3. Zustand Store Subscriptions
-
-**Risk**: Store subscriptions in components that unmount
-
+**Problem**:
 ```typescript
-// ✅ Zustand handles this automatically with useStore selector
-// But manual subscribe() calls need cleanup:
 useEffect(() => {
-  const unsubscribe = useAppStore.subscribe((state) => {
-    // handle state change
+  store.subscribe((state) => {
+    // Handle state
   });
+}, []);
+```
+
+**Fix**:
+```typescript
+useEffect(() => {
+  const unsubscribe = store.subscribe((state) => {
+    // Handle state
+  });
+  
   return () => unsubscribe();
 }, []);
 ```
 
-### 4. React Query Stale Queries
-
-**Risk**: Queries keep running for unmounted components
-
+### 4. Event Listeners on Window/Document
+**Problem**:
 ```typescript
-// ✅ React Query handles this — but verify:
-const { data } = useQuery({
-  queryKey: ["applications"],
-  queryFn: fetchApplications,
-  enabled: isVisible, // Only run when component is visible
-  refetchInterval: isVisible ? 30000 : false, // Stop polling when hidden
-});
+useEffect(() => {
+  window.addEventListener("resize", handler);
+}, []);
 ```
 
-### 5. Prisma Connection Exhaustion (Server-side)
-
-**Risk**: Too many Prisma Client instances in development
-
+**Fix**:
 ```typescript
-// ✅ Correct pattern in src/lib/prisma.ts
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-export const prisma = globalForPrisma.prisma || new PrismaClient();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+useEffect(() => {
+  window.addEventListener("resize", handler);
+  
+  return () => {
+    window.removeEventListener("resize", handler);
+  };
+}, []);
 ```
 
-**Check**: Is Prisma client stored in globalThis for dev hot-reload?
-
-### 6. File Handle / Stream Leaks (Server-side)
-
-**Risk**: File streams or S3 streams not closed
-
+### 5. Request Cancellation
+**Problem**:
 ```typescript
-// ✅ Always close streams in finally block
-const stream = await storage.getReadStream(filePath);
-try {
-  // process stream
-} finally {
-  stream.destroy();
-}
+useEffect(() => {
+  fetch("/api/data").then(setData);
+}, []);
 ```
 
-### 7. BullMQ Worker Leaks
-
-**Risk**: Job workers not shut down gracefully
-
+**Fix**:
 ```typescript
-// ✅ In src/lib/queue.ts — ensure graceful shutdown
-process.on("SIGTERM", async () => {
-  await worker.close();
-  await queue.close();
-});
+useEffect(() => {
+  const controller = new AbortController();
+  
+  fetch("/api/data", { signal: controller.signal })
+    .then(setData)
+    .catch(err => {
+      if (err.name !== "AbortError") throw err;
+    });
+  
+  return () => controller.abort();
+}, []);
 ```
 
-## Detection Tools
+## Detection Commands
 
-### Browser (Client-side)
-
-```
-Chrome DevTools → Memory tab → Heap snapshot
-1. Take snapshot before opening dashboard
-2. Navigate around, open/close features
-3. Take snapshot again
-4. Compare — look for detached DOM nodes, growing arrays
-```
-
-### Node.js (Server-side)
-
+### Find Missing Cleanup
 ```bash
-# Check process memory
-node -e "console.log(process.memoryUsage())"
-
-# Enable Node.js memory profiling
-NODE_OPTIONS='--inspect' npm run dev
-# Then: Chrome → chrome://inspect → Memory tab
+grep -r "addEventListener\|setInterval\|setTimeout" src/ | grep -v "return\|cleanup"
 ```
 
-### Prisma Connection Check
-
+### Check for Unsubscribes
 ```bash
-# Check active DB connections
-docker exec obps-postgres psql -U postgres -c "SELECT count(*) FROM pg_stat_activity;"
+grep -r "\.subscribe(" src/ | grep -v "return () =>"
 ```
 
-## Checklist
+### Verify EventSource Cleanup
+```bash
+grep -r "EventSource" src/ -A 5 | grep "close()"
+```
 
-- [ ] All `useEffect` hooks have cleanup functions
-- [ ] SSE connections closed on component unmount
-- [ ] `setInterval` / `setTimeout` cleared on unmount
-- [ ] Event listeners removed on unmount
-- [ ] Prisma client is singleton (globalThis pattern)
-- [ ] File/S3 streams properly closed
-- [ ] BullMQ workers have graceful shutdown
-- [ ] No detached DOM nodes in heap snapshots
-- [ ] React Query queries disabled when not visible
+## Testing for Leaks
+
+### Chrome DevTools
+1. F12 → Performance tab
+2. Record: Record action multiple times
+3. Take Heap Snapshot
+4. Compare snapshots - should see same objects
+
+### Memory Profiler
+```javascript
+// In console
+1. Take heap snapshot (baseline)
+2. Perform action 10 times
+3. Take heap snapshot (final)
+4. Compare - detached DOM nodes / listeners?
+```
+
+## Memory Leak Patterns
+
+| Pattern | Leak | Fix |
+|---------|------|-----|
+| useEffect without cleanup | Yes | Add return cleanup |
+| EventListener | Yes | removeEventListener in return |
+| setInterval | Yes | clearInterval in return |
+| Zustand subscribe | Yes | Call unsubscribe in return |
+| setTimeout | Maybe | clearTimeout if long-running |
+| Fetch abort | Yes | AbortController signal |
+
+## Audit Checklist
+
+- [ ] All useEffect hooks have cleanup returns
+- [ ] All EventListeners have corresponding removeEventListener
+- [ ] All setInterval/setTimeout have clear calls
+- [ ] All subscribe() calls unsubscribe on cleanup
+- [ ] All fetch calls use AbortController
+- [ ] No console.log leaking large objects
+- [ ] Dynamic components properly unmounted
+

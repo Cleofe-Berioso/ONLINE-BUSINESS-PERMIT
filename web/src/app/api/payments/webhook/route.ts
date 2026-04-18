@@ -18,6 +18,7 @@ import { broadcastPermitIssued } from "@/lib/sse";
 const PAYMONGO_WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET || "";
 
 export async function POST(request: Request) {
+  let event: any = {};
   try {
     // Verify webhook signature from PayMongo
     const signature = request.headers.get("x-paymongo-signature") || "";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const event = JSON.parse(body);
+    event = JSON.parse(body);
     const webhookId = event.id; // PayMongo's unique webhook ID
 
     let processed = false;
@@ -188,22 +189,30 @@ export async function POST(request: Request) {
           },
         });
 
-        // Send permit to applicant
-        await sendPermitIssuedEmail(
-          payment.application.applicant.email,
-          {
-            businessName: payment.application.businessName,
-            permitNumber: result.permit.permitNumber,
-            expiryDate: result.permit.expiryDate,
-          }
-        );
+        // Send permit to applicant (non-blocking - log errors but don't fail webhook)
+        try {
+          await sendPermitIssuedEmail(
+            payment.application.applicant.email,
+            {
+              businessName: payment.application.businessName,
+              permitNumber: result.permit.permitNumber,
+              expiryDate: result.permit.expiryDate,
+            }
+          );
+        } catch (error) {
+          console.error("Failed to send permit email:", error);
+        }
 
-        // Broadcast SSE event
-        await broadcastPermitIssued(
-          payment.application.applicantId,
-          result.permit.id,
-          result.permit.permitNumber
-        );
+        // Broadcast SSE event (non-blocking - log errors but don't fail webhook)
+        try {
+          await broadcastPermitIssued(
+            payment.application.applicantId,
+            result.permit.id,
+            result.permit.permitNumber
+          );
+        } catch (error) {
+          console.error("Failed to broadcast permit issued event:", error);
+        }
 
         processed = true;
       }
@@ -284,8 +293,6 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    const event = await request.json().catch(() => ({}));
-
     captureException(error, {
       route: "POST /api/payments/webhook",
       webhookId: event?.id,

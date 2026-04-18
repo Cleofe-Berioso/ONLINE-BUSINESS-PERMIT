@@ -32,15 +32,15 @@ export default async function VerifyDocumentsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Verify Documents</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Verify Documents</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Review and verify uploaded documents from applicants
         </p>
       </div>
 
       {documents.length === 0 ? (
         <EmptyState
-          icon={<Upload className="h-8 w-8 text-gray-400" />}
+          icon={<Upload className="h-8 w-8 text-[var(--text-muted)]" />}
           title="No documents to verify"
           description="All documents have been verified. Check back later."
         />
@@ -50,13 +50,13 @@ export default async function VerifyDocumentsPage() {
               <CardContent className="p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-3">
-                    <FileText className="mt-0.5 h-7 w-7 flex-shrink-0 text-gray-400" />
+                    <FileText className="mt-0.5 h-7 w-7 flex-shrink-0 text-[var(--text-muted)]" />
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{doc.originalName}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-[var(--text-primary)] truncate">{doc.originalName}</p>
+                      <p className="text-sm text-[var(--background)]0">
                         {doc.documentType.replace(/_/g, " ")} · v{doc.version} · {doc.application.applicationNumber}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-[var(--text-muted)]">
                         Uploaded by {doc.uploader.firstName} {doc.uploader.lastName} on{" "}
                         {formatDate(doc.createdAt)}
                       </p>

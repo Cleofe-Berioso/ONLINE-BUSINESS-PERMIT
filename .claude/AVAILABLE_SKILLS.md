@@ -4,9 +4,11 @@
 
 This document catalogs all available skills and commands for the Online Business Permit System (OBPS), organized by domain and functionality.
 
-**Last Updated**: March 9, 2026
-**Total Skills**: 22
-**Tech Stack**: Next.js 16 · React 19 · TypeScript 5.9 · Prisma 7 · PostgreSQL 16 · Tailwind CSS v4
+**Last Updated**: April 18, 2026
+**Total Skills**: 22 (plus 2 domain-specific)
+**Tech Stack**: Next.js 15 · React 19 · TypeScript 5.9 · Prisma 7 · PostgreSQL 16 · Tailwind CSS v4
+
+**Status**: All 22 core skill definitions fully created and documented in `.claude/commands/`
 
 ---
 

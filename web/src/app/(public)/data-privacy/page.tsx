@@ -10,18 +10,18 @@ export const metadata: Metadata = {
 
 export default function DataPrivacyPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[var(--surface-muted)] flex flex-col">
       <PublicNav />
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 sm:py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Data Privacy Notice</h1>
-        <p className="text-sm text-gray-500 mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2">Data Privacy Notice</h1>
+        <p className="text-sm text-[var(--text-secondary)] mb-2">
           Pursuant to Republic Act No. 10173 (Data Privacy Act of 2012)
         </p>
-        <p className="text-sm text-gray-500 mb-8">Last updated: March 1, 2026</p>
+        <p className="text-sm text-[var(--text-secondary)] mb-8">Last updated: March 1, 2026</p>
 
-        <div className="bg-white rounded-xl shadow-sm border p-8 prose prose-gray max-w-none">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 not-prose">
+        <div className="bg-[var(--surface)] rounded-xl shadow-sm border p-8 prose prose-gray max-w-none">
+          <div className="bg-[var(--accent-light)] border border-blue-200 rounded-lg p-4 mb-6 not-prose">
             <p className="text-sm text-blue-800">
               <strong>🔒 Your data is protected.</strong> The Local Government Unit is committed to protecting
               your personal information in accordance with RA 10173 and its IRR, as well as NPC issuances.

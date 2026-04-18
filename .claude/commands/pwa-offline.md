@@ -1,124 +1,142 @@
-# PWA Offline — OBPS Progressive Web App Management
+# PWA & Offline Skill (`/pwa-offline`)
 
-## Purpose
+**Purpose**: Progressive Web App capabilities and offline support.
 
-Manage the PWA capabilities of the Online Business Permit System — service worker, caching strategies, offline page, install prompt, and manifest configuration.
+## PWA Components
 
-## Usage
+### 1. Manifest
+File: `public/manifest.json`
+- App name, icon, colors
+- Start URL: `/dashboard`
+- Icons: 72px, 192px, 512px
+- Display: standalone
 
-```
-/pwa-offline <task-or-issue>
-```
+### 2. Service Worker
+File: `public/sw.js`
+Strategies:
+- **Cache-first**: Static assets (JS, CSS, icons)
+- **Network-first**: API responses
+- **Stale-while-revalidate**: User-specific data
 
-## PWA Architecture
+### 3. Registration
+File: `src/components/pwa/service-worker-registration.tsx`
 
-```
-public/
-├── manifest.json          # PWA manifest (name, icons, display)
-├── sw.js                  # Service worker (cache strategies)
-├── offline.html           # Offline fallback page
-└── icons/                 # App icons (72-512px)
-    ├── icon-72x72.png
-    ├── icon-96x96.png
-    ├── icon-128x128.png
-    ├── icon-144x144.png
-    ├── icon-152x152.png
-    ├── icon-192x192.png
-    ├── icon-384x384.png
-    └── icon-512x512.png
-
-src/
-├── components/pwa/        # PWA install prompt component
-└── app/layout.tsx         # <link rel="manifest"> registration
-```
-
-## Service Worker (`public/sw.js`)
-
-### Caching Strategy
-
-| Resource                        | Strategy               | Description                            |
-| ------------------------------- | ---------------------- | -------------------------------------- |
-| Static assets (CSS, JS, images) | Cache First            | Serve from cache, update in background |
-| API responses                   | Network First          | Try network, fall back to cache        |
-| HTML pages                      | Stale While Revalidate | Serve cached, update from network      |
-| Offline page                    | Precache               | Always available                       |
-
-### Key Implementation
-
-```javascript
-// Cache name versioning
-const CACHE_NAME = "obps-v1";
-const OFFLINE_URL = "/offline.html";
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([OFFLINE_URL, "/icons/icon-192x192.png"]);
-    }),
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(OFFLINE_URL)),
-    );
-  }
-});
-```
-
-## Manifest Configuration
-
-```json
-{
-  "name": "Online Business Permit System",
-  "short_name": "OBPS",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0070f3",
-  "icons": [...]
+```typescript
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js");
 }
 ```
 
-## Install Prompt
+### 4. Offline Fallback
+File: `public/offline.html`
+- Friendly message when offline
+- Linked from service worker 404 handling
 
-- Component: `src/components/pwa/install-prompt.tsx`
-- Listens for `beforeinstallprompt` event
-- Shows custom UI banner when installable
-- Tracks installation via analytics
+## Service Worker Strategies
 
-## Icon Generation
-
-```bash
-# Generate all icon sizes from a source image
-node scripts/generate-icons.js
+### Cache First
+```javascript
+// Static assets
+const response = await caches.match(request);
+if (response) return response;
+return fetch(request);
 ```
 
-## Offline Capabilities
+### Network First
+```javascript
+// API calls
+try {
+  return await fetch(request);
+} catch {
+  return await caches.match(request);
+}
+```
 
-| Feature                                | Offline Support                  |
-| -------------------------------------- | -------------------------------- |
-| View cached applications               | ✅ (if previously loaded)        |
-| Submit new application                 | ❌ (requires server)             |
-| Track status                           | ❌ (real-time, requires network) |
-| View static pages (FAQs, Requirements) | ✅ (if cached)                   |
-| Login                                  | ❌ (requires auth server)        |
+### Stale While Revalidate
+```javascript
+// User data
+const cached = await caches.match(request);
+const fresh = fetch(request).then(r => {
+  caches.open('dynamic').then(c => c.put(request, r));
+  return r;
+});
+return cached || fresh;
+```
 
-## Testing PWA
+## Offline Features
 
-1. **Chrome DevTools** → Application tab → Service Workers
-2. **Lighthouse** → PWA audit
-3. **Network tab** → Offline mode checkbox
-4. **Application tab** → Manifest validation
+### Available Offline
+- View previously loaded data
+- View offline page
+- See last sync time
 
-## Checklist
+### Requires Connection
+- Create new application
+- Upload documents
+- Make payments
+- Real-time updates
 
-- [ ] `manifest.json` has all required fields
-- [ ] Service worker registered in layout
-- [ ] `offline.html` exists and displays helpful message
-- [ ] All icon sizes generated (72 to 512px)
-- [ ] Cache versioning implemented (bump on deploy)
-- [ ] Old caches cleaned up on activate event
-- [ ] Install prompt shown to returning visitors
-- [ ] Lighthouse PWA score > 90
+## Testing Offline
+
+**DevTools**:
+1. F12 → Application tab
+2. Service Workers section
+3. Check "Offline" box
+4. Page should still render with cached data
+
+**Testing Connection loss**:
+```typescript
+// Simulate offline
+navigator.onLine = false;
+
+// Test offline page
+fetch("/nonexistent").catch(() => {
+  // Show offline.html
+});
+```
+
+## Caching Strategy
+
+```javascript
+// Cache versioning
+const cacheName = 'v1-2026-04-18';
+
+// On install
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(cacheName).then(cache => {
+      return cache.addAll([
+        '/',
+        '/offline.html',
+        '/static/app.js',
+        '/static/app.css',
+      ]);
+    })
+  );
+});
+
+// On fetch
+self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
+  
+  e.respondWith(
+    caches.match(e.request).then(response => {
+      return response || fetch(e.request);
+    })
+  );
+});
+```
+
+## PWA Audit
+
+```javascript
+// Run in browser console
+await navigator.serviceWorker.getRegistrations();
+// Should show 1 registration
+```
+
+File: Check all 3 exist:
+- [ ] public/manifest.json
+- [ ] public/sw.js
+- [ ] src/components/pwa/service-worker-registration.tsx
+

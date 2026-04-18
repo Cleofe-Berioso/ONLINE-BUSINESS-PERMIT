@@ -1,104 +1,79 @@
-# Cleanup Codebase — OBPS Code Quality & Dead Code Removal
+# Cleanup Codebase Skill (`/cleanup-codebase`)
 
-## Purpose
-
-Identify and remove dead code, unused imports, stale configurations, and technical debt from the Online Business Permit System codebase.
-
-## Usage
-
-```
-/cleanup-codebase [area-to-clean]
-```
+**Purpose**: Maintain code quality by removing debug code and dead code.
 
 ## Cleanup Categories
 
-### 1. Unused Imports & Variables
+### 1. Console Statements
+Remove all except console.error() in try-catch blocks
 
 ```bash
-# ESLint will catch these
-npx eslint src/ --ext .ts,.tsx --fix
-
-# TypeScript strict check
-npx tsc --noEmit --noUnusedLocals --noUnusedParameters
+grep -r "console.log\|console.warn\|console.debug" src/
 ```
 
-### 2. Dead Code Detection
-
-- Unreachable code after return statements
-- Functions/components never imported anywhere
-- Unused Prisma models (defined but never queried)
-- API routes with no corresponding UI
-- Environment variables referenced but never set
-
-### 3. Dependency Audit
+### 2. TODO/FIXME Comments
+Resolve or create GitHub issue, then remove
 
 ```bash
-# Check for unused dependencies
-npx depcheck
-
-# Check for vulnerabilities
-npm audit
-
-# Check for outdated packages
-npm outdated
+grep -r "TODO\|FIXME" src/
 ```
 
-### 4. Configuration Cleanup
-
-| File                 | Check For                          |
-| -------------------- | ---------------------------------- |
-| `next.config.js`     | Unused experimental flags          |
-| `tsconfig.json`      | Unnecessary compiler options       |
-| `package.json`       | Unused scripts, stale dependencies |
-| `.env.local`         | Variables no longer referenced     |
-| `docker-compose.yml` | Unused services or volumes         |
-
-### 5. File Organization
-
-- Components in wrong directory (dashboard component in ui/)
-- Duplicate utility functions across files
-- Inconsistent file naming (kebab-case for files, PascalCase for components)
-- Missing barrel exports (`index.ts`) for component directories
-
-### 6. TypeScript Strictness
+### 3. Unused Imports
+ESLint will flag - remove unused imports
 
 ```bash
-npx tsc --noEmit
+npm run lint -- --fix
 ```
 
-- Remove `any` types — replace with proper types
-- Remove `@ts-ignore` / `@ts-expect-error` where possible
-- Ensure strict mode enabled in `tsconfig.json`
+### 4. Dead Code
+Delete unreachable or commented-out code blocks
 
-## Code Style Standards
+### 5. Unused Variables
+Remove or prefix with `_` if intentional
 
-- **File naming**: kebab-case (`application-form.tsx`)
-- **Component naming**: PascalCase (`ApplicationForm`)
-- **Function naming**: camelCase (`createApplication`)
-- **Constants**: UPPER_SNAKE_CASE (`MAX_FILE_SIZE`)
-- **Enum values**: UPPER_SNAKE_CASE (`UNDER_REVIEW`)
-- **Imports**: Group by: external → internal → components → types
+### 6. Unused Functions
+Delete if never called, move to test if useful
 
-## Quick Cleanup Commands
+### 7. Dead Routes
+Delete API routes with no callers, or document as internal
+
+## Cleanup Workflow
 
 ```bash
-# Fix all auto-fixable lint issues
-npx eslint src/ --fix
+# Find issues
+npm run lint
 
-# Format with Prettier (if configured)
-npx prettier --write "src/**/*.{ts,tsx}"
+# Auto-fix
+npm run lint -- --fix
 
-# Remove unused imports (via ESLint)
-npx eslint src/ --rule '{"no-unused-vars": "error"}' --fix
+# Manual cleanup
+grep -r "console.log" src/
+grep -r "TODO\|FIXME" src/
+
+# Verify
+npm run typecheck
+npm test
+npm run test:e2e
 ```
 
-## Checklist
+## After Cleanup Checklist
 
-- [ ] No TypeScript errors (`npx tsc --noEmit`)
-- [ ] ESLint passes (`npm run lint`)
-- [ ] No unused dependencies (`npx depcheck`)
-- [ ] No `any` types in production code
-- [ ] No commented-out code blocks
-- [ ] No `console.log` in production (use `logger` instead)
-- [ ] No hardcoded strings (use i18n or constants)
-- [ ] All TODO/FIXME comments tracked in tasks.md
+- npm run typecheck passes (0 errors)
+- npm run lint passes
+- npm test passes
+- npm run test:e2e passes
+- No console.log in production
+- All imports used
+- No dead functions/routes
+
+## Commit Message
+
+```
+chore: cleanup dead code and debug statements
+
+- Remove console.log from [files]
+- Remove unused imports from [files]
+- Delete dead [component/function/route]
+- Resolve TODOs related to [issue]
+```
+

@@ -11,8 +11,8 @@ export default async function ClaimSchedulePage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Claim Schedule</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-3xl font-bold text-[var(--text-primary)]">Claim Schedule</h1>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">
           Schedule and manage your permit claim appointments
         </p>
       </div>

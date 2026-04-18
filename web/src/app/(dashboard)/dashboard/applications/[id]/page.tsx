@@ -100,7 +100,7 @@ export default function ApplicationDetailPage() {
   }
 
   const statusIcon = {
-    DRAFT: <Clock className="h-5 w-5 text-gray-500" />,
+    DRAFT: <Clock className="h-5 w-5 text-[var(--background)]0" />,
     SUBMITTED: <Clock className="h-5 w-5 text-blue-500" />,
     UNDER_REVIEW: <AlertCircle className="h-5 w-5 text-yellow-500" />,
     ENDORSED: <CheckCircle className="h-5 w-5 text-indigo-500" />,
@@ -113,10 +113,10 @@ export default function ApplicationDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{application.applicationNumber}</h1>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{application.applicationNumber}</h1>
             <StatusBadge status={application.status} />
           </div>
-          <p className="mt-1 text-gray-600">{application.businessName}</p>
+          <p className="mt-1 text-[var(--text-secondary)]">{application.businessName}</p>
         </div>
         <Button variant="outline" onClick={() => router.back()}>← Back</Button>
       </div>
@@ -132,79 +132,79 @@ export default function ApplicationDetailPage() {
             <CardContent>
               <dl className="grid gap-4 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-gray-500">Application Type</dt>
+                  <dt className="text-[var(--background)]0">Application Type</dt>
                   <dd className="mt-1 font-medium">{application.type}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Business Name</dt>
+                  <dt className="text-[var(--background)]0">Business Name</dt>
                   <dd className="mt-1 font-medium">{application.businessName}</dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Business Type</dt>
+                  <dt className="text-[var(--background)]0">Business Type</dt>
                   <dd className="mt-1 font-medium">{application.businessType}</dd>
                 </div>
                 {application.additionalData?.lineOfBusiness && (
                   <div>
-                    <dt className="text-gray-500">Line of Business</dt>
+                    <dt className="text-[var(--background)]0">Line of Business</dt>
                     <dd className="mt-1 font-medium">{application.additionalData.lineOfBusiness}</dd>
                   </div>
                 )}
                 {application.businessPhone && (
                   <div>
-                    <dt className="text-gray-500">Business Phone</dt>
+                    <dt className="text-[var(--background)]0">Business Phone</dt>
                     <dd className="mt-1 font-medium">{application.businessPhone}</dd>
                   </div>
                 )}
                 {application.businessEmail && (
                   <div>
-                    <dt className="text-gray-500">Business Email</dt>
+                    <dt className="text-[var(--background)]0">Business Email</dt>
                     <dd className="mt-1 font-medium">{application.businessEmail}</dd>
                   </div>
                 )}
                 {application.dtiSecRegistration && (
                   <div>
-                    <dt className="text-gray-500">DTI / SEC / CDA Registration</dt>
+                    <dt className="text-[var(--background)]0">DTI / SEC / CDA Registration</dt>
                     <dd className="mt-1 font-medium">{application.dtiSecRegistration}</dd>
                   </div>
                 )}
                 {application.tinNumber && (
                   <div>
-                    <dt className="text-gray-500">TIN</dt>
+                    <dt className="text-[var(--background)]0">TIN</dt>
                     <dd className="mt-1 font-medium">{application.tinNumber}</dd>
                   </div>
                 )}
                 {application.capitalInvestment && (
                   <div>
-                    <dt className="text-gray-500">Capital Investment</dt>
+                    <dt className="text-[var(--background)]0">Capital Investment</dt>
                     <dd className="mt-1 font-medium">₱{application.capitalInvestment.toLocaleString()}</dd>
                   </div>
                 )}
                 {application.additionalData?.assetValue && (
                   <div>
-                    <dt className="text-gray-500">Asset Value</dt>
+                    <dt className="text-[var(--background)]0">Asset Value</dt>
                     <dd className="mt-1 font-medium">₱{parseFloat(application.additionalData.assetValue).toLocaleString()}</dd>
                   </div>
                 )}
                 {application.numberOfEmployees && (
                   <div>
-                    <dt className="text-gray-500">Number of Employees</dt>
+                    <dt className="text-[var(--background)]0">Number of Employees</dt>
                     <dd className="mt-1 font-medium">{application.numberOfEmployees}</dd>
                   </div>
                 )}
                 {application.businessArea && (
                   <div>
-                    <dt className="text-gray-500">Business Area (sqm)</dt>
+                    <dt className="text-[var(--background)]0">Business Area (sqm)</dt>
                     <dd className="mt-1 font-medium">{application.businessArea.toLocaleString()}</dd>
                   </div>
                 )}
                 {application.additionalData?.monthlyRental && (
                   <div>
-                    <dt className="text-gray-500">Monthly Rental</dt>
+                    <dt className="text-[var(--background)]0">Monthly Rental</dt>
                     <dd className="mt-1 font-medium">₱{parseFloat(application.additionalData.monthlyRental).toLocaleString()}</dd>
                   </div>
                 )}
                 <div className="sm:col-span-2">
-                  <dt className="text-gray-500">Business Address</dt>
+                  <dt className="text-[var(--background)]0">Business Address</dt>
                   <dd className="mt-1 font-medium">
                     {[application.businessAddress, application.businessBarangay, application.businessCity, application.businessProvince, application.businessZipCode]
                       .filter(Boolean)
@@ -225,25 +225,25 @@ export default function ApplicationDetailPage() {
                 <dl className="grid gap-4 text-sm sm:grid-cols-2">
                   {application.additionalData?.ownerName && (
                     <div>
-                      <dt className="text-gray-500">Owner's Name</dt>
+                      <dt className="text-[var(--background)]0">Owner's Name</dt>
                       <dd className="mt-1 font-medium">{application.additionalData.ownerName}</dd>
                     </div>
                   )}
                   {application.additionalData?.ownerBirthdate && (
                     <div>
-                      <dt className="text-gray-500">Birthdate</dt>
+                      <dt className="text-[var(--background)]0">Birthdate</dt>
                       <dd className="mt-1 font-medium">{new Date(application.additionalData.ownerBirthdate).toLocaleDateString()}</dd>
                     </div>
                   )}
                   {application.additionalData?.ownerResidenceAddress && (
                     <div className="sm:col-span-2">
-                      <dt className="text-gray-500">Residence Address</dt>
+                      <dt className="text-[var(--background)]0">Residence Address</dt>
                       <dd className="mt-1 font-medium">{application.additionalData.ownerResidenceAddress}</dd>
                     </div>
                   )}
                   {application.additionalData?.ownerPhone && (
                     <div>
-                      <dt className="text-gray-500">Mobile Number</dt>
+                      <dt className="text-[var(--background)]0">Mobile Number</dt>
                       <dd className="mt-1 font-medium">{application.additionalData.ownerPhone}</dd>
                     </div>
                   )}
@@ -262,16 +262,16 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent>
               {application.documents.length === 0 ? (
-                <p className="text-sm text-gray-500">No documents uploaded yet.</p>
+                <p className="text-sm text-[var(--background)]0">No documents uploaded yet.</p>
               ) : (
                 <div className="space-y-3">
                   {application.documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
+                    <div key={doc.id} className="flex items-center justify-between rounded-lg border border-[var(--border)] p-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <FileText className="h-5 w-5 text-[var(--text-muted)] flex-shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{doc.originalName}</p>
-                          <p className="text-xs text-gray-500">{doc.documentType.replace(/_/g, " ")}</p>
+                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">{doc.originalName}</p>
+                          <p className="text-xs text-[var(--background)]0">{doc.documentType.replace(/_/g, " ")}</p>
                         </div>
                       </div>
                       <StatusBadge status={doc.status} />
@@ -300,14 +300,14 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500 uppercase">Current Status</p>
+                <p className="text-xs text-[var(--background)]0 uppercase">Current Status</p>
                 <p className="mt-1 flex items-center gap-2 text-lg font-semibold">
                   {statusIcon}
                   {application.status.replace(/_/g, " ")}
                 </p>
               </div>
               <div className="border-t pt-3">
-                <p className="text-xs text-gray-500">Submitted</p>
+                <p className="text-xs text-[var(--background)]0">Submitted</p>
                 <p className="mt-1 text-sm font-medium">{new Date(application.dateSubmitted).toLocaleDateString()}</p>
               </div>
             </CardContent>
@@ -325,18 +325,18 @@ export default function ApplicationDetailPage() {
               <CardContent>
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-gray-500">Status</dt>
+                    <dt className="text-[var(--background)]0">Status</dt>
                     <dd><StatusBadge status={application.payment.status} /></dd>
                   </div>
                   {application.payment.amountPaid && (
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">Amount Paid</dt>
+                      <dt className="text-[var(--background)]0">Amount Paid</dt>
                       <dd className="font-medium">₱{application.payment.amountPaid.toLocaleString()}</dd>
                     </div>
                   )}
                   {application.payment.totalAmount && (
                     <div className="flex justify-between">
-                      <dt className="text-gray-500">Total Due</dt>
+                      <dt className="text-[var(--background)]0">Total Due</dt>
                       <dd className="font-medium">₱{application.payment.totalAmount.toLocaleString()}</dd>
                     </div>
                   )}
@@ -357,12 +357,12 @@ export default function ApplicationDetailPage() {
               <CardContent>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <p className="text-gray-500">Reference Number</p>
+                    <p className="text-[var(--background)]0">Reference Number</p>
                     <p className="mt-1 font-mono font-medium">{application.claimReference.referenceNumber}</p>
                   </div>
                   {application.claimReference.claimDate && (
                     <div>
-                      <p className="text-gray-500">Scheduled</p>
+                      <p className="text-[var(--background)]0">Scheduled</p>
                       <p className="mt-1 font-medium">{new Date(application.claimReference.claimDate).toLocaleDateString()}</p>
                     </div>
                   )}
@@ -379,7 +379,7 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent className="text-sm space-y-2">
               <p className="font-medium">{application.applicant.firstName} {application.applicant.lastName}</p>
-              <p className="text-gray-600">{application.applicant.email}</p>
+              <p className="text-[var(--text-secondary)]">{application.applicant.email}</p>
             </CardContent>
           </Card>
         </div>

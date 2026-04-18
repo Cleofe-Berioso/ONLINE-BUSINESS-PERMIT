@@ -57,8 +57,8 @@ export default function ApplicationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Applications</h1>
-          <p className="text-gray-600">Manage your business permit applications</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">My Applications</h1>
+          <p className="text-[var(--text-secondary)]">Manage your business permit applications</p>
         </div>
         <Link href="/dashboard/applications/new">
           <Button>
@@ -77,9 +77,9 @@ export default function ApplicationsPage() {
       {applications.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
-            <p className="text-gray-500 mb-4">Start by creating your first business permit application</p>
+            <FileText className="h-12 w-12 text-[var(--text-muted)] mb-4" />
+            <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">No applications yet</h3>
+            <p className="text-[var(--background)]0 mb-4">Start by creating your first business permit application</p>
             <Link href="/dashboard/applications/new">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -107,8 +107,8 @@ export default function ApplicationsPage() {
                       </span>
                       <StatusBadge status={app.status} />
                     </div>
-                    <p className="font-medium text-gray-900">{app.businessName}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-medium text-[var(--text-primary)]">{app.businessName}</p>
+                    <p className="text-sm text-[var(--background)]0">
                       {app.type} • {app.businessType} • Created{" "}
                       {new Date(app.createdAt).toLocaleDateString()}
                     </p>

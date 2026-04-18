@@ -133,6 +133,25 @@ enum ApplicationStatus {
   CANCELLED
 }
 
+enum ClosureReason {
+  RETIREMENT
+  RELOCATION
+  SOLD_TRANSFERRED
+  LIQUIDATION
+  CALAMITY
+  OTHER
+}
+
+enum DocumentType {
+  PROOF_OF_REGISTRATION
+  PROOF_OF_OWNERSHIP
+  LOCATION_PLAN
+  FSIC
+  AFFIDAVIT
+  BARANGAY_CLEARANCE
+  OTHER
+}
+
 model Application {
   id                 String             @id @default(cuid())
   applicationNumber  String             @unique
@@ -146,6 +165,7 @@ model Application {
   // Business info
   businessName       String
   businessType       String
+  lineOfBusiness     String?
   businessAddress    String
   businessBarangay   String?
   businessCity       String?
@@ -159,9 +179,17 @@ model Application {
   businessArea       Float?
   numberOfEmployees  Int?
   capitalInvestment  Decimal?           @db.Decimal(15, 2)
+  assetValue         Decimal?           @db.Decimal(15, 2)
+  monthlyRental      Decimal?           @db.Decimal(15, 2)
   grossSales         Decimal?           @db.Decimal(15, 2)
 
+  // Owner personal info
+  ownerBirthdate     DateTime?
+  ownerResidenceAddress String?
+  ownerPhone         String?
+
   additionalData     Json?
+  acknowledgedOutstandingFees Boolean?
 
   // Renewal reference
   previousPermitId   String?
@@ -185,12 +213,30 @@ model Application {
   permit             Permit?            @relation("PermitApplication")
   payments           Payment[]
   clearances         Clearance[]        @relation("ApplicationClearances")
+  businessLocation   BusinessLocation?
 
   @@index([applicantId])
   @@index([status])
   @@index([applicationNumber])
   @@index([createdAt])
   @@map("applications")
+}
+
+model BusinessLocation {
+  id              String      @id @default(cuid())
+  applicationId   String      @unique
+  latitude        Float
+  longitude       Float
+  label           String?
+  businessType    String?
+  markerColor     String?     @default("blue")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("business_locations")
 }
 
 model ApplicationHistory {
@@ -245,7 +291,7 @@ model Document {
   mimeType        String
   fileSize        Int
   filePath        String
-  documentType    String
+  documentType    DocumentType   @default(OTHER)
   status          DocumentStatus @default(UPLOADED)
   version         Int            @default(1)
   verifiedBy      String?

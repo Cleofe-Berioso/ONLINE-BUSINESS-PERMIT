@@ -98,6 +98,7 @@ web/
 │   │   ├── cache.ts              # Redis + in-memory cache fallback
 │   │   ├── sanitize.ts           # Data sanitization
 │   │   ├── logger.ts             # Structured logging
+│   │   ├── locations.ts          # ✅ Geo Map utilities (EB Magalona bounds, color map)
 │   │   └── utils.ts              # Utility functions (cn, formatDate, etc.)
 │   │
 │   ├── 🪝 hooks/
@@ -128,6 +129,9 @@ web/
 │   │   │   ├── renewal-sidebar.tsx
 │   │   │   ├── tracking-client.tsx # Real-time tracking (SSE)
 │   │   │   ├── verify-document-actions.tsx
+│   │   │   ├── business-map.tsx  # ✅ Geo Map wrapper (dynamic import, ssr: false)
+│   │   │   ├── business-map-content.tsx # ✅ Geo Map Leaflet container
+│   │   │   ├── admin-locations-client.tsx # ✅ Geo Map admin form & table
 │   │   │   └── ... (other dashboard components)
 │   │   │
 │   │   ├── privacy/              # Cookie consent (RA 10173 compliance)
@@ -199,7 +203,8 @@ web/
 │   │   │       ├── settings/
 │   │   │       ├── schedules/
 │   │   │       ├── reports/
-│   │   │       └── audit-logs/
+│   │   │       ├── audit-logs/
+│   │   │       └── locations/     # ✅ Geo Map - Business location management
 │   │   │
 │   │   └── api/ (18 API route groups)
 │   │       ├── auth/             # Login, register, OTP, 2FA
@@ -217,6 +222,7 @@ web/
 │   │       ├── profile/          # User profile CRUD
 │   │       ├── privacy/          # Data privacy (RA 10173)
 │   │       ├── admin/            # Admin operations
+│   │       │   └── locations/    # ✅ Geo Map API (GET, POST, DELETE)
 │   │       ├── public/           # Public track, verify-permit
 │   │       ├── files/            # File serving
 │   │       └── cron/             # Scheduled tasks
@@ -231,7 +237,7 @@ web/
 
 ## 📊 Database Schema (Prisma)
 
-### 16 Models
+### 17 Models
 | Model | Purpose |
 |-------|---------|
 | `User` | Accounts (4 roles: APPLICANT, STAFF, REVIEWER, ADMINISTRATOR) |
@@ -250,6 +256,7 @@ web/
 | `PermitIssuance` | Issuance records + **Mayor signing fields** |
 | `SystemSetting` | System configuration parameters |
 | `Payment` | Payment records (GCash, Maya, bank, OTC, cash) |
+| `BusinessLocation` | ✅ **Geo Map** - Business location pins (lat/lon, multicolored markers) |
 
 ### 11 Enums
 - `Role`, `AccountStatus`, `ApplicationType`, `ApplicationStatus`, `DocumentStatus`
@@ -260,7 +267,7 @@ web/
 
 ## 🔑 Key Implementation Files (Recently Updated)
 
-### ✅ Critical Gaps Fixed (Phase 13)
+### ✅ Critical Gaps Fixed (Phase 13 + Geo Map v1)
 
 | File | Change | Status |
 |------|--------|--------|
@@ -269,6 +276,15 @@ web/
 | `/dashboard/issuance/[id]/page.tsx` | Mayor signing workflow UI | ✅ ENHANCED |
 | `/dashboard/applications/closure/page.tsx` | Fixed TBD hardcoding | ✅ FIXED |
 | `/dashboard/renew/page.tsx` | Updated flow to use form page | ✅ UPDATED |
+| `/dashboard/admin/locations/page.tsx` | ✅ **Geo Map** - Business location admin page | ✅ NEW |
+| `lib/locations.ts` | ✅ **Geo Map** - EB Magalona bounds & color utilities | ✅ NEW |
+| `components/dashboard/business-map.tsx` | ✅ **Geo Map** - Map wrapper (dynamic import) | ✅ NEW |
+| `components/dashboard/business-map-content.tsx` | ✅ **Geo Map** - Leaflet map container | ✅ NEW |
+| `components/dashboard/admin-locations-client.tsx` | ✅ **Geo Map** - Admin form, table, delete modal | ✅ NEW |
+| `api/admin/locations/route.ts` | ✅ **Geo Map** - GET/POST endpoints | ✅ NEW |
+| `api/admin/locations/[id]/route.ts` | ✅ **Geo Map** - DELETE endpoint (NextAuth 15 params) | ✅ NEW |
+| `prisma/schema.prisma` | ✅ **Geo Map** - BusinessLocation model + Application relation | ✅ NEW |
+| `lib/validations.ts` | ✅ **Geo Map** - businessLocationSchema with bound validation | ✅ NEW |
 
 ### Core Business Logic
 
@@ -333,15 +349,54 @@ docker compose up -d postgres     # PostgreSQL only
 
 | Metric | Value |
 |--------|-------|
-| **Total Files (excluding node_modules)** | 500+ |
-| **TypeScript Components** | 80+ |
-| **API Routes** | 18 groups (50+ endpoints) |
-| **Database Models** | 16 |
+| **Total Files (excluding node_modules)** | 510+ |
+| **TypeScript Components** | 85+ |
+| **API Routes** | 18 groups (55+ endpoints) |
+| **Database Models** | 17 |
 | **Enums** | 11 |
-| **Zod Schemas** | 25+ |
+| **Zod Schemas** | 26+ |
 | **Tests** | 35+ E2E, 50+ unit tests |
 | **Documentation Pages** | 30+ markdown files |
-| **Lines of Code** | 10,000+ (excluding tests/docs) |
+| **Lines of Code** | 10,500+ (excluding tests/docs) |
+
+---
+
+## 🗺️ Geo Map Feature (v1 - Admin-Only MVP)
+
+### ✅ Implementation Status: Working with limitations (authentication required for full UI testing)
+
+**Purpose:** Admin-managed business location mapping with multicolored markers based on business type.
+
+**Core Features Implemented:**
+- Leaflet + OpenStreetMap map rendering (client-only with `ssr: false`)
+- EB Magalona coordinate bounds validation (lat 10.3569–10.4569, lon 122.9201–123.0201)
+- Multicolored markers by business type (Retail, Service, Manufacturing, Food)
+- Admin form: coordinate input, label, business type selector
+- Save locations to PostgreSQL via Prisma
+- Delete locations with confirmation modal
+- Real-time map marker updates
+
+**Admin-Only Access:**
+- Role enforcement: `ADMINISTRATOR` only
+- Route: `/dashboard/admin/locations`
+- Sidebar link: "Business Locations" with MapPin icon
+
+**API Endpoints (Admin-Protected):**
+- `GET /api/admin/locations` — List locations (paginated)
+- `POST /api/admin/locations` — Create new location
+- `DELETE /api/admin/locations/[id]` — Delete location
+
+**Known Limitations (v1, intentional):**
+- Application ID is text field (v2: dropdown selector with autocomplete)
+- No edit functionality (v2: add PUT endpoint + edit modal)
+- No public map API yet (v2: separate public read-only map page)
+- No click-to-pin (v2: optional enhancement)
+
+**Technology Stack:**
+- `leaflet@^1.9.4` + `react-leaflet@^4.2.1` (with legacy peer deps)
+- OpenStreetMap tiles (free, no API key required)
+- Prisma `BusinessLocation` model with `Application` relation
+- Next.js dynamic import with `ssr: false` for SSR compatibility
 
 ---
 
@@ -359,8 +414,10 @@ docker compose up -d postgres     # PostgreSQL only
 
 ## 🚀 Next Phase
 
+**v1 Geo Map Complete** → Authenticated browser testing → Public map API (v2) → Click-to-pin (v2)
+
 **Staging Deployment** → Execute critical path tests → Production deployment
 
 For detailed setup, see **START_HERE.md**
 For tech stack details, see **CLAUDE.md**
-For implementation status, see **Phase 13 in memory/MEMORY.md**
+For implementation status, see **Phase 13 + Geo Map in memory/MEMORY.md**

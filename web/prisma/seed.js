@@ -171,8 +171,8 @@ async function main() {
       data: {
         code: "ZONING",
         name: "City Planning & Development Office - Zoning Division",
-        description: "Zoning compliance and land use verification",
-        applicationTypes: ["NEW", "RENEWAL"],
+        description: "Zoning compliance and land use verification (NEW applications only per DFD P3.2)",
+        applicationTypes: ["NEW"],
         isActive: true,
       },
     }),
@@ -180,8 +180,8 @@ async function main() {
       data: {
         code: "ENVIRONMENT",
         name: "Department of Environment & Natural Resources - Environmental Compliance",
-        description: "Environmental impact assessment and compliance",
-        applicationTypes: ["NEW", "RENEWAL"],
+        description: "Environmental impact assessment and compliance (NEW applications only per DFD P3.2)",
+        applicationTypes: ["NEW"],
         isActive: true,
       },
     }),
@@ -226,6 +226,24 @@ async function main() {
         code: "AGRICULTURE",
         name: "City Agriculture Office - Agricultural Compliance",
         description: "Farm, garden, and agricultural operations compliance",
+        applicationTypes: ["NEW", "RENEWAL"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "MTO",
+        name: "Municipal Treasurer's Office",
+        description: "Payment verification and outstanding fee assessment (DFD P6.2.3 & P3.2)",
+        applicationTypes: ["NEW", "RENEWAL", "CLOSURE"],
+        isActive: true,
+      },
+    }),
+    prisma.clearanceOffice.create({
+      data: {
+        code: "ASSESSOR",
+        name: "Municipal Assessor's Office",
+        description: "Property and asset valuation clearance (DFD P3.2)",
         applicationTypes: ["NEW", "RENEWAL"],
         isActive: true,
       },
@@ -365,14 +383,14 @@ async function main() {
   console.log("📄 Creating documents...");
 
   const docs = [
-    { applicationId: app1.id, uploadedBy: applicant1.id, fileName: "dti_cert.pdf", originalName: "DTI Certificate.pdf", mimeType: "application/pdf", fileSize: 524288, filePath: "uploads/app1/dti_cert.pdf", documentType: "DTI_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-01-19") },
+    { applicationId: app1.id, uploadedBy: applicant1.id, fileName: "dti_cert.pdf", originalName: "DTI Certificate.pdf", mimeType: "application/pdf", fileSize: 524288, filePath: "uploads/app1/dti_cert.pdf", documentType: "PROOF_OF_REGISTRATION", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-01-19") },
     { applicationId: app1.id, uploadedBy: applicant1.id, fileName: "brgy_clearance.pdf", originalName: "Barangay Clearance.pdf", mimeType: "application/pdf", fileSize: 312000, filePath: "uploads/app1/brgy_clearance.pdf", documentType: "BARANGAY_CLEARANCE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-01-19") },
-    { applicationId: app1.id, uploadedBy: applicant1.id, fileName: "fire_cert.pdf", originalName: "Fire Safety Certificate.pdf", mimeType: "application/pdf", fileSize: 410000, filePath: "uploads/app1/fire_cert.pdf", documentType: "FIRE_SAFETY_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-01-19") },
-    { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "dti_cert2.pdf", originalName: "DTI Certificate.pdf", mimeType: "application/pdf", fileSize: 530000, filePath: "uploads/app2/dti_cert2.pdf", documentType: "DTI_CERTIFICATE", status: "PENDING_VERIFICATION" },
+    { applicationId: app1.id, uploadedBy: applicant1.id, fileName: "fire_cert.pdf", originalName: "Fire Safety Certificate.pdf", mimeType: "application/pdf", fileSize: 410000, filePath: "uploads/app1/fire_cert.pdf", documentType: "FSIC", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-01-19") },
+    { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "dti_cert2.pdf", originalName: "DTI Certificate.pdf", mimeType: "application/pdf", fileSize: 530000, filePath: "uploads/app2/dti_cert2.pdf", documentType: "PROOF_OF_REGISTRATION", status: "PENDING_VERIFICATION" },
     { applicationId: app2.id, uploadedBy: applicant1.id, fileName: "brgy_clearance2.pdf", originalName: "Barangay Clearance.pdf", mimeType: "application/pdf", fileSize: 298000, filePath: "uploads/app2/brgy_clearance2.pdf", documentType: "BARANGAY_CLEARANCE", status: "UPLOADED" },
-    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "dti_renewal.pdf", originalName: "DTI Renewal Certificate.pdf", mimeType: "application/pdf", fileSize: 520000, filePath: "uploads/app6/dti_renewal.pdf", documentType: "DTI_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
+    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "dti_renewal.pdf", originalName: "DTI Renewal Certificate.pdf", mimeType: "application/pdf", fileSize: 520000, filePath: "uploads/app6/dti_renewal.pdf", documentType: "PROOF_OF_REGISTRATION", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
     { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "brgy_renewal.pdf", originalName: "Barangay Clearance Renewal.pdf", mimeType: "application/pdf", fileSize: 310000, filePath: "uploads/app6/brgy_renewal.pdf", documentType: "BARANGAY_CLEARANCE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
-    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "fire_renewal.pdf", originalName: "Fire Safety Certificate Renewal.pdf", mimeType: "application/pdf", fileSize: 405000, filePath: "uploads/app6/fire_renewal.pdf", documentType: "FIRE_SAFETY_CERTIFICATE", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
+    { applicationId: app6.id, uploadedBy: applicant4.id, fileName: "fire_renewal.pdf", originalName: "Fire Safety Certificate Renewal.pdf", mimeType: "application/pdf", fileSize: 405000, filePath: "uploads/app6/fire_renewal.pdf", documentType: "FSIC", status: "VERIFIED", verifiedBy: staff.id, verifiedAt: new Date("2026-02-09") },
   ];
 
   for (const doc of docs) {
